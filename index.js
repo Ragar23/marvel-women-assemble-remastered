@@ -53,6 +53,16 @@ const HEROES = {
     cooldown: 0.11,
     tint: "#f0b323",
   },
+  thor: {
+    sprite: "thor",
+    bullet: "lightning",
+    bulletSize: [70, 38],
+    damage: 3,
+    cooldown: 0.34,
+    //Each bolt arcs through this many extra enemies before it dies.
+    pierce: 2,
+    tint: "#7dd3fc",
+  },
 };
 
 //baseSpeed px/s, hp, points, stone damage when it gets through
@@ -109,6 +119,8 @@ const imageSources = {
   chit2: "./images/chit2.png",
   chit3: "./images/chit3.png",
   chit4: "./images/chit4.png",
+  thor: "./images/thor.png",
+  lightning: "./images/lightning.png",
 };
 
 const img = {};
@@ -180,6 +192,7 @@ let chosenHero = "wanda";
 
 let player, bullets, enemyShots, enemies, powerUps, particles, floatTexts;
 let boss, spawnQueue, heroes;
+let nextEnemyId = 0;
 
 let score, kills, combo, bestCombo, wave, stonesHp;
 let waveElapsed, waveBanner, betweenWaves, betweenTimer;
@@ -311,6 +324,7 @@ function spawnEnemy(typeName) {
   //Bigger, tougher enemies appear from further out so they read as a threat.
   const hpBonus = Math.floor((wave - 1) / CONFIG.difficulty.hpEveryWaves);
   enemies.push({
+    id: nextEnemyId++,
     type: typeName,
     def,
     x: W + rand(20, 220),
@@ -502,6 +516,8 @@ function fire() {
     w: bw,
     h: bh,
     dmg: hero.damage,
+    pierce: hero.pierce || 0,
+    struck: new Set(),
   });
   //muzzle flash
   burst(player.x + player.w, player.y + player.h / 2, hero.tint, 5, 150);
@@ -580,9 +596,11 @@ function updateEnemies(dt) {
     //Shot down?
     let dead = false;
     for (const bullet of bullets) {
-      if (bullet.spent) continue;
+      if (bullet.spent || bullet.struck.has(enemy.id)) continue;
       if (overlaps(enemy, bullet)) {
-        bullet.spent = true;
+        bullet.struck.add(enemy.id);
+        if (bullet.pierce > 0) bullet.pierce--;
+        else bullet.spent = true;
         dead = damageEnemy(enemy, bullet.dmg, bullet.x, bullet.y + bullet.h / 2);
         break;
       }

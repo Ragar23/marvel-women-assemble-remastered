@@ -40,8 +40,13 @@ mostly works too, but a local server is more reliable for the audio and font fil
 
 ## What's in it
 
-- **Two heroes that play differently.** Scarlet Witch hits for 2 at a slower
-  cadence; Captain Marvel hits for 1 at roughly double the rate.
+- **Three heroes that play differently**, tuned to near-identical single-target
+  damage so the choice is about style, not power:
+  | Hero | Damage | Cooldown | Special |
+  | --- | --- | --- | --- |
+  | Scarlet Witch | 2 | 0.22s | Balanced |
+  | Captain Marvel | 1 | 0.11s | Rapid fire |
+  | Thor | 3 | 0.34s | Bolts pierce 2 extra enemies |
 - **Escalating waves** — eight enemy types, arriving faster and tougher as you go.
   Ultrons weave, Cull Obsidian soaks damage, Leviathans are slow and enormous.
 - **A Thanos boss fight** every fifth wave, with a health bar, homing blasts and
@@ -63,6 +68,7 @@ a 60Hz laptop and a 120Hz display.
 | `index.html` | The three screens — menu, game, game over — and the `<canvas>` |
 | `index.js` | Tuning, asset loading, input, waves, entities, collisions, effects, HUD, audio |
 | `style.css` | The menu and game-over design, and the responsive canvas |
+| `tools/` | `make-thor-sprite.py`, which draws `thor.png` and `lightning.png` |
 | `images/` | Sprites and backgrounds |
 | `assets/` | Music, sound effects and the `Marvel.ttf` font |
 

@@ -139,8 +139,14 @@ sits at the left edge.
 
 Not on the original list, but they came out of playing it:
 
-- **Two distinct heroes.** Wanda trades fire rate for damage; Captain Marvel is
-  the opposite. The choice now changes how a run plays.
+- **Three distinct heroes.** Wanda trades fire rate for damage, Captain Marvel is
+  the opposite, and Thor hits hardest of all on the longest cooldown, with bolts
+  that arc through two extra enemies. Their single-target damage is within 4% of
+  each other, so the pick is about style rather than strength.
+- **A generated Thor sprite.** There was no Thor art in the 2021 assets, so
+  `tools/make-thor-sprite.py` draws him and his lightning bolt from primitives in
+  the same chibi pixel style. Re-run it to change the design, or drop in real art
+  over `images/thor.png` and delete the script.
 - **Eight enemy types**, including `ultron.png` and `cull.png` — both sitting
   unused in `images/` since 2021. Ultrons weave, Cull soaks damage, Leviathans
   are slow and huge.

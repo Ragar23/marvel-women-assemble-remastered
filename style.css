@@ -193,8 +193,8 @@ kbd {
 /*----------------- Hero cards -----------------*/
 .hero-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.9rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
   /* Fill the panel so the card column is not left half empty next to the
      taller rules and controls panels. */
   flex: 1;
@@ -206,7 +206,7 @@ kbd {
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
-  padding: 1rem 0.6rem;
+  padding: 0.9rem 0.35rem;
   border-radius: 12px;
   border: 2px solid transparent;
   background: rgba(255, 255, 255, 0.05);
@@ -218,7 +218,7 @@ kbd {
 }
 
 .hero-card img {
-  width: 92px;
+  width: clamp(56px, 5vw, 76px);
   height: auto;
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
   transition: transform 0.22s ease;
@@ -241,13 +241,16 @@ kbd {
 }
 
 .hero-name {
-  font-size: 1.1rem;
-  letter-spacing: 0.12em;
+  font-size: 0.98rem;
+  letter-spacing: 0.06em;
+  text-align: center;
 }
 
 .hero-perk {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--muted);
+  text-align: center;
+  line-height: 1.2;
 }
 
 /*----------------- Buttons -----------------*/
