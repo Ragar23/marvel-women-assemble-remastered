@@ -19,6 +19,11 @@ const CONFIG = {
     invulnAfterHit: 1.6,
     lives: 3,
     margin: 8,
+    //Damage is taken on a box smaller than the sprite. Action poses carry
+    //effects — a repulsor blast, thruster flames — inside their bounds, and
+    //dying to the glow around a character is never the right answer. A
+    //forgiving hitbox is also standard for the genre.
+    hitScale: 0.58,
   },
   bullet: { speed: 1250 },
   stones: { maxHp: 100 },
@@ -283,6 +288,18 @@ let score, kills, combo, bestCombo, wave, stonesHp;
 let waveElapsed, waveBanner, betweenWaves, betweenTimer;
 let shake, flash, elapsed, grootTimer, grootStanding, chitFrame, chitTimer;
 let stars;
+
+//The box the player takes damage on. Pickups deliberately use the full
+//sprite bounds instead, so collecting a drop stays generous.
+function playerHitbox() {
+  const s = CONFIG.player.hitScale;
+  return {
+    x: player.x + (player.w * (1 - s)) / 2,
+    y: player.y + (player.h * (1 - s)) / 2,
+    w: player.w * s,
+    h: player.h * s,
+  };
+}
 
 function heroDef() {
   return HEROES[chosenHero];
@@ -1003,7 +1020,7 @@ function updateEnemies(dt) {
     }
 
     //Reached the player
-    if (overlaps(enemy, player)) {
+    if (overlaps(enemy, playerHitbox())) {
       hitPlayer();
       burst(enemy.x, enemy.y, "#ff4d4d", 18, 300);
       continue;
@@ -1086,7 +1103,7 @@ function updateBoss(dt) {
     }
   }
 
-  if (overlaps(boss, player)) hitPlayer();
+  if (overlaps(boss, playerHitbox())) hitPlayer();
 }
 
 function damageBoss(amount, hitX, hitY) {
@@ -1156,7 +1173,7 @@ function updateBullets(dt) {
   for (const s of enemyShots) {
     s.x += s.vx * dt * shotScale;
     s.y += s.vy * dt * shotScale;
-    if (overlaps(s, player)) {
+    if (overlaps(s, playerHitbox())) {
       s.spent = true;
       hitPlayer();
     }

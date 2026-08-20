@@ -185,8 +185,13 @@ drawn with a flat `drawImage(x, y)`, which cannot express rotation, scale or fad
 - ✅ **Ultimates** — a meter filled by kills and spent with `Space`: Wanda's Chaos
   Hex, Captain Marvel's Binary Ignition, Thor's God Blast, Iron Man's Micro-Missiles.
 - ✅ **Iron Man**, with twin repulsors and a homing missile swarm. His sprite is
-  generated pixel art in the style of `thor.png` — drop a better `ironman.png`
-  into `images/` at any size and nothing else needs to change.
+  generated pixel art — a side-facing hover-and-fire pose, matching Wanda and
+  Captain Marvel rather than Thor's static front view. Regenerate or tweak it
+  with `python3 tools/make_ironman.py`, or drop your own `ironman.png` into
+  `images/` at any size and nothing else needs to change.
+- ✅ **Forgiving hitboxes** — damage is taken on a box 58% of the sprite, so
+  effects carried inside a sprite's bounds (a repulsor blast, thruster flames)
+  cannot kill you. Pickups still use the full bounds.
 
 ## Known and left alone
 
