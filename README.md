@@ -1,63 +1,61 @@
-## MARVEL. ¡WOMEN, ASSEMBLED!
+# MARVEL. ¡WOMEN, ASSEMBLE! — Remastered
 
-## Description
+A remaster of the original browser arcade game built in 2021 with vanilla JavaScript
+and the HTML5 Canvas API. You pick a hero, dodge the space dogs and Chitauri coming
+in from the right, and shoot them for points.
 
-It is a game where the player first picks a character to play with. Then the player needs to avoid the Ultrons coming from the right side of
-the screen. The game will end if the Ultrons touch the character.
+This repository is the **working copy** where all improvements happen.
+The original game is preserved, untouched, at
+[Ragar23/marvel-women-assemble](https://github.com/Ragar23/marvel-women-assemble)
+(playable here: <https://ragar23.github.io/marvel-women-assemble/>).
 
-## MVP
+The original project README is kept as [`README.original.md`](./README.original.md).
 
-- Multiple Ultrons come at you from the right side of the screen randomly to the left side.
-- It has one Marvel character that moves vertically to avoid the Ultrons.
-- Marvel Characters can shoot. \*If the first two work
-- Ultrons touching the character will be Game Over \*If the first two work
+## Play it
 
-## Backlog
+No build step, no dependencies — it is plain HTML, CSS and JS.
 
-- The player can shoot if press "S" on the keyboard.
-- add lives
+```bash
+git clone https://github.com/Ragar23/marvel-women-assemble-remastered.git
+cd marvel-women-assemble-remastered
+python3 -m http.server 5501   # or: npx serve .
+```
 
-## Data structure
+Then open <http://localhost:5501>. Opening `index.html` directly with `file://`
+mostly works too, but a local server is more reliable for the audio and font files.
 
-1. index.js
+> Serving over a local server matters more than it looks: the game reads
+> `image.width` / `image.height` for its collision boxes, so anything that delays
+> image loading changes how the game behaves.
 
-- theSplashScreen(){} --> build the screen where you select the characters and start the game
-- theGameScreen(){}
-- theGameOverScreen (){}
+## Controls
 
-- marvelWomenGame (){}
-- ultronCollision (){}
-- addUltrons (){}
-- GameOver (){}
-- drawCanvas (){}
-- clearCanvas (){}
-- theUltronsLoop(){}
+| Key | Action |
+| --- | --- |
+| `↑` / `↓` | Move up / down |
+| `←` / `→` | Move backwards / forwards |
+| `S` | Shoot |
+| `W` | Easter egg — the women assemble |
 
-- ultrons () {}
-- drawUltrons (){}
-- moveUltrons (){}
+## How it is built today
 
-- CharacterI (){}
-- drawCharI (){}
-- moveCharI (){}
+| File | Contains |
+| --- | --- |
+| `index.html` | Splash screen, how-to-play panel, game-over screen and the `<canvas>` |
+| `index.js` | Everything else — asset loading, input, the `draw()` game loop, collisions, audio |
+| `style.css` | Screen layout and the Marvel-font buttons |
+| `images/` | Sprites and backgrounds |
+| `assets/` | Music, sound effects and the `Marvel.ttf` font |
 
-## States y States Transitions
+Everything runs off a single `requestAnimationFrame` loop in `draw()`, with module-level
+`let` variables holding all game state.
 
-## Tasks
+## What is next
 
-- Build the start screen and the buttons
-- Basic game functionality: add one player, adding enemies.
-- Build the game over screen and the buttons
-- Build the instructions into the start screen
+See [`ROADMAP.md`](./ROADMAP.md) for the prioritised list of fixes and improvements —
+starting with the bugs that are currently reachable during normal play.
 
-## Additional Links
+## Credits
 
-### Link Deploy
-
-[Link url](https://ragar23.github.io/marvel-women-assemble/)
-
-## Notion
-
-[Link url](https://www.notion.so/74e0bf7c8bdf492cbbf8be2753d33021?v=d4e99809f52548749bab0e2652765e0f)
-
-## Slides
+Built by [Raquel R. García](https://github.com/Ragar23). Marvel characters, artwork and
+music belong to Marvel / Disney; this is a non-commercial fan project made for learning.
