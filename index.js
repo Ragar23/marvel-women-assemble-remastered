@@ -44,6 +44,12 @@ const CONFIG = {
     ignitionDuration: 1.7, //Captain Marvel: beam uptime
     ignitionDamage: 999,
     godBlastDamage: 7, //Thor: damage to everything on screen
+    //Iron Man: a swarm that arcs out, then hunts
+    missileCount: 18,
+    missileDamage: 3,
+    missileSpeed: 700,
+    missileTurn: 5.5, //radians per second of steering authority
+    missileLife: 3.2,
   },
   //Animation and juice. Durations in seconds, angles in radians.
   anim: {
@@ -91,6 +97,18 @@ const HEROES = {
     tint: "#7dd3fc",
     ult: "godblast",
     ultName: "GOD BLAST",
+  },
+  ironman: {
+    sprite: "ironman",
+    bullet: "repulsor",
+    bulletSize: [40, 20],
+    damage: 1,
+    cooldown: 0.16,
+    //Twin repulsors: one shot from each palm, so he covers a band rather
+    //than a line. Offsets are fractions of his height.
+    barrels: [-0.26, 0.26],
+    ult: "barrage",
+    ultName: "MICRO-MISSILES",
   },
 };
 
@@ -149,6 +167,8 @@ const imageSources = {
   chit3: "./images/chit3.png",
   chit4: "./images/chit4.png",
   thor: "./images/thor.png",
+  ironman: "./images/ironman.png",
+  repulsor: "./images/repulsor.png",
   lightning: "./images/lightning.png",
 };
 
@@ -255,7 +275,7 @@ let chosenHero = "wanda";
 
 let player, bullets, enemyShots, enemies, powerUps, particles, floatTexts;
 let boss, spawnQueue, heroes;
-let corpses, pops, bossDying, boltArcs;
+let corpses, pops, bossDying, boltArcs, missiles;
 let hitStop, slowMo, timeScale;
 let nextEnemyId = 0;
 
@@ -328,6 +348,7 @@ function resetGame() {
   corpses = [];
   pops = [];
   boltArcs = [];
+  missiles = [];
   bossDying = null;
   hitStop = 0;
   slowMo = 0;
@@ -540,10 +561,133 @@ function fireUlt() {
     screenFlash("#f0b323", 0.38);
     addShake(16);
     burst(player.x + player.w / 2, player.y + player.h / 2, "#f0b323", 50, 420);
+  } else if (kind === "barrage") {
+    launchBarrage();
   } else {
     //God Blast: lightning arcs to everything on screen at once
     godBlast();
   }
+}
+
+//Iron Man's barrage: missiles burst outward first, then turn and hunt. The
+//initial spread is what makes it read as a swarm rather than a shotgun.
+function launchBarrage() {
+  screenFlash("#f0b323", 0.3);
+  addShake(12);
+  const n = CONFIG.ult.missileCount;
+  for (let i = 0; i < n; i++) {
+    const spread = (i / (n - 1) - 0.5) * Math.PI * 0.8;
+    missiles.push({
+      x: player.x + player.w * 0.6,
+      y: player.y + player.h / 2,
+      angle: spread,
+      speed: CONFIG.ult.missileSpeed,
+      life: CONFIG.ult.missileLife,
+      //Stagger the launch so they pour out instead of appearing at once
+      delay: i * 0.035,
+      smoke: 0,
+    });
+  }
+  playSfx(audioBalls, 0.35);
+}
+
+function nearestTarget(m) {
+  let best = null;
+  let bestDist = Infinity;
+  const candidates = boss ? [...enemies, boss] : enemies;
+  for (const c of candidates) {
+    const dx = c.x + c.w / 2 - m.x;
+    const dy = c.y + c.h / 2 - m.y;
+    //Only hunt what is still ahead; a missile should not turn back on itself
+    if (dx < -60) continue;
+    const d = dx * dx + dy * dy;
+    if (d < bestDist) {
+      bestDist = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+function updateMissiles(dt) {
+  for (const m of missiles) {
+    if (m.delay > 0) {
+      m.delay -= dt;
+      continue;
+    }
+    m.life -= dt;
+
+    const target = nearestTarget(m);
+    if (target) {
+      const want = Math.atan2(
+        target.y + target.h / 2 - m.y,
+        target.x + target.w / 2 - m.x
+      );
+      //Steer by the shortest way round, capped by the turn rate
+      let diff = want - m.angle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      m.angle += clamp(diff, -CONFIG.ult.missileTurn * dt, CONFIG.ult.missileTurn * dt);
+    }
+
+    m.x += Math.cos(m.angle) * m.speed * dt;
+    m.y += Math.sin(m.angle) * m.speed * dt;
+
+    m.smoke -= dt;
+    if (m.smoke <= 0) {
+      m.smoke = 0.02;
+      particles.push({
+        x: m.x,
+        y: m.y,
+        vx: rand(-30, 30),
+        vy: rand(-30, 30),
+        life: 0.3,
+        maxLife: 0.3,
+        size: rand(2, 4),
+        color: Math.random() < 0.5 ? "#f0b323" : "#9aa3b2",
+      });
+    }
+
+    const hitbox = { x: m.x - 7, y: m.y - 7, w: 14, h: 14 };
+    if (target && overlaps(hitbox, target)) {
+      detonate(m, target);
+      continue;
+    }
+    if (m.x > W + 80 || m.y < -80 || m.y > H + 80) m.life = 0;
+  }
+  missiles = missiles.filter((m) => m.life > 0 && !m.spent);
+}
+
+function detonate(m, target) {
+  m.spent = true;
+  burst(m.x, m.y, "#ffb347", 16, 320);
+  pop(m.x, m.y, "#f0b323", 46);
+  addShake(2);
+  if (target === boss) {
+    damageBoss(CONFIG.ult.missileDamage, m.x, m.y);
+  } else {
+    damageEnemy(target, CONFIG.ult.missileDamage, m.x, m.y);
+    if (target.hp <= 0) enemies = enemies.filter((e) => e !== target);
+  }
+}
+
+function drawMissiles() {
+  for (const m of missiles) {
+    if (m.delay > 0) continue;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle);
+    ctx.fillStyle = "#d7dbe4";
+    ctx.fillRect(-9, -3, 14, 6);
+    ctx.fillStyle = "#c02630";
+    ctx.fillRect(3, -3, 5, 6);
+    //Exhaust, flickering so it reads as thrust
+    ctx.fillStyle = "#f0b323";
+    ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+    ctx.fillRect(-14 - Math.random() * 6, -2, 6, 4);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function godBlast() {
@@ -552,6 +696,7 @@ function godBlast() {
   slowMo = 0.5;
   const from = { x: player.x + player.w, y: player.y + player.h / 2 };
   boltArcs = [];
+  missiles = [];
 
   for (const enemy of [...enemies]) {
     boltArcs.push({
@@ -577,7 +722,7 @@ function godBlast() {
       t: 0,
       dur: 0.45,
     });
-    damageBoss(CONFIG.ult.godBlastDamage * 2, boss.x, boss.y + boss.h / 2);
+    damageBoss(CONFIG.ult.godBlastDamage * 5, boss.x, boss.y + boss.h / 2);
   }
 }
 
@@ -684,6 +829,7 @@ function update(dt) {
   updateBossDeath(dt);
   updateBullets(dt);
   updatePowerUps(dt);
+  updateMissiles(dt);
   updateHeroes(dt);
   updateDressing(dt);
   updateEffects(dt);
@@ -742,15 +888,19 @@ function fire() {
   player.cooldown =
     hero.cooldown * (player.rapid > 0 ? CONFIG.powerUp.rapidFactor : 1);
   player.recoil = 1;
-  bullets.push({
-    x: player.x + player.w - 10,
-    y: player.y + player.h / 2 - bh / 2,
-    w: bw,
-    h: bh,
-    dmg: hero.damage,
-    pierce: hero.pierce || 0,
-    struck: new Set(),
-  });
+  //Most heroes fire a single shot down the centre; Iron Man has two palms.
+  const barrels = hero.barrels || [0];
+  for (const offset of barrels) {
+    bullets.push({
+      x: player.x + player.w - 10,
+      y: player.y + player.h / 2 - bh / 2 + offset * player.h,
+      w: bw,
+      h: bh,
+      dmg: hero.damage,
+      pierce: hero.pierce || 0,
+      struck: new Set(),
+    });
+  }
   //muzzle flash
   burst(player.x + player.w, player.y + player.h / 2, hero.tint, 5, 150);
   playSfx(audioBalls, 0.12);
@@ -1156,6 +1306,7 @@ function draw() {
   for (const b of bullets) drawBullet(b);
   for (const s of enemyShots) drawEnemyShot(s);
 
+  drawMissiles();
   if (player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
   drawBoltArcs();
@@ -1447,7 +1598,7 @@ function drawBullet(b) {
   const sprite = img[hero.bullet];
   //Three fading ghosts behind each shot read as motion blur
   for (let i = 3; i >= 1; i--) {
-    drawSprite(sprite, b.x - i * 20, b.y, b.w, b.h, { alpha: 0.14 * (4 - i) });
+    drawSprite(sprite, b.x - i * 20, b.y, b.w, b.h, { alpha: 0.09 * (4 - i) });
   }
   if (hero.ult === "godblast") {
     //Thor's bolts flicker and stretch along their travel
@@ -1458,6 +1609,8 @@ function drawBullet(b) {
     });
   } else if (hero.ult === "hex") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: elapsed * 11 });
+  } else if (hero.ult === "barrage") {
+    drawSprite(sprite, b.x, b.y, b.w, b.h, { flash: 0.2 });
   } else {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { flash: 0.2 });
   }

@@ -193,7 +193,7 @@ kbd {
 /*----------------- Hero cards -----------------*/
 .hero-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.55rem;
   /* Fill the panel so the card column is not left half empty next to the
      taller rules and controls panels. */
@@ -482,6 +482,10 @@ canvas {
 
 .hero-card:nth-child(3) img {
   animation-delay: -2.2s;
+}
+
+.hero-card:nth-child(4) img {
+  animation-delay: -0.6s;
 }
 
 @keyframes hero-idle {

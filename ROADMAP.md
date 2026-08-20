@@ -183,7 +183,10 @@ drawn with a flat `drawImage(x, y)`, which cannot express rotation, scale or fad
 - ✅ **Menu animation** — the title assembles letter by letter, portraits idle,
   the selected card pulses, a real loading bar, and end-of-run stats count up.
 - ✅ **Ultimates** — a meter filled by kills and spent with `Space`: Wanda's Chaos
-  Hex, Captain Marvel's Binary Ignition, Thor's God Blast.
+  Hex, Captain Marvel's Binary Ignition, Thor's God Blast, Iron Man's Micro-Missiles.
+- ✅ **Iron Man**, with twin repulsors and a homing missile swarm. His sprite is
+  generated pixel art in the style of `thor.png` — drop a better `ironman.png`
+  into `images/` at any size and nothing else needs to change.
 
 ## Known and left alone
 
