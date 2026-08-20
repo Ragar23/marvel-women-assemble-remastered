@@ -453,3 +453,96 @@ canvas {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/*----------------- Animation -----------------*/
+/* The title assembles letter by letter; the spans are added in index.js. */
+.game-title .ch {
+  display: inline-block;
+  white-space: pre;
+  animation: title-drop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+@keyframes title-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5em) rotate(-8deg) scale(1.6);
+  }
+}
+
+/* Portraits breathe while they wait to be picked. */
+.hero-card img {
+  animation: hero-idle 3.4s ease-in-out infinite;
+}
+
+.hero-card:nth-child(2) img {
+  animation-delay: -1.1s;
+}
+
+.hero-card:nth-child(3) img {
+  animation-delay: -2.2s;
+}
+
+@keyframes hero-idle {
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.hero-card.is-selected {
+  animation: card-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes card-pulse {
+  50% {
+    box-shadow: 0 0 0 7px rgba(230, 36, 41, 0.1),
+      0 14px 40px rgba(230, 36, 41, 0.42);
+  }
+}
+
+.loading-bar {
+  width: min(420px, 70vw);
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.loading-bar span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--red-bright), var(--gold));
+  transition: width 0.18s ease;
+}
+
+.loading-bar.is-done {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* Stat tiles land one after another as the score counts up. */
+.screen.is-active .stat {
+  animation: stat-in 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.screen.is-active .stat:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.screen.is-active .stat:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.screen.is-active .stat:nth-child(4) {
+  animation-delay: 0.24s;
+}
+
+@keyframes stat-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.9);
+  }
+}

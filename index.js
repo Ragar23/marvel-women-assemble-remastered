@@ -34,6 +34,29 @@ const CONFIG = {
   //Wave N multiplies every enemy speed by this, capped, so runs build.
   difficulty: { speedStep: 0.075, speedCap: 2.1, hpEveryWaves: 4 },
   bossEvery: 5,
+  //Ultimates: a meter filled by kills, spent with Space.
+  ult: {
+    max: 100,
+    chargePerKill: 4.5, //about 22 kills for a full bar
+    chargePerBossHit: 1.2,
+    hexDuration: 5, //Wanda: how long the world crawls
+    hexSlow: 0.28, //enemies move at this fraction of their speed
+    ignitionDuration: 1.7, //Captain Marvel: beam uptime
+    ignitionDamage: 999,
+    godBlastDamage: 7, //Thor: damage to everything on screen
+  },
+  //Animation and juice. Durations in seconds, angles in radians.
+  anim: {
+    bankAngle: 0.26, //how far the hero tilts at full vertical speed
+    bankEase: 10, //how quickly the tilt catches up with the input
+    recoilPx: 16,
+    recoilDecay: 6.5,
+    spawnIn: 0.35, //enemies fade and scale in over this
+    deathTime: 0.32,
+    hitStop: 0.05, //frames frozen on a kill
+    bossSlowMo: 1.5,
+    slowMoScale: 0.32,
+  },
 };
 
 const HEROES = {
@@ -44,6 +67,8 @@ const HEROES = {
     damage: 2,
     cooldown: 0.22,
     tint: "#e0457b",
+    ult: "hex",
+    ultName: "CHAOS HEX",
   },
   cpMarvel: {
     sprite: "marvel",
@@ -52,6 +77,8 @@ const HEROES = {
     damage: 1,
     cooldown: 0.11,
     tint: "#f0b323",
+    ult: "ignition",
+    ultName: "BINARY IGNITION",
   },
   thor: {
     sprite: "thor",
@@ -62,6 +89,8 @@ const HEROES = {
     //Each bolt arcs through this many extra enemies before it dies.
     pierce: 2,
     tint: "#7dd3fc",
+    ult: "godblast",
+    ultName: "GOD BLAST",
   },
 };
 
@@ -125,17 +154,24 @@ const imageSources = {
 
 const img = {};
 
-function loadImages() {
+function loadImages(onProgress) {
+  const total = Object.keys(imageSources).length;
+  let done = 0;
   return Promise.all(
     Object.entries(imageSources).map(
       ([name, src]) =>
         new Promise((resolve) => {
           const image = new Image();
+          const settle = () => {
+            done++;
+            if (onProgress) onProgress(done / total);
+            resolve(image);
+          };
           //A missing sprite must not deadlock the loading screen.
-          image.onload = () => resolve(image);
+          image.onload = settle;
           image.onerror = () => {
             console.warn(`Could not load ${src}`);
-            resolve(image);
+            settle();
           };
           image.src = src;
           img[name] = image;
@@ -176,6 +212,33 @@ function showScreen(name) {
 const rand = (min, max) => min + Math.random() * (max - min);
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+//Every sprite goes through here, which is what makes rotation, scale and
+//fading possible at all — drawImage(x, y) alone cannot express any of it.
+//`flash` brightens the sprite by drawing it again additively: ctx.filter
+//would be simpler, but Safari did not support it until 16.4.
+function drawSprite(image, x, y, w, h, opts) {
+  const o = opts || {};
+  const rot = o.rot || 0;
+  const sx = o.sx === undefined ? 1 : o.sx;
+  const sy = o.sy === undefined ? 1 : o.sy;
+  const alpha = o.alpha === undefined ? 1 : o.alpha;
+  const flash = o.flash || 0;
+
+  ctx.save();
+  ctx.globalAlpha = clamp(alpha, 0, 1);
+  ctx.translate(x + w / 2, y + h / 2);
+  if (rot) ctx.rotate(rot);
+  if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+  ctx.drawImage(image, -w / 2, -h / 2, w, h);
+  if (flash > 0) {
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = clamp(flash, 0, 1);
+    ctx.drawImage(image, -w / 2, -h / 2, w, h);
+    ctx.drawImage(image, -w / 2, -h / 2, w, h);
+  }
+  ctx.restore();
+}
+
 function overlaps(a, b) {
   return (
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
@@ -192,6 +255,8 @@ let chosenHero = "wanda";
 
 let player, bullets, enemyShots, enemies, powerUps, particles, floatTexts;
 let boss, spawnQueue, heroes;
+let corpses, pops, bossDying, boltArcs;
+let hitStop, slowMo, timeScale;
 let nextEnemyId = 0;
 
 let score, kills, combo, bestCombo, wave, stonesHp;
@@ -244,6 +309,11 @@ function resetGame() {
     cooldown: 0,
     rapid: 0,
     shield: 0,
+    bank: 0, //current tilt, eased toward the input each frame
+    recoil: 0, //1 right after firing, decaying to 0
+    charge: 0, //ultimate meter, 0 → CONFIG.ult.max
+    hex: 0, //Wanda: seconds of slowed time remaining
+    ignition: 0, //Captain Marvel: seconds of beam remaining
   };
 
   bullets = [];
@@ -255,6 +325,13 @@ function resetGame() {
   heroes = [];
   boss = null;
   spawnQueue = [];
+  corpses = [];
+  pops = [];
+  boltArcs = [];
+  bossDying = null;
+  hitStop = 0;
+  slowMo = 0;
+  timeScale = 1;
 
   score = 0;
   kills = 0;
@@ -337,6 +414,8 @@ function spawnEnemy(typeName) {
     speed: def.speed * speedMultiplier(),
     phase: rand(0, Math.PI * 2),
     hitFlash: 0,
+    spawnT: 0, //0 → 1 as it fades and scales into the world
+    bob: rand(0, Math.PI * 2), //phase-offset so the swarm never syncs up
   });
 }
 
@@ -354,12 +433,18 @@ function summonThanos() {
     fireTimer: 1.4,
     spawnTimer: 2.6,
     hitFlash: 0,
+    windup: 0, //0 → 1 as he charges a blast, giving you a tell
+    lunge: 0, //snaps to 1 on release, then decays
+    knock: 0, //knocked back by each hit that lands
   };
 }
 
 function waveIsClear() {
   return (
-    spawnQueue.length === 0 && enemies.length === 0 && boss === null
+    spawnQueue.length === 0 &&
+    enemies.length === 0 &&
+    boss === null &&
+    bossDying === null
   );
 }
 
@@ -383,6 +468,28 @@ function burst(x, y, color, count, power) {
   }
 }
 
+//A killed enemy hands its sprite to a corpse that spins, grows and fades,
+//so a kill reads as an event rather than a disappearance.
+function spawnCorpse(enemy, sprite) {
+  corpses.push({
+    sprite,
+    x: enemy.x,
+    y: enemy.y,
+    w: enemy.w,
+    h: enemy.h,
+    t: 0,
+    dur: CONFIG.anim.deathTime,
+    spin: rand(-2.6, 2.6),
+    driftX: -enemy.speed * 0.35,
+    driftY: rand(-70, 70),
+  });
+}
+
+//An expanding ring, used wherever something is collected or detonates.
+function pop(x, y, color, radius) {
+  pops.push({ x, y, color, r: radius, t: 0, dur: 0.35 });
+}
+
 function floatText(x, y, text, color) {
   floatTexts.push({ x, y, text, color, life: 1 });
 }
@@ -396,6 +503,110 @@ function screenFlash(color, strength) {
 }
 
 //=====================================================================//
+//  ULTIMATES
+//=====================================================================//
+function chargeUlt(amount) {
+  if (!player) return;
+  player.charge = Math.min(CONFIG.ult.max, player.charge + amount);
+}
+
+function ultReady() {
+  return player && player.charge >= CONFIG.ult.max;
+}
+
+//Wanda's hex slows the whole battlefield; everything that moves reads this.
+function enemySpeedScale() {
+  return player && player.hex > 0 ? CONFIG.ult.hexSlow : 1;
+}
+
+function fireUlt() {
+  if (!ultReady()) return;
+  player.charge = 0;
+  const kind = heroDef().ult;
+  banner(heroDef().ultName, "", heroDef().tint);
+  playSfx(audioBalls, 0.4);
+
+  if (kind === "hex") {
+    player.hex = CONFIG.ult.hexDuration;
+    screenFlash("#e0457b", 0.4);
+    addShake(14);
+    //A ring of chaos energy thrown outward from her
+    for (let i = 0; i < 5; i++) {
+      pop(player.x + player.w / 2, player.y + player.h / 2, "#e0457b", 90 + i * 70);
+    }
+    burst(player.x + player.w / 2, player.y + player.h / 2, "#e0457b", 60, 460);
+  } else if (kind === "ignition") {
+    player.ignition = CONFIG.ult.ignitionDuration;
+    screenFlash("#f0b323", 0.38);
+    addShake(16);
+    burst(player.x + player.w / 2, player.y + player.h / 2, "#f0b323", 50, 420);
+  } else {
+    //God Blast: lightning arcs to everything on screen at once
+    godBlast();
+  }
+}
+
+function godBlast() {
+  screenFlash("#ffffff", 0.5);
+  addShake(26);
+  slowMo = 0.5;
+  const from = { x: player.x + player.w, y: player.y + player.h / 2 };
+  boltArcs = [];
+
+  for (const enemy of [...enemies]) {
+    boltArcs.push({
+      from,
+      to: { x: enemy.x + enemy.w / 2, y: enemy.y + enemy.h / 2 },
+      t: 0,
+      dur: 0.45,
+    });
+    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#7dd3fc", 18, 320);
+    damageEnemy(
+      enemy,
+      CONFIG.ult.godBlastDamage,
+      enemy.x + enemy.w / 2,
+      enemy.y + enemy.h / 2
+    );
+  }
+  enemies = enemies.filter((e) => e.hp > 0);
+
+  if (boss) {
+    boltArcs.push({
+      from,
+      to: { x: boss.x + boss.w / 2, y: boss.y + boss.h / 2 },
+      t: 0,
+      dur: 0.45,
+    });
+    damageBoss(CONFIG.ult.godBlastDamage * 2, boss.x, boss.y + boss.h / 2);
+  }
+}
+
+//The lane-clearing beam is a moving hitbox, so it needs updating per frame.
+function updateIgnition(dt) {
+  if (player.ignition <= 0) return;
+  player.ignition = Math.max(0, player.ignition - dt);
+
+  const beam = {
+    x: player.x + player.w,
+    y: player.y + player.h * 0.18,
+    w: W,
+    h: player.h * 0.64,
+  };
+  for (const enemy of [...enemies]) {
+    if (!overlaps(enemy, beam)) continue;
+    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#f0b323", 14, 300);
+    damageEnemy(
+      enemy,
+      CONFIG.ult.ignitionDamage,
+      enemy.x + enemy.w / 2,
+      enemy.y + enemy.h / 2
+    );
+  }
+  enemies = enemies.filter((e) => e.hp > 0);
+  if (boss && overlaps(boss, beam)) damageBoss(dt * 26, boss.x, boss.y + boss.h / 2);
+}
+
+//=====================================================================//
 //  INPUT
 //=====================================================================//
 const heldKeys = new Set();
@@ -405,6 +616,11 @@ document.addEventListener("keydown", (event) => {
   if (movement.includes(event.code) || event.code === "KeyS") {
     heldKeys.add(event.code);
     event.preventDefault();
+  }
+
+  if (event.code === "Space") {
+    event.preventDefault(); //Space scrolls the page otherwise
+    if (state === "playing") fireUlt();
   }
 
   if (event.code === "KeyM") toggleMute();
@@ -465,6 +681,7 @@ function update(dt) {
   updateSpawning(dt);
   updateEnemies(dt);
   updateBoss(dt);
+  updateBossDeath(dt);
   updateBullets(dt);
   updatePowerUps(dt);
   updateHeroes(dt);
@@ -490,17 +707,31 @@ function update(dt) {
 function updatePlayer(dt) {
   const step = CONFIG.player.speed * dt;
   const m = CONFIG.player.margin;
-  if (heldKeys.has("ArrowUp")) player.y -= step;
-  if (heldKeys.has("ArrowDown")) player.y += step;
+  const up = heldKeys.has("ArrowUp");
+  const down = heldKeys.has("ArrowDown");
+  if (up) player.y -= step;
+  if (down) player.y += step;
   if (heldKeys.has("ArrowLeft")) player.x -= step;
   if (heldKeys.has("ArrowRight")) player.x += step;
+
+  //Bank into the turn, level out when the keys are released
+  const targetBank = (down ? 1 : 0) - (up ? 1 : 0);
+  player.bank +=
+    (targetBank * CONFIG.anim.bankAngle - player.bank) *
+    Math.min(1, dt * CONFIG.anim.bankEase);
+  player.recoil = Math.max(
+    0,
+    player.recoil - dt * CONFIG.anim.recoilDecay
+  );
   player.y = clamp(player.y, m, H - player.h - m);
   player.x = clamp(player.x, m, W - player.w - m);
 
   player.invuln = Math.max(0, player.invuln - dt);
   player.shield = Math.max(0, player.shield - dt);
   player.rapid = Math.max(0, player.rapid - dt);
+  player.hex = Math.max(0, player.hex - dt);
   player.cooldown -= dt;
+  updateIgnition(dt);
 
   if (heldKeys.has("KeyS") && player.cooldown <= 0) fire();
 }
@@ -510,6 +741,7 @@ function fire() {
   const [bw, bh] = hero.bulletSize;
   player.cooldown =
     hero.cooldown * (player.rapid > 0 ? CONFIG.powerUp.rapidFactor : 1);
+  player.recoil = 1;
   bullets.push({
     x: player.x + player.w - 10,
     y: player.y + player.h / 2 - bh / 2,
@@ -546,6 +778,11 @@ function damageEnemy(enemy, amount, hitX, hitY) {
   burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ff8a3d", 22, 340);
   floatText(enemy.x + enemy.w / 2, enemy.y, `+${gained}`, "#f0b323");
   addShake(2.5);
+  spawnCorpse(enemy, enemySprite(enemy));
+  //Freezing everything for a few frames is the cheapest way to make a hit
+  //land. Kept short so the game never feels like it is stuttering.
+  hitStop = Math.max(hitStop, CONFIG.anim.hitStop);
+  chargeUlt(CONFIG.ult.chargePerKill);
   maybeDropPowerUp(enemy);
   return true;
 }
@@ -576,8 +813,10 @@ function updateEnemies(dt) {
   const survivors = [];
 
   for (const enemy of enemies) {
-    enemy.x -= enemy.speed * dt;
+    enemy.x -= enemy.speed * dt * enemySpeedScale();
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+    enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
+    enemy.bob += dt * 3.4;
     if (enemy.def.weave) {
       enemy.phase += dt * 2.2;
       enemy.y = clamp(
@@ -641,8 +880,29 @@ function updateBoss(dt) {
     boss.y = H / 2 - boss.h / 2 + Math.sin(boss.phase * 0.9) * (H / 2 - boss.h / 2 - 20);
 
     boss.fireTimer -= dt;
+    //The last 0.6s before a shot is a visible wind-up: he swells, the aura
+    //tightens and motes converge on him. It makes the fight readable.
+    const WINDUP = 0.6;
+    boss.windup = boss.fireTimer < WINDUP ? 1 - boss.fireTimer / WINDUP : 0;
+    if (boss.windup > 0 && Math.random() < 0.5) {
+      const a = rand(0, Math.PI * 2);
+      const r = boss.w * 0.9;
+      particles.push({
+        x: boss.x + boss.w / 2 + Math.cos(a) * r,
+        y: boss.y + boss.h / 2 + Math.sin(a) * r,
+        vx: -Math.cos(a) * 260,
+        vy: -Math.sin(a) * 260,
+        life: 0.32,
+        maxLife: 0.32,
+        size: rand(2, 4),
+        color: "#c084fc",
+      });
+    }
+
     if (boss.fireTimer <= 0) {
       boss.fireTimer = clamp(1.7 - wave * 0.05, 0.7, 1.7);
+      boss.windup = 0;
+      boss.lunge = 1;
       const cy = boss.y + boss.h / 2;
       const targetY = player.y + player.h / 2;
       const dy = clamp((targetY - cy) * 1.2, -260, 260);
@@ -654,8 +914,11 @@ function updateBoss(dt) {
         vx: -680,
         vy: dy,
       });
-      burst(boss.x, cy, "#c084fc", 8, 200);
+      burst(boss.x, cy, "#c084fc", 14, 280);
+      addShake(5);
     }
+    boss.lunge = Math.max(0, boss.lunge - dt * 4);
+    boss.knock = Math.max(0, boss.knock - dt * 6);
 
     boss.spawnTimer -= dt;
     if (boss.spawnTimer <= 0) {
@@ -668,33 +931,81 @@ function updateBoss(dt) {
     if (bullet.spent) continue;
     if (overlaps(boss, bullet)) {
       bullet.spent = true;
-      boss.hp -= bullet.dmg;
-      boss.hitFlash = 0.1;
-      burst(bullet.x, bullet.y + bullet.h / 2, "#ffd27f", 6, 200);
-      if (boss.hp <= 0) {
-        const gained = 1000 * wave;
-        score += gained;
-        kills++;
-        burst(boss.x + boss.w / 2, boss.y + boss.h / 2, "#c084fc", 90, 620);
-        floatText(boss.x + 40, boss.y + boss.h / 2, `+${gained}`, "#f0b323");
-        addShake(24);
-        screenFlash("#ffffff", 0.75);
-        boss = null;
-        return;
-      }
+      damageBoss(bullet.dmg, bullet.x, bullet.y + bullet.h / 2);
+      if (!boss) return;
     }
   }
 
   if (overlaps(boss, player)) hitPlayer();
 }
 
+function damageBoss(amount, hitX, hitY) {
+  if (!boss) return;
+  boss.hp -= amount;
+  boss.hitFlash = 0.1;
+  boss.knock = 1; //visibly shoved back by the hit
+  chargeUlt(CONFIG.ult.chargePerBossHit);
+  burst(hitX, hitY, "#ffd27f", 6, 200);
+  if (boss.hp > 0) return;
+
+  const gained = 1000 * wave;
+  score += gained;
+  kills++;
+  floatText(boss.x + 40, boss.y + boss.h / 2, `+${gained}`, "#f0b323");
+  addShake(24);
+  screenFlash("#ffffff", 0.45);
+  //He does not vanish: he comes apart in slow motion over a second and a half
+  bossDying = {
+    x: boss.x,
+    y: boss.y,
+    w: boss.w,
+    h: boss.h,
+    t: 0,
+    dur: 1.6,
+    nextBurst: 0,
+    spin: rand(-0.7, 0.7),
+  };
+  slowMo = CONFIG.anim.bossSlowMo;
+  hitStop = Math.max(hitStop, 0.12);
+  boss = null;
+}
+
+function updateBossDeath(dt) {
+  if (!bossDying) return;
+  bossDying.t += dt;
+  bossDying.nextBurst -= dt;
+  if (bossDying.nextBurst <= 0) {
+    bossDying.nextBurst = 0.13;
+    burst(
+      bossDying.x + rand(20, bossDying.w - 20),
+      bossDying.y + rand(20, bossDying.h - 20),
+      Math.random() < 0.5 ? "#c084fc" : "#ffd27f",
+      26,
+      420
+    );
+    addShake(6);
+  }
+  if (bossDying.t >= bossDying.dur) {
+    burst(
+      bossDying.x + bossDying.w / 2,
+      bossDying.y + bossDying.h / 2,
+      "#ffffff",
+      70,
+      620
+    );
+    pop(bossDying.x + bossDying.w / 2, bossDying.y + bossDying.h / 2, "#c084fc", 420);
+    bossDying = null;
+  }
+}
+
 function updateBullets(dt) {
   for (const b of bullets) b.x += CONFIG.bullet.speed * dt;
   bullets = bullets.filter((b) => !b.spent && b.x < W + 60);
 
+  const shotScale = enemySpeedScale();
   for (const s of enemyShots) {
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
+    s.x += s.vx * dt * shotScale;
+    s.y += s.vy * dt * shotScale;
     if (overlaps(s, player)) {
       s.spent = true;
       hitPlayer();
@@ -711,6 +1022,8 @@ function updatePowerUps(dt) {
     p.bob += dt * 3;
     if (overlaps(p, player)) {
       p.taken = true;
+      const colors = { rapid: "#f0b323", shield: "#38bdf8", blast: "#ff3b3f" };
+      pop(p.x + p.w / 2, p.y + p.h / 2, colors[p.kind], 90);
       applyPowerUp(p.kind);
     }
   }
@@ -727,7 +1040,7 @@ function applyPowerUp(kind) {
     floatText(player.x, player.y - 10, "SHIELD", "#38bdf8");
   } else {
     floatText(player.x, player.y - 10, "BLAST", "#ff3b3f");
-    screenFlash("#ffffff", 0.6);
+    screenFlash("#ffffff", 0.4);
     addShake(16);
     for (const enemy of [...enemies]) {
       damageEnemy(enemy, 999, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
@@ -748,7 +1061,7 @@ function hitPlayer() {
   player.invuln = CONFIG.player.invulnAfterHit;
   combo = 0;
   addShake(18);
-  screenFlash("#ff2b2b", 0.55);
+  screenFlash("#ff2b2b", 0.45);
   burst(player.x + player.w / 2, player.y + player.h / 2, "#ff4d4d", 34, 420);
 }
 
@@ -787,9 +1100,22 @@ function updateEffects(dt) {
   }
   floatTexts = floatTexts.filter((t) => t.life > 0);
 
+  for (const c of corpses) {
+    c.t += dt;
+    c.x += c.driftX * dt;
+    c.y += c.driftY * dt;
+  }
+  corpses = corpses.filter((c) => c.t < c.dur);
+
+  for (const o of pops) o.t += dt;
+  pops = pops.filter((o) => o.t < o.dur);
+
+  for (const a of boltArcs) a.t += dt;
+  boltArcs = boltArcs.filter((a) => a.t < a.dur);
+
   shake = Math.max(0, shake - 60 * dt);
   if (flash) {
-    flash.alpha -= dt * 1.9;
+    flash.alpha -= dt * 3.4;
     if (flash.alpha <= 0) flash = null;
   }
   if (waveBanner) {
@@ -820,17 +1146,21 @@ function draw() {
   //The women assembling
   for (const h of heroes) ctx.drawImage(h.sprite, h.x, h.y, h.w, h.h);
 
-  //Enemies
+  //Enemies, their remains, and the boss
+  for (const c of corpses) drawCorpse(c);
   for (const enemy of enemies) drawEnemy(enemy);
   if (boss) drawBoss();
+  if (bossDying) drawBossDeath();
 
   //Bullets
-  const hero = heroDef();
-  for (const b of bullets) ctx.drawImage(img[hero.bullet], b.x, b.y, b.w, b.h);
+  for (const b of bullets) drawBullet(b);
   for (const s of enemyShots) drawEnemyShot(s);
 
+  if (player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
+  drawBoltArcs();
   drawParticles();
+  for (const o of pops) drawPop(o);
   drawFloatTexts();
 
   ctx.restore();
@@ -862,19 +1192,35 @@ function drawSetDressing() {
   ctx.drawImage(img.stanLee, 750, H - 98);
 }
 
-function drawEnemy(enemy) {
-  const sprite = enemy.def.animated
+function enemySprite(enemy) {
+  return enemy.def.animated
     ? [img.chit2, img.chit3, img.chit4][chitFrame]
     : img[enemy.def.sprite];
+}
 
-  if (enemy.hitFlash > 0) {
-    ctx.save();
-    ctx.filter = "brightness(2.4)";
-    ctx.drawImage(sprite, enemy.x, enemy.y, enemy.w, enemy.h);
-    ctx.restore();
-  } else {
-    ctx.drawImage(sprite, enemy.x, enemy.y, enemy.w, enemy.h);
-  }
+function drawEnemy(enemy) {
+  const sprite = enemySprite(enemy);
+  //Ease the spawn so it arrives rather than appears
+  const t = enemy.spawnT;
+  const ease = 1 - (1 - t) * (1 - t);
+  //hitFlash peaks at 0.12, so this squashes by about a fifth on impact
+  const squash = enemy.hitFlash * 1.7;
+  const hexed = player && player.hex > 0;
+
+  drawSprite(
+    sprite,
+    enemy.x,
+    enemy.y + Math.sin(enemy.bob) * 3,
+    enemy.w,
+    enemy.h,
+    {
+      rot: Math.sin(enemy.bob * 0.7) * 0.07 + (hexed ? Math.sin(elapsed * 9) * 0.12 : 0),
+      sx: (0.55 + 0.45 * ease) * (1 + squash),
+      sy: (0.55 + 0.45 * ease) * (1 - squash * 0.8),
+      alpha: ease,
+      flash: enemy.hitFlash * 7 + (hexed ? 0.22 : 0),
+    }
+  );
 
   //A slim health bar, only once it has actually taken a hit
   if (enemy.maxHp > 1 && enemy.hp < enemy.maxHp) {
@@ -887,23 +1233,50 @@ function drawEnemy(enemy) {
 }
 
 function drawBoss() {
-  ctx.save();
-  if (boss.hitFlash > 0) ctx.filter = "brightness(2.2)";
-  ctx.drawImage(img.thanos, boss.x, boss.y, boss.w, boss.h);
-  ctx.restore();
+  //Breathing idle, swelling on the wind-up, shoved right by each hit,
+  //lunging left as he releases a blast.
+  const breath = Math.sin(elapsed * 2) * 0.018;
+  const swell = boss.windup * 0.09;
+  drawSprite(
+    img.thanos,
+    boss.x + boss.knock * 10 - boss.lunge * 22,
+    boss.y,
+    boss.w,
+    boss.h,
+    {
+      sx: 1 + swell + breath,
+      sy: 1 + swell - breath,
+      rot: boss.lunge * -0.05,
+      flash: boss.hitFlash * 6 + boss.windup * 0.5,
+    }
+  );
 
-  //Menacing aura
-  ctx.strokeStyle = "rgba(192,132,252,.5)";
-  ctx.lineWidth = 3;
+  //Aura: tightens and brightens as the blast charges
+  ctx.save();
+  ctx.strokeStyle = `rgba(192,132,252,${0.45 + boss.windup * 0.5})`;
+  ctx.lineWidth = 3 + boss.windup * 4;
   ctx.beginPath();
   ctx.arc(
     boss.x + boss.w / 2,
     boss.y + boss.h / 2,
-    boss.w / 2 + 8 + Math.sin(elapsed * 3) * 5,
+    boss.w / 2 + 8 + Math.sin(elapsed * 3) * 5 - boss.windup * 18,
     0,
     Math.PI * 2
   );
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawBossDeath() {
+  const p = bossDying.t / bossDying.dur;
+  drawSprite(img.thanos, bossDying.x, bossDying.y, bossDying.w, bossDying.h, {
+    rot: bossDying.spin * p,
+    sx: 1 - p * 0.25,
+    sy: 1 - p * 0.25,
+    alpha: 1 - p * 0.9,
+    //Flickering white as he comes apart
+    flash: (1 - p) * (0.5 + Math.sin(elapsed * 30) * 0.4),
+  });
 }
 
 function drawEnemyShot(s) {
@@ -950,7 +1323,39 @@ function drawPlayer() {
   //Blink while invulnerable so the state is readable
   const blinking = player.invuln > 0 && Math.floor(elapsed * 14) % 2 === 0;
   if (!blinking) {
-    ctx.drawImage(img[heroDef().sprite], player.x, player.y, player.w, player.h);
+    const r = player.recoil;
+    drawSprite(
+      img[heroDef().sprite],
+      player.x - r * CONFIG.anim.recoilPx,
+      player.y,
+      player.w,
+      player.h,
+      {
+        rot: player.bank,
+        //Squash on the way back from the recoil, and flare while ignited
+        sx: 1 + r * 0.14,
+        sy: 1 - r * 0.1,
+        flash: r * 0.4 + (player.ignition > 0 ? 0.7 : 0),
+      }
+    );
+  }
+  //Wanda wears her hex while it is running
+  if (player.hex > 0) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(224,69,123,${0.5 + Math.sin(elapsed * 6) * 0.25})`;
+    ctx.lineWidth = 4;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        player.x + player.w / 2,
+        player.y + player.h / 2,
+        player.w * (0.7 + i * 0.28),
+        elapsed * (2 + i) ,
+        elapsed * (2 + i) + Math.PI * 1.2
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   if (player.shield > 0) {
     ctx.strokeStyle = `rgba(56,189,248,${0.45 + Math.sin(elapsed * 8) * 0.2})`;
@@ -964,6 +1369,97 @@ function drawPlayer() {
       Math.PI * 2
     );
     ctx.stroke();
+  }
+}
+
+function drawCorpse(c) {
+  const p = c.t / c.dur;
+  drawSprite(c.sprite, c.x, c.y, c.w, c.h, {
+    rot: c.spin * p,
+    sx: 1 + p * 0.45,
+    sy: 1 + p * 0.45,
+    alpha: 1 - p,
+    flash: (1 - p) * 0.5,
+  });
+}
+
+function drawPop(o) {
+  const p = o.t / o.dur;
+  ctx.save();
+  ctx.globalAlpha = 1 - p;
+  ctx.strokeStyle = o.color;
+  ctx.lineWidth = 4 * (1 - p) + 1;
+  ctx.beginPath();
+  ctx.arc(o.x, o.y, o.r * p, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+//Thor's God Blast: a jagged polyline redrawn every frame, so it crackles.
+function drawBoltArcs() {
+  for (const a of boltArcs) {
+    const fade = 1 - a.t / a.dur;
+    const dx = a.to.x - a.from.x;
+    const dy = a.to.y - a.from.y;
+    const steps = 9;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = "#e0f2fe";
+    ctx.shadowColor = "#7dd3fc";
+    ctx.shadowBlur = 18;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(a.from.x, a.from.y);
+    for (let i = 1; i < steps; i++) {
+      const k = i / steps;
+      ctx.lineTo(
+        a.from.x + dx * k + rand(-26, 26),
+        a.from.y + dy * k + rand(-26, 26)
+      );
+    }
+    ctx.lineTo(a.to.x, a.to.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+//Captain Marvel's beam, drawn as stacked glows so it reads as heat.
+function drawIgnitionBeam() {
+  const y = player.y + player.h / 2;
+  const fade = Math.min(1, player.ignition * 2);
+  const x = player.x + player.w;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const [h, alpha] of [[player.h * 0.62, 0.25], [player.h * 0.3, 0.5], [10, 0.95]]) {
+    ctx.globalAlpha = alpha * fade;
+    const grd = ctx.createLinearGradient(x, 0, W, 0);
+    grd.addColorStop(0, "#ffffff");
+    grd.addColorStop(0.25, "#f0b323");
+    grd.addColorStop(1, "rgba(240,179,35,0.15)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(x, y - h / 2 + Math.sin(elapsed * 40) * 2, W - x, h);
+  }
+  ctx.restore();
+}
+
+function drawBullet(b) {
+  const hero = heroDef();
+  const sprite = img[hero.bullet];
+  //Three fading ghosts behind each shot read as motion blur
+  for (let i = 3; i >= 1; i--) {
+    drawSprite(sprite, b.x - i * 20, b.y, b.w, b.h, { alpha: 0.14 * (4 - i) });
+  }
+  if (hero.ult === "godblast") {
+    //Thor's bolts flicker and stretch along their travel
+    drawSprite(sprite, b.x, b.y, b.w, b.h, {
+      sx: 1.18 + Math.sin(elapsed * 45) * 0.16,
+      sy: 0.92,
+      flash: 0.35 + Math.sin(elapsed * 38) * 0.25,
+    });
+  } else if (hero.ult === "hex") {
+    drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: elapsed * 11 });
+  } else {
+    drawSprite(sprite, b.x, b.y, b.w, b.h, { flash: 0.2 });
   }
 }
 
@@ -1027,8 +1523,37 @@ function drawHud() {
   ctx.fillText(`WAVE ${wave}`, 20 + player.lives * (iconW + 8) + 24, 42);
 
   drawStonesBar();
+  drawUltMeter();
   if (boss) drawBossBar();
   drawActivePowerUps();
+}
+
+function drawUltMeter() {
+  const hero = heroDef();
+  const barW = 250;
+  const x = W - barW - 24;
+  const y = H - 42;
+  const pct = clamp(player.charge / CONFIG.ult.max, 0, 1);
+  const ready = pct >= 1;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(5,6,10,.7)";
+  ctx.fillRect(x, y, barW, 18);
+  //Pulse the fill once it is spendable
+  ctx.fillStyle = hero.tint;
+  ctx.globalAlpha = ready ? 0.75 + Math.sin(elapsed * 8) * 0.25 : 1;
+  ctx.fillRect(x, y, barW * pct, 18);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "rgba(255,255,255,.28)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, barW, 18);
+  ctx.restore();
+
+  ctx.font = "20px Marvel";
+  ctx.textAlign = "right";
+  ctx.fillStyle = ready ? hero.tint : "#9aa3b2";
+  ctx.fillText(ready ? `${hero.ultName} — SPACE` : hero.ultName, x + barW, y - 6);
+  ctx.textAlign = "left";
 }
 
 function drawStonesBar() {
@@ -1094,21 +1619,33 @@ function drawActivePowerUps() {
 function drawBanner() {
   if (!waveBanner) return;
   const t = waveBanner.life / waveBanner.maxLife;
-  //Fade in fast, hold, fade out
   const alpha = t > 0.8 ? (1 - t) / 0.2 : Math.min(1, t / 0.35);
+  //Progress through the entry, used to slam the text in past its final size
+  const entry = clamp((1 - t) / 0.18, 0, 1);
+  const scale = entry < 1 ? 2.6 - 1.6 * (1 - (1 - entry) * (1 - entry)) : 1;
+
+  //Cinematic bars, opening and closing with the banner
+  const barH = 54 * clamp(Math.min(entry * 2, alpha * 1.4), 0, 1);
+  ctx.save();
+  ctx.fillStyle = "rgba(5,6,10,.72)";
+  ctx.fillRect(0, H / 2 - 108, W, barH);
+  ctx.fillRect(0, H / 2 + 108 - barH, W, barH);
+  ctx.restore();
 
   ctx.save();
   ctx.globalAlpha = clamp(alpha, 0, 1);
   ctx.textAlign = "center";
+  ctx.translate(W / 2, H / 2 - 20);
+  ctx.scale(scale, scale);
   ctx.font = "90px Marvel";
   ctx.fillStyle = waveBanner.color;
   ctx.shadowColor = waveBanner.color;
   ctx.shadowBlur = 30;
-  ctx.fillText(waveBanner.title, W / 2, H / 2 - 20);
+  ctx.fillText(waveBanner.title, 0, 0);
   if (waveBanner.subtitle) {
     ctx.font = "38px Marvel";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(waveBanner.subtitle, W / 2, H / 2 + 34);
+    ctx.fillText(waveBanner.subtitle, 0, 54);
   }
   ctx.restore();
   ctx.textAlign = "left";
@@ -1119,8 +1656,26 @@ function drawBanner() {
 //=====================================================================//
 function frame(now) {
   if (state !== "playing") return;
-  const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+  const realDt = Math.min((now - lastFrameTime) / 1000, 0.05);
   lastFrameTime = now;
+
+  //Hit-stop: hold the world still for a few frames, but keep drawing so the
+  //freeze reads as impact rather than a dropped frame.
+  if (hitStop > 0) {
+    hitStop -= realDt;
+    draw();
+    animationId = requestAnimationFrame(frame);
+    return;
+  }
+
+  //Slow motion for the boss death, easing back to full speed afterwards.
+  if (slowMo > 0) {
+    slowMo -= realDt;
+    timeScale = CONFIG.anim.slowMoScale;
+  } else {
+    timeScale = Math.min(1, timeScale + realDt * 1.8);
+  }
+  const dt = realDt * timeScale;
 
   update(dt);
   //update() can end the run; don't draw a frame of a dead game
@@ -1165,10 +1720,10 @@ function endGame() {
     stonesHp <= 0
       ? "THEY TOOK THE STONES"
       : "YOU SHOULD HAVE GONE FOR THE HEAD";
-  statScore.innerText = score;
-  statWave.innerText = wave;
-  statKills.innerText = kills;
-  statCombo.innerText = `x${bestCombo}`;
+  countUp(statScore, score);
+  countUp(statWave, wave, 0.6);
+  countUp(statKills, kills, 0.75);
+  countUp(statCombo, bestCombo, 0.6, "x");
 
   showScreen("gameover");
   audio.pause();
@@ -1239,10 +1794,42 @@ menuBtn.addEventListener("click", () => {
 });
 muteBtn.addEventListener("click", toggleMute);
 
+//Wrap each letter of the title so it can be animated in one at a time.
+function splitTitle() {
+  const title = document.querySelector(".game-title");
+  if (!title) return;
+  const text = title.textContent;
+  title.textContent = "";
+  [...text].forEach((character, i) => {
+    const span = document.createElement("span");
+    span.className = "ch";
+    span.style.setProperty("--i", i);
+    span.textContent = character;
+    title.appendChild(span);
+  });
+}
+
+//Numbers that tick up read as earned; numbers that appear read as given.
+function countUp(el, target, duration = 0.9, prefix = "") {
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / (duration * 1000));
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.innerText = prefix + Math.round(target * eased);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 window.addEventListener("load", () => {
-  loadImages().then(() => {
+  splitTitle();
+  const bar = document.querySelector("#loading-bar span");
+  loadImages((progress) => {
+    if (bar) bar.style.width = `${Math.round(progress * 100)}%`;
+  }).then(() => {
     startBtn.disabled = false;
     startBtn.innerText = "START";
+    document.getElementById("loading-bar").classList.add("is-done");
     document.body.dataset.assetsReady = "true";
   });
 });

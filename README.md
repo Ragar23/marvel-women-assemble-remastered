@@ -34,6 +34,7 @@ mostly works too, but a local server is more reliable for the audio and font fil
 | --- | --- |
 | `↑` `↓` `←` `→` | Move |
 | `S` | Shoot — hold to keep firing |
+| `Space` | Ultimate — once the meter is full |
 | `Esc` | Pause |
 | `M` | Mute |
 | `W` | Easter egg — the women assemble |
@@ -56,9 +57,14 @@ mostly works too, but a local server is more reliable for the audio and font fil
 - **Power-ups** from kills — rapid fire, shield, screen-clearing blast.
 - **A combo multiplier** up to x5, reset by taking a hit or letting one through.
 
-Everything worth arguing about — speeds, hit points, drop rates, wave sizes — is
-in the `CONFIG`, `HEROES`, `ENEMY_TYPES` and `WAVE_PLAN` objects at the top of
-`index.js`. Speeds are in pixels per **second**, so the game plays identically on
+- **Animation throughout.** The hero banks into turns and kicks back when firing,
+  enemies bob and fade in and spin apart when killed, Thanos telegraphs his blasts
+  and comes apart in slow motion, and every kill freezes the game for a few frames
+  so the hit lands.
+
+Everything worth arguing about — speeds, hit points, drop rates, wave sizes,
+animation timings — is in the `CONFIG`, `HEROES`, `ENEMY_TYPES` and `WAVE_PLAN`
+objects at the top of `index.js`. Speeds are in pixels per **second**, so the game plays identically on
 a 60Hz laptop and a 120Hz display.
 
 ## How it is built today

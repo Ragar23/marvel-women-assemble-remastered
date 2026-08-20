@@ -30,17 +30,17 @@
               <button class="hero-card is-selected" data-character="wanda">
                 <img src="images/scarlet-witch.png" alt="Scarlet Witch" />
                 <span class="hero-name">SCARLET WITCH</span>
-                <span class="hero-perk">Chaos bolts &middot; heavy hits</span>
+                <span class="hero-perk">Heavy hits &middot; Chaos Hex</span>
               </button>
               <button class="hero-card" data-character="cpMarvel">
                 <img src="images/marvel.png" alt="Captain Marvel" />
                 <span class="hero-name">CAPTAIN MARVEL</span>
-                <span class="hero-perk">Photon blast &middot; rapid fire</span>
+                <span class="hero-perk">Rapid fire &middot; Binary Ignition</span>
               </button>
               <button class="hero-card" data-character="thor">
                 <img src="images/thor.png" alt="Thor" />
                 <span class="hero-name">THOR</span>
-                <span class="hero-perk">Lightning &middot; pierces the line</span>
+                <span class="hero-perk">Piercing bolts &middot; God Blast</span>
               </button>
             </div>
           </section>
@@ -61,6 +61,7 @@
             <ul class="keys">
               <li><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd><span>Move</span></li>
               <li><kbd>S</kbd><span>Shoot &mdash; hold to keep firing</span></li>
+              <li><kbd>Space</kbd><span>Ultimate &mdash; once the meter is full</span></li>
               <li><kbd>Esc</kbd><span>Pause</span></li>
               <li><kbd>M</kbd><span>Mute</span></li>
               <li><kbd>W</kbd><span>&hellip;the women assemble</span></li>
@@ -69,6 +70,7 @@
         </div>
 
         <button id="start-button" class="btn btn-primary" disabled>LOADING&hellip;</button>
+        <div id="loading-bar" class="loading-bar"><span></span></div>
       </div>
     </section>
 

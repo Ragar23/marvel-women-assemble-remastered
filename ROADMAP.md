@@ -158,6 +158,33 @@ Not on the original list, but they came out of playing it:
   floating score numbers.
 - **Mute** (`M`) and **pause** (`Esc`, and automatically when the window loses focus).
 
+## Animation and ultimates ✅ done
+
+Everything below came from transforming the sprites already in `images/` — no new
+art was needed. The enabler was a single `drawSprite()` helper: before it, the file
+contained exactly one canvas transform (the screen shake) and every sprite was
+drawn with a flat `drawImage(x, y)`, which cannot express rotation, scale or fade.
+
+- ✅ **Hero banking and recoil** — tilts into vertical moves, kicks back when firing.
+- ✅ **Enemy idle bob**, phase-offset per enemy so the swarm never marches in sync.
+- ✅ **Spawn-in** — enemies fade and scale up as they arrive instead of popping in.
+- ✅ **Death animations** — killed enemies spin, grow and fade instead of vanishing.
+- ✅ **Hit squash** and an additive brightness flash. This also fixes a portability
+  bug: the old flash used `ctx.filter`, unsupported in Safari before 16.4, so it
+  silently did nothing on older iPhones and Macs.
+- ✅ **Hit-stop** — 50ms freeze on each kill, drawn but not updated.
+- ✅ **Bullet character** — motion-blur ghosts on every shot, Thor's bolts flickering
+  and stretching, Wanda's orbs spinning.
+- ✅ **Boss choreography** — a 0.6s wind-up with converging motes before each blast,
+  knockback on every hit, a breathing idle, and a slow-motion death sequence with
+  staggered explosions.
+- ✅ **Power-up pops** — expanding rings on pickup.
+- ✅ **Banner slam** — scale overshoot plus cinematic bars.
+- ✅ **Menu animation** — the title assembles letter by letter, portraits idle,
+  the selected card pulses, a real loading bar, and end-of-run stats count up.
+- ✅ **Ultimates** — a meter filled by kills and spent with `Space`: Wanda's Chaos
+  Hex, Captain Marvel's Binary Ignition, Thor's God Blast.
+
 ## Known and left alone
 
 ## Deliberately not changing
