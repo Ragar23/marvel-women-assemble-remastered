@@ -101,30 +101,26 @@ sits at the left edge.
 
 ---
 
-## Phase 2 — Make it feel like a game
+## Phase 2 — Make it feel like a game ✅ done
 
-- **The game is over in three and a half seconds.** Now that Phase 1 is in, this
-  is the single most glaring problem. Do nothing at all and a space dog reaches
-  the Infinity Stones at `(0, 450)` in ~3.5s — the original was 3.0s, so this is
-  inherited, not new. The stones need either a health bar, a shield, or a much
-  slower first wave.
-- **Shot cooldown** — nothing limits the fire rate. Holding `S` produces a solid
-  wall of projectiles that clears the screen, which is the only reason the game
-  is survivable at all right now. Cooldown and stone health have to be tuned together.
-- **Lives** — three of them, with i-frames after a hit. This was in the original backlog and never landed.
-- **Difficulty curve** — enemy speed and spawn rate rising with score, instead of everything at once from second zero.
-- **Waves** — replace the hand-written spawn coordinates (`x: 11800`, `x: 23100` …) with a spawner driven by time and difficulty.
-- **Hit feedback** — an explosion sprite, a small screen shake, a sound on impact.
-- **High score** in `localStorage`.
-- **Pause** on `Esc` / window blur.
-- **A restart that actually restarts** — `resetVariables()` never resets `chit1ImageX`, which is decremented every single frame, so the walking Chitauri is already far off the left edge when the second run begins. The held-direction flags are not reset either.
+- ✅ **The three-and-a-half-second death is gone.** The Stones now have 100 HP
+  and each leaker takes a bite out of it, sized to how dangerous it was.
+- ✅ **Shot cooldown**, per hero — Wanda hits for 2 every 0.22s, Captain Marvel
+  for 1 every 0.11s. Rapid fire cuts the delay to a third.
+- ✅ **Lives** — three of them, with i-frames after a hit. This was in the original backlog and never landed.
+- ✅ **Difficulty curve** — enemy speed and spawn rate rising with score, instead of everything at once from second zero.
+- ✅ **Waves** — replace the hand-written spawn coordinates (`x: 11800`, `x: 23100` …) with a spawner driven by time and difficulty.
+- ✅ **Hit feedback** — an explosion sprite, a small screen shake, a sound on impact.
+- **High score** in `localStorage`. Still outstanding.
+- ✅ **Pause** on `Esc` / window blur.
+- ✅ **A restart that actually restarts** — `resetVariables()` never resets `chit1ImageX`, which is decremented every single frame, so the walking Chitauri is already far off the left edge when the second run begins. The held-direction flags are not reset either.
 
-## Phase 3 — Reach more players
+## Phase 3 — Reach more players ⚠️ partly done
 
-- **Responsive canvas** — it is hard-coded to 1364×768 (`index.html`), which overflows most laptop screens and every phone. Scale to the viewport, keep the aspect ratio.
-- **Touch controls** for mobile.
-- **Audio that behaves** — browsers block autoplay, so the splash-screen music silently fails today. Add a mute toggle and remember the choice.
-- **Accessibility** — keyboard-reachable buttons, visible focus, respect `prefers-reduced-motion`, real `alt` text on the character images.
+- ✅ **Responsive canvas** — it is hard-coded to 1364×768 (`index.html`), which overflows most laptop screens and every phone. Scale to the viewport, keep the aspect ratio.
+- **Touch controls** for mobile. Still outstanding — the layout scales, but there is no way to play without a keyboard.
+- ✅ **Audio that behaves** — browsers block autoplay, so the splash-screen music silently fails today. Add a mute toggle and remember the choice.
+- ⚠️ **Accessibility** (partly) — keyboard-reachable buttons, visible focus, respect `prefers-reduced-motion`, real `alt` text on the character images.
 - **Asset weight** — `assets/` is ~10 MB of MP3, most of it downloaded before you can play. Trim and compress.
 
 ## Phase 4 — Make it pleasant to work on
@@ -139,10 +135,24 @@ sits at the left edge.
 
 ---
 
-## Known and left alone
+## Added along the way
 
-- The tab requests `/favicon.ico` and gets a 404. Cosmetic, and true of the
-  original too. A favicon comes with the Phase 3 polish.
+Not on the original list, but they came out of playing it:
+
+- **Two distinct heroes.** Wanda trades fire rate for damage; Captain Marvel is
+  the opposite. The choice now changes how a run plays.
+- **Eight enemy types**, including `ultron.png` and `cull.png` — both sitting
+  unused in `images/` since 2021. Ultrons weave, Cull soaks damage, Leviathans
+  are slow and huge.
+- **Thanos as a boss** every fifth wave: a health bar, homing energy blasts, and
+  minions summoned mid-fight.
+- **Power-ups** dropping from kills — rapid fire, shield, screen-clearing blast.
+- **A combo multiplier** up to x5, reset by taking a hit or letting one through.
+- **A parallax starfield**, particle explosions, screen shake, hit flashes and
+  floating score numbers.
+- **Mute** (`M`) and **pause** (`Esc`, and automatically when the window loses focus).
+
+## Known and left alone
 
 ## Deliberately not changing
 

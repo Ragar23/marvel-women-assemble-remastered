@@ -1,8 +1,9 @@
 # MARVEL. ¡WOMEN, ASSEMBLE! — Remastered
 
 A remaster of the original browser arcade game built in 2021 with vanilla JavaScript
-and the HTML5 Canvas API. You pick a hero, dodge the space dogs and Chitauri coming
-in from the right, and shoot them for points.
+and the HTML5 Canvas API. Pick a hero, hold the line against waves of Outriders,
+Ultrons, Chitauri and Black Order lieutenants, and keep them off the Infinity
+Stones. Every fifth wave, Thanos turns up.
 
 This repository is the **working copy** where all improvements happen.
 The original game is preserved, untouched, at
@@ -24,31 +25,51 @@ python3 -m http.server 5501   # or: npx serve .
 Then open <http://localhost:5501>. Opening `index.html` directly with `file://`
 mostly works too, but a local server is more reliable for the audio and font files.
 
-> Serving over a local server matters more than it looks: the game reads
-> `image.width` / `image.height` for its collision boxes, so anything that delays
-> image loading changes how the game behaves.
+> The START button stays disabled until every sprite has decoded, because the
+> collision boxes are measured from `image.width` / `image.height`.
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
-| `↑` / `↓` | Move up / down |
-| `←` / `→` | Move backwards / forwards |
-| `S` | Shoot |
+| `↑` `↓` `←` `→` | Move |
+| `S` | Shoot — hold to keep firing |
+| `Esc` | Pause |
+| `M` | Mute |
 | `W` | Easter egg — the women assemble |
+
+## What's in it
+
+- **Two heroes that play differently.** Scarlet Witch hits for 2 at a slower
+  cadence; Captain Marvel hits for 1 at roughly double the rate.
+- **Escalating waves** — eight enemy types, arriving faster and tougher as you go.
+  Ultrons weave, Cull Obsidian soaks damage, Leviathans are slow and enormous.
+- **A Thanos boss fight** every fifth wave, with a health bar, homing blasts and
+  summoned minions.
+- **Three lives plus an Infinity Stones health bar.** Anything that reaches the
+  left edge damages the Stones by an amount matched to how dangerous it was.
+- **Power-ups** from kills — rapid fire, shield, screen-clearing blast.
+- **A combo multiplier** up to x5, reset by taking a hit or letting one through.
+
+Everything worth arguing about — speeds, hit points, drop rates, wave sizes — is
+in the `CONFIG`, `HEROES`, `ENEMY_TYPES` and `WAVE_PLAN` objects at the top of
+`index.js`. Speeds are in pixels per **second**, so the game plays identically on
+a 60Hz laptop and a 120Hz display.
 
 ## How it is built today
 
 | File | Contains |
 | --- | --- |
-| `index.html` | Splash screen, how-to-play panel, game-over screen and the `<canvas>` |
-| `index.js` | Everything else — asset loading, input, the `draw()` game loop, collisions, audio |
-| `style.css` | Screen layout and the Marvel-font buttons |
+| `index.html` | The three screens — menu, game, game over — and the `<canvas>` |
+| `index.js` | Tuning, asset loading, input, waves, entities, collisions, effects, HUD, audio |
+| `style.css` | The menu and game-over design, and the responsive canvas |
 | `images/` | Sprites and backgrounds |
 | `assets/` | Music, sound effects and the `Marvel.ttf` font |
 
-Everything runs off a single `requestAnimationFrame` loop in `draw()`, with module-level
-`let` variables holding all game state.
+Everything runs off a single `requestAnimationFrame` loop driven by delta time, with
+a `state` machine (`menu` / `playing` / `paused` / `gameover`) deciding what is on
+screen. Splitting `index.js` into modules is the main outstanding cleanup — see
+Phase 4 of the roadmap.
 
 ## What is next
 
