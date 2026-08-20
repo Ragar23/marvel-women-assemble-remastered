@@ -1,459 +1,447 @@
-let canvas = document.getElementById("myCanvas");
-let ctx = canvas.getContext("2d");
+//=====================================================================//
+//  MARVEL. ¡WOMEN, ASSEMBLE! — Remastered
+//  Phase 1: correctness fixes. See ROADMAP.md.
+//=====================================================================//
 
-//Some Global variables
-let intervalId = 0;
+const canvas = document.getElementById("myCanvas");
+const ctx = canvas.getContext("2d");
+
+//----Tuning----//
+//Speeds are pixels per SECOND, not per frame, so the game plays the same
+//on a 60Hz laptop and on a 144Hz monitor.
+const SPEED = {
+  player: 600,
+  ball: 480,
+  spaceDog: 360,
+  chitauri: 360,
+  villain: 240,
+  hero: 240,
+  capMarvelFlyBy: 480,
+  walkingChitauri: 1200,
+};
+const POINTS_PER_KILL = 10;
+const MIN_ENEMIES = 6;
+const SPAWN_X = 1300;
+
+//----Game state----//
+let animationId = null;
+let isRunning = false;
 let isGameOver = false;
-let isArrowUp = false;
-let isArrowDown = false;
-let isArrowRight = false;
-let isArrowLeft = false;
-let pressS = false;
+let lastFrameTime = 0;
 let pointsCounter = 0;
 
 //----Loading the Images------//
-let bg = new Image();
-bg.src = "./images/bg.png";
+//Every sprite is loaded up front. Collision boxes are measured from
+//image.width / image.height, and those read 0 until the image has decoded,
+//so the game must not start before they are all in.
+const imageSources = {
+  bg: "./images/bg.png",
+  spaceDogs: "./images/outriders.png",
+  wanda: "./images/scarlet-witch.png",
+  ball: "./images/energyBall.png",
+  proxima: "./images/proxima.png",
+  corvus: "./images/corvus.png",
+  nebula: "./images/nebula.bad.png",
+  thanos: "./images/thanos.png",
+  valkiria: "./images/valkiria.png",
+  rescuePotts: "./images/rescuePotts.png",
+  marvel: "./images/marvel.png",
+  okoye: "./images/okoye.png",
+  wasp: "./images/wasp.png",
+  shuri: "./images/shuri.png",
+  gamora: "./images/gamora.png",
+  grootLeft: "./images/babyGroot.png",
+  grootRight: "./images/babyGrootLeft.png",
+  blast: "./images/blast.png",
+  stanLee: "./images/StanLee.png",
+  gaunlet: "./images/stones.png",
+  mantis: "./images/mantis.png",
+  levi: "./images/levi.png",
+  spiderman: "./images/spiderman.png",
+  chit2: "./images/chit2.png",
+  chit3: "./images/chit3.png",
+  chit4: "./images/chit4.png",
+};
 
-let spaceDogsImage = new Image();
-spaceDogsImage.src = "./images/outriders.png";
+const img = {};
 
-let wandaImage = new Image();
-wandaImage.src = "./images/scarlet-witch.png";
-
-let ballImage = new Image();
-ballImage.src = "./images/energyBall.png";
-
-let proximaImage = new Image();
-proximaImage.src = "./images/proxima.png";
-
-let corvusImage = new Image();
-corvusImage.src = "./images/corvus.png";
-
-let nebulaImage = new Image();
-nebulaImage.src = "./images/nebula.bad.png";
-
-let thanosImage = new Image();
-thanosImage.src = "./images/thanos.png";
-
-let valkiriaImage = new Image();
-valkiriaImage.src = "./images/valkiria.png";
-
-let rescuePottsImage = new Image();
-rescuePottsImage.src = "./images/rescuePotts.png";
-
-let marvelImage = new Image();
-marvelImage.src = "./images/marvel.png";
-
-let okoyeImage = new Image();
-okoyeImage.src = "./images/okoye.png";
-
-let waspImage = new Image();
-waspImage.src = "./images/wasp.png";
-
-let shuriImage = new Image();
-shuriImage.src = "./images/shuri.png";
-
-let gamoraImage = new Image();
-gamoraImage.src = "./images/gamora.png";
-
-let grootLeftImage = new Image();
-grootLeftImage.src = "./images/babyGroot.png";
-
-let grootRightImage = new Image();
-grootRightImage.src = "./images/babyGrootLeft.png";
-
-let blastImage = new Image();
-blastImage.src = "./images/blast.png";
-
-let stanLeeImage = new Image();
-stanLeeImage.src = "./images/StanLee.png";
-
-let gaunletImage = new Image();
-gaunletImage.src = "./images/stones.png";
-
-let mantisImage = new Image();
-mantisImage.src = "./images/mantis.png";
-
-let leviImage = new Image();
-leviImage.src = "./images/levi.png";
-
-let spidermanImage = new Image();
-spidermanImage.src = "./images/spiderman.png";
-
-let chit2 = new Image();
-chit2.src = "./images/chit2.png";
-
-let chit3 = new Image();
-chit3.src = "./images/chit3.png";
-
-let chit4 = new Image();
-chit4.src = "./images/chit4.png";
+function loadImages() {
+  return Promise.all(
+    Object.entries(imageSources).map(([name, src]) => {
+      return new Promise((resolve) => {
+        const image = new Image();
+        //A missing sprite should not deadlock the loading screen.
+        image.onload = () => resolve(image);
+        image.onerror = () => {
+          console.warn(`Could not load ${src}`);
+          resolve(image);
+        };
+        image.src = src;
+        img[name] = image;
+      });
+    })
+  );
+}
 
 //-----The DOM Elements------//
-let startBtn = document.querySelector("#start-button");
-let backGround = document.querySelector("#FirsPart");
-let gameOvBtn = document.querySelector("#end-button");
-let endGameScreen = document.querySelector("#GameOverScreen");
-let bodyImage = document.querySelector("body");
-let instru = document.querySelector("#howToPlay");
-let hideHeader = document.querySelector("#hideHeader");
-let marvelStudios = document.querySelector("#studios");
-let audioFirstScreen = document.querySelector("#audio");
+const startBtn = document.querySelector("#start-button");
+const backGround = document.querySelector("#FirsPart");
+const gameOvBtn = document.querySelector("#end-button");
+const endGameScreen = document.querySelector("#GameOverScreen");
+const instru = document.querySelector("#howToPlay");
+const hideHeader = document.querySelector("#hideHeader");
+const marvelStudios = document.querySelector("#studios");
+const audioFirstScreen = document.querySelector("#audio");
+const backToStart = document.querySelector("#backTo-button");
+const finalScoreDisplay = document.querySelector("#finalScore");
+const cpMarvelPlayer = document.querySelector("#cpMarvel");
+const wandaPlayer = document.querySelector("#wanda");
+
 audioFirstScreen.volume = 0.1;
-let backToStart = document.querySelector("#backTo-button");
-let finalScoreDisplay = document.querySelector("#finalScore");
-let cpMarvelPlayer = document.querySelector("#cpMarvel");
-let wandaPlayer = document.querySelector("#wanda");
 
-//Scarlet measures
-let scarletX = 0,
-  scarletY = 50,
-  scarletHeight = 20,
-  scarletWidth = 200;
-let incrY = 5;
-let incrX = 5;
+//----The player----//
+let chooseCharacter = "wanda";
 
-//Variables for choosing character
-let wandaCharacter = wandaImage;
-let cpMarvelCharacter = marvelImage;
-let chooseCharacter = "";
+const player = { x: 0, y: 50 };
 
-//---POSITION OF SOME CHARACTERS---//
-//proxima position
-let proximaX = 10800;
-let proximaY = 200;
-//coruvs position
-let corvusX = 10000;
-let corvusY = 350;
-//nebula position
-let nebulaX = 10400;
-let nebulaY = 600;
-//thanos position
-let thanosX = 1250;
-let thanosY = 0;
-//levi position
-let leviX = 10350;
-let leviY = 150;
-//valkiria position
-let valkiriaX = -6200;
-let valkiriaY = 50;
-//rescue position
-let rescueX = -6200;
-//cp marvel position
-let marvelX = -11600;
-//okoye position
-let okoyeX = -6200;
-//wasp position
-let waspX = -6200;
-//shuri position
-let shuriX = -6200;
-//gamora position
-let gamoraX = -6200;
-//Groot position
-let grootX = 85;
-let grootY = 670;
-//Stan lee position
-let stanLeeImageX = -3000;
-//gaunlet position
-let gaunletImageX = 0;
-let gaunletImageY = 450;
-//spiderman image
-let spidermanImageX = 20;
-let spidermanImageY = 480;
-//mantis position
-let mantisX = -6200;
+function playerImage() {
+  return chooseCharacter === "cpMarvel" ? img.marvel : img.wanda;
+}
 
-//SpaceDogs position
-let spaceDogsX = 1200;
+//----Input----//
+//Holding the keys in a Set means releasing one direction no longer cancels
+//the others.
+const heldKeys = new Set();
 
-//Ball position
-let shootBallX = scarletX;
-let shootBallY = scarletY;
+//----Entities----//
+//Each entity carries its own position AND its own sprite, so whatever gets
+//drawn is exactly what gets collision-checked.
+function entity(image, x, y, vx) {
+  return { image, x, y, vx };
+}
 
 let arrayOfBalls = [];
-let incrBall = 8;
+let arrayOfSpaceDogs = [];
+let arrayOfChitauris = [];
+let villains = [];
+let heroes = [];
+let stanLee = null;
+let walkingChitauriX = 200;
 
+//Static set dressing
+const thanos = { x: 1250, y: 300 };
+const gaunlet = { x: 0, y: 450 };
+const spidermanPos = { x: 20, y: 480 };
+const grootPos = { x: 85, y: 670 };
+
+//Animation timers in seconds, independent of frame rate
+let grootTimer = 0;
+let grootStanding = true;
+let chitauriTimer = 0;
+let chitIndex = 0;
+
+function randomY(image) {
+  return Math.floor(Math.random() * Math.max(1, canvas.height - image.height));
+}
+
+function newSpaceDog() {
+  return entity(img.spaceDogs, SPAWN_X, randomY(img.spaceDogs), -SPEED.spaceDog);
+}
+
+function newChitauri() {
+  return entity(img.chit2, 1800, randomY(img.chit2), -SPEED.chitauri);
+}
+
+//---Collision helpers---//
+function boxOf(image, x, y) {
+  return {
+    left: x,
+    right: x + image.width,
+    top: y,
+    bottom: y + image.height,
+  };
+}
+
+function boxOfEntity(e) {
+  return boxOf(e.image, e.x, e.y);
+}
+
+function intersects(a, b) {
+  return (
+    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+  );
+}
+
+function playerBox() {
+  return boxOf(playerImage(), player.x, player.y);
+}
+
+//---Drawing---//
 function drawScore() {
   ctx.font = "40px Marvel";
   ctx.fillStyle = "#fd0202";
   ctx.fillText(`MARVEL POINTS ${pointsCounter}`, 20, 50);
 }
 
-function finalScore() {
-  if (
-    finalScoreDisplay.innerText ==
-    "You've reached a score of 0 points by killing the space dogs!"
-  ) {
-    finalScoreDisplay.innerText = `You've reached a score of ${pointsCounter} points by killing the space dogs!`;
-  } else {
-    finalScoreDisplay.innerText =
-      "You've reached a score of 0 points by killing the space dogs!";
-  }
+function showFinalScore() {
+  finalScoreDisplay.innerText = `You've reached a score of ${pointsCounter} points by killing the space dogs!`;
 }
 
-//setting Wanda's controllers up and down
-document.addEventListener("keydown", (event) => {
-  if (event.code == "ArrowUp") {
-    isArrowUp = true;
-    isArrowDown = false;
-  } else if (event.code == "ArrowDown") {
-    isArrowUp = false;
-    isArrowDown = true;
-  }
-  //---making shoot possible--//
-
-  if (event.code == "KeyS") {
-    arrayOfBalls.push({ x: scarletX + 50, y: scarletY + 20 });
-    pressS = true;
-
-    arrayOfSpaceDogs.push({ x: 1300 });
-    arrayOfChitauris.push({ x: 1800, x: 1800, x: 1800 });
-  }
-
-  if (event.code == "KeyW") {
-    valkiriaX = 0;
-    mantisX = 0;
-    okoyeX = 0;
-    rescueX = 0;
-    gamoraX = 0;
-    shuriX = 0;
-    waspX = 0;
-    marvelX = 0;
-  }
-  //-----Left and right controllers----//
-  if (event.code == "ArrowLeft") {
-    isArrowLeft = true;
-    isArrowRight = false;
-  } else if (event.code == "ArrowRight") {
-    isArrowLeft = false;
-    isArrowRight = true;
-  }
-});
-
-document.addEventListener("keyup", () => {
-  isArrowUp = false;
-  isArrowDown = false;
-  isArrowRight = false;
-  isArrowLeft = false;
-});
-
-//----The Space Dogs----//
-let arrayOfSpaceDogs = [
-  { x: 1800, y: 300 },
-  { x: 1700, y: 100 },
-  { x: 2000, y: 150 },
-  { x: 1300, y: 60 },
-  { x: 1200, y: 500 },
-  { x: 1100, y: 400 },
-  { x: 2300, y: 200 },
-  { x: 1900, y: 250 },
-  { x: 1600, y: 50 },
-];
-
-//----The chitarui----//
-
-let arrayOfChitauris = [
-  { x: 11800, y: 100 },
-  { x: 11700, y: 300 },
-  { x: 21000, y: 60 },
-  { x: 11300, y: 150 },
-  { x: 12100, y: 400 },
-  { x: 11100, y: 500 },
-  { x: 23100, y: 250 },
-  { x: 19100, y: 200 },
-  { x: 16100, y: 100 },
-];
-
-let grootStanding = true;
 //To animate Groot
-function grootDancing() {
-  let myImage = grootStanding ? grootLeftImage : grootRightImage;
-  ctx.drawImage(myImage, grootX, grootY);
-
-  if (intervalId % 30 === 0) {
+function grootDancing(dt) {
+  grootTimer += dt;
+  if (grootTimer >= 0.5) {
     grootStanding = !grootStanding;
+    grootTimer = 0;
+  }
+  ctx.drawImage(
+    grootStanding ? img.grootLeft : img.grootRight,
+    grootPos.x,
+    grootPos.y
+  );
+}
+
+//The Chitauri walking along the bottom of the screen
+function walkingChitauri(dt) {
+  const frames = [img.chit2, img.chit3, img.chit4];
+  chitauriTimer += dt;
+  if (chitauriTimer >= 1 / 6) {
+    chitIndex = (chitIndex + 1) % frames.length;
+    chitauriTimer = 0;
+  }
+  const frame = frames[chitIndex];
+  ctx.drawImage(frame, walkingChitauriX, 670);
+  walkingChitauriX -= SPEED.walkingChitauri * dt;
+  if (walkingChitauriX + frame.width < 0) {
+    walkingChitauriX = canvas.width;
   }
 }
 
-// Array with images
-let imgArray = [chit2, chit3, chit4];
-let chitIndex = 0;
-//Chitautirs position
-chit1ImageX = 200;
-chit1ImageY = 670;
+//Move a flock of enemies, draw them, and resolve every collision they are
+//involved in. Dead entities are collected and removed AFTER the loop, so
+//nothing gets skipped by splicing mid-iteration.
+function updateEnemies(flock, respawn, dt) {
+  const deadEnemies = new Set();
+  const deadBalls = new Set();
 
-//Animating chitauri
-function chitauriMoving() {
-  let myCurrentChitImage = imgArray[chitIndex];
-  ctx.drawImage(myCurrentChitImage, chit1ImageX, chit1ImageY);
-  chit1ImageX -= 20;
-  if (intervalId % 10 == 0) {
-    chitIndex++;
-  }
-  if (chitIndex >= imgArray.length) {
-    chitIndex = 0;
-  }
+  for (const enemy of flock) {
+    enemy.x += enemy.vx * dt;
+    ctx.drawImage(enemy.image, enemy.x, enemy.y);
 
-  for (let i = 0; i < arrayOfChitauris.length; i++) {
-    ctx.drawImage(
-      myCurrentChitImage,
-      arrayOfChitauris[i].x,
-      arrayOfChitauris[i].y
-    );
-    arrayOfChitauris[i].x = arrayOfChitauris[i].x - 6;
+    const enemyBox = boxOfEntity(enemy);
 
-    if (arrayOfChitauris[i].x + myCurrentChitImage.width < 0) {
-      arrayOfChitauris[i] = {
-        x: 11800,
-        y: Math.floor(
-          Math.random() * (canvas.height - myCurrentChitImage.height)
-        ),
-      };
+    //Shot down?
+    for (const ball of arrayOfBalls) {
+      if (deadBalls.has(ball)) continue;
+      if (intersects(enemyBox, boxOf(img.ball, ball.x, ball.y))) {
+        deadEnemies.add(enemy);
+        deadBalls.add(ball);
+        pointsCounter += POINTS_PER_KILL;
+        break;
+      }
     }
-    for (let j = 0; j < arrayOfBalls.length; j++) {
-      if (collisionWithBall(arrayOfBalls[j], arrayOfChitauris[i])) {
-        arrayOfChitauris.splice(i, 1);
-        arrayOfBalls.splice(j, 1);
-        pointsCounter += 10;
+    if (deadEnemies.has(enemy)) continue;
+
+    //Off the left edge — recycle it back to the right
+    if (enemy.x + enemy.image.width < 0) {
+      const replacement = respawn();
+      enemy.x = replacement.x;
+      enemy.y = replacement.y;
+      continue;
+    }
+
+    //Reached the player, or the Infinity Stones?
+    if (intersects(enemyBox, playerBox())) {
+      isGameOver = true;
+    }
+    if (intersects(enemyBox, boxOf(img.gaunlet, gaunlet.x, gaunlet.y))) {
+      isGameOver = true;
+    }
+
+    //Any of the assembled women wipes it out
+    for (const hero of heroes) {
+      if (intersects(enemyBox, boxOfEntity(hero))) {
+        deadEnemies.add(enemy);
+        break;
       }
     }
   }
-}
 
-//----Functions for the Game----//
-function draw() {
-  ctx.drawImage(bg, 0, 0);
-  //I need to check which character the user has chosen
-  if (chooseCharacter === "wanda") {
-    ctx.drawImage(wandaImage, scarletX, scarletY);
-  } else if (chooseCharacter === "cpMarvel") {
-    ctx.drawImage(marvelImage, scarletX, scarletY);
-  } else {
-    ctx.drawImage(wandaImage, scarletX, scarletY);
+  if (deadEnemies.size) {
+    const survivors = flock.filter((e) => !deadEnemies.has(e));
+    flock.length = 0;
+    flock.push(...survivors);
+  }
+  if (deadBalls.size) {
+    arrayOfBalls = arrayOfBalls.filter((b) => !deadBalls.has(b));
   }
 
-  ctx.drawImage(proximaImage, proximaX, proximaY);
-  proximaX = proximaX - 4;
-  ctx.drawImage(corvusImage, corvusX, corvusY);
-  corvusX = corvusX - 4;
-  ctx.drawImage(nebulaImage, nebulaX, nebulaY);
-  nebulaX = nebulaX - 4;
-  ctx.drawImage(thanosImage, thanosX, 300);
-  ctx.drawImage(valkiriaImage, valkiriaX, valkiriaY);
-  valkiriaX = valkiriaX + 4;
-  ctx.drawImage(rescuePottsImage, rescueX, 150);
-  rescueX = rescueX + 4;
-  ctx.drawImage(mantisImage, mantisX, 250);
-  mantisX = mantisX + 4;
-  ctx.drawImage(marvelImage, marvelX, 250);
-  marvelX = marvelX + 8;
-  ctx.drawImage(okoyeImage, okoyeX, 350);
-  okoyeX += 4;
-  ctx.drawImage(waspImage, waspX, 450);
-  waspX += 4;
-  ctx.drawImage(shuriImage, shuriX, 550);
-  shuriX += 4;
-  ctx.drawImage(gamoraImage, gamoraX, 650);
-  gamoraX += 4;
-  ctx.drawImage(stanLeeImage, stanLeeImageX, 670);
-  stanLeeImageX += 4;
-  ctx.drawImage(gaunletImage, gaunletImageX, gaunletImageY);
-  ctx.drawImage(leviImage, leviX, 250);
-  leviX = leviX - 4;
-  ctx.drawImage(spidermanImage, spidermanImageX, spidermanImageY);
-  //Calling the function to draw the score on the canvas
+  while (flock.length < MIN_ENEMIES) {
+    flock.push(respawn());
+  }
+}
+
+function movePlayer(dt) {
+  const step = SPEED.player * dt;
+  const sprite = playerImage();
+
+  if (heldKeys.has("ArrowDown") && player.y + sprite.height < canvas.height) {
+    player.y += step;
+  }
+  if (heldKeys.has("ArrowUp") && player.y > 0) {
+    player.y -= step;
+  }
+  if (heldKeys.has("ArrowLeft") && player.x > 0) {
+    player.x -= step;
+  }
+  if (heldKeys.has("ArrowRight") && player.x + sprite.width < canvas.width) {
+    player.x += step;
+  }
+}
+
+//----The game loop----//
+function frame(now) {
+  if (!isRunning) return;
+
+  //Seconds since the previous frame, clamped so that tabbing away and
+  //coming back does not teleport everything across the screen.
+  const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+  lastFrameTime = now;
+
+  ctx.drawImage(img.bg, 0, 0);
+
+  movePlayer(dt);
+  ctx.drawImage(playerImage(), player.x, player.y);
+
+  //Villains sweeping in from the right
+  for (const villain of villains) {
+    villain.x += villain.vx * dt;
+    ctx.drawImage(villain.image, villain.x, villain.y);
+    if (intersects(boxOfEntity(villain), playerBox())) {
+      isGameOver = true;
+    }
+  }
+
+  //The women assembling from the left (the W easter egg)
+  for (const hero of heroes) {
+    hero.x += hero.vx * dt;
+    ctx.drawImage(hero.image, hero.x, hero.y);
+  }
+
+  ctx.drawImage(img.thanos, thanos.x, thanos.y);
+  ctx.drawImage(img.gaunlet, gaunlet.x, gaunlet.y);
+  ctx.drawImage(img.spiderman, spidermanPos.x, spidermanPos.y);
+  stanLee.x += stanLee.vx * dt;
+  ctx.drawImage(stanLee.image, stanLee.x, stanLee.y);
+
   drawScore();
-  //calling groot to show up in the canvas
-  grootDancing();
-  chitauriMoving();
+  grootDancing(dt);
+  walkingChitauri(dt);
 
-  //Looping over the Space Dogs
-  for (let i = 0; i < arrayOfSpaceDogs.length; i++) {
-    ctx.drawImage(spaceDogsImage, arrayOfSpaceDogs[i].x, arrayOfSpaceDogs[i].y);
-    arrayOfSpaceDogs[i].x = arrayOfSpaceDogs[i].x - 6;
-
-    if (arrayOfSpaceDogs[i].x + spaceDogsImage.width < 0) {
-      arrayOfSpaceDogs[i] = {
-        x: 1300,
-        y: Math.floor(Math.random() * (canvas.height - spaceDogsImage.height)),
-      };
-    }
-    //looping over the balls
-    for (let j = 0; j < arrayOfBalls.length; j++) {
-      if (collisionWithBall(arrayOfBalls[j], arrayOfSpaceDogs[i])) {
-        arrayOfSpaceDogs.splice(i, 1);
-        arrayOfBalls.splice(j, 1);
-        pointsCounter += 10;
-      }
-    }
-    collisionWithWanda(arrayOfSpaceDogs[i]);
-    collisionWithWanda(arrayOfChitauris[i]);
-
-    collision(wandaImage, scarletX, scarletY, nebulaImage, nebulaX, nebulaY);
-    collision(wandaImage, scarletX, scarletY, corvusImage, corvusX, corvusY);
-    collision(wandaImage, scarletX, scarletY, leviImage, leviX, leviY);
-    collision(wandaImage, scarletX, scarletY, proximaImage, proximaX, proximaY);
-
-    collisionWithGaunlet(arrayOfSpaceDogs[i]);
-    collisionWithGaunlet(arrayOfChitauris[i]);
-
-    if (collisionWithWomen(arrayOfSpaceDogs[i])) {
-      arrayOfSpaceDogs = [];
-    }
+  //Balls move first, so a shot fired this frame can still connect
+  for (const ball of arrayOfBalls) {
+    ball.x += SPEED.ball * dt;
+    ctx.drawImage(
+      chooseCharacter === "cpMarvel" ? img.blast : img.ball,
+      ball.x,
+      ball.y
+    );
   }
+  arrayOfBalls = arrayOfBalls.filter((ball) => ball.x < canvas.width);
 
-  if (arrayOfSpaceDogs < 6) {
-    arrayOfSpaceDogs.push({ x: 1300 });
-  }
+  updateEnemies(arrayOfSpaceDogs, newSpaceDog, dt);
+  updateEnemies(arrayOfChitauris, newChitauri, dt);
 
-  if (pressS) {
-    for (let i = 0; i < arrayOfBalls.length; i++) {
-      if (chooseCharacter === "wanda") {
-        ctx.drawImage(ballImage, arrayOfBalls[i].x, arrayOfBalls[i].y);
-      } else if (chooseCharacter === "cpMarvel") {
-        ctx.drawImage(blastImage, arrayOfBalls[i].x, arrayOfBalls[i].y);
-      }
-      arrayOfBalls[i].x += incrBall;
-    }
-  }
-
-  //Animate Scarlet Witch Wanda
-  if (isArrowDown && scarletY + wandaImage.height < canvas.height) {
-    scarletY = scarletY + 10;
-  }
-  if (isArrowUp && scarletY > 0) {
-    scarletY = scarletY - 10;
-  }
-
-  if (isArrowLeft && scarletX > 0) {
-    scarletX = scarletX - 10;
-  }
-
-  if (isArrowRight && scarletX + wandaImage.width < canvas.width) {
-    scarletX = scarletX + 10;
-  }
-
-  //Game Over and Start Animation
   if (isGameOver) {
-    canvas.style.display = "none";
-    backGround.style.display = "block";
-    gameOvBtn.style.display = "block";
-    endGameScreen.style.display = "block";
-    backToStart.style.display = "block";
-    finalScore();
-
-    audio.pause();
-    audio2.pause();
-
-    cancelAnimationFrame(intervalId);
+    endTheGame();
   } else {
-    intervalId = requestAnimationFrame(draw);
+    animationId = requestAnimationFrame(frame);
   }
 }
 
-//----Start the Game----//
+//----Controls----//
+document.addEventListener("keydown", (event) => {
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) {
+    heldKeys.add(event.code);
+    event.preventDefault();
+  }
+
+  if (!isRunning) return;
+
+  //---making shoot possible--//
+  if (event.code === "KeyS") {
+    arrayOfBalls.push({ x: player.x + 50, y: player.y + 20 });
+  }
+
+  //---the easter egg: the women assemble---//
+  if (event.code === "KeyW") {
+    assembleTheWomen();
+  }
+});
+
+document.addEventListener("keyup", (event) => {
+  heldKeys.delete(event.code);
+});
+
+function assembleTheWomen() {
+  if (heroes.length) return;
+  heroes = [
+    entity(img.valkiria, -600, 50, SPEED.hero),
+    entity(img.rescuePotts, -600, 150, SPEED.hero),
+    entity(img.mantis, -600, 250, SPEED.hero),
+    entity(img.marvel, -1200, 250, SPEED.capMarvelFlyBy),
+    entity(img.okoye, -600, 350, SPEED.hero),
+    entity(img.wasp, -600, 450, SPEED.hero),
+    entity(img.shuri, -600, 550, SPEED.hero),
+    entity(img.gamora, -600, 650, SPEED.hero),
+  ];
+}
+
+//----Start / reset / end----//
+function resetGame() {
+  isGameOver = false;
+  pointsCounter = 0;
+  player.x = 0;
+  player.y = 50;
+  heldKeys.clear();
+
+  arrayOfBalls = [];
+  arrayOfSpaceDogs = [];
+  arrayOfChitauris = [];
+  heroes = [];
+
+  while (arrayOfSpaceDogs.length < MIN_ENEMIES) {
+    arrayOfSpaceDogs.push(newSpaceDog());
+  }
+  while (arrayOfChitauris.length < MIN_ENEMIES) {
+    //The Chitauri arrive as a second wave, further out
+    const c = newChitauri();
+    c.x += 1500 + Math.random() * 4000;
+    arrayOfChitauris.push(c);
+  }
+
+  villains = [
+    entity(img.proxima, 10800, 200, -SPEED.villain),
+    entity(img.corvus, 10000, 350, -SPEED.villain),
+    entity(img.nebula, 10400, 600, -SPEED.villain),
+    entity(img.levi, 10350, 250, -SPEED.villain),
+  ];
+
+  stanLee = entity(img.stanLee, -3000, 670, SPEED.hero);
+  walkingChitauriX = 200;
+  grootTimer = 0;
+  chitauriTimer = 0;
+  chitIndex = 0;
+
+  showFinalScore();
+  rewindMusic();
+}
+
 function startTheGame() {
+  //Guard against a second loop being stacked on top of the first, which
+  //used to make everything run at double speed.
+  if (isRunning) return;
+
   canvas.style.display = "block";
   startBtn.style.display = "none";
   backGround.style.display = "none";
@@ -462,231 +450,83 @@ function startTheGame() {
   hideHeader.style.display = "none";
   instru.style.display = "none";
   marvelStudios.style.display = "none";
+  backToStart.style.display = "none";
+
   audioFirstScreen.pause();
   audioFirstScreen.style.display = "none";
-  backToStart.style.display = "none";
-  audio.play();
-  audio2.play();
-  draw();
+  playMusic();
+
+  isRunning = true;
+  lastFrameTime = performance.now();
+  animationId = requestAnimationFrame(frame);
 }
 
-//Resetting all my variables
-function resetVariables() {
-  isGameOver = false;
-  pointsCounter = 0;
-  scarletX = 0;
-  scarletY = 50;
-  arrayOfBalls = [];
-  arrayOfSpaceDogs = [
-    { x: 1800, y: 300 },
-    { x: 1700, y: 100 },
-    { x: 2000, y: 150 },
-    { x: 1300, y: 60 },
-    { x: 1200, y: 500 },
-    { x: 1100, y: 400 },
-    { x: 2300, y: 200 },
-    { x: 1900, y: 250 },
-    { x: 1600, y: 50 },
-  ];
-  arrayOfChitauris = [
-    { x: 15800, y: 100 },
-    { x: 14700, y: 300 },
-    { x: 21000, y: 60 },
-    { x: 13300, y: 150 },
-    { x: 14100, y: 400 },
-    { x: 16100, y: 500 },
-    { x: 23100, y: 250 },
-    { x: 19100, y: 200 },
-    { x: 16100, y: 100 },
-  ];
-  proximaX = 8200;
-  corvusX = 8400;
-  nebulaX = 8800;
-  thanosX = 1250;
-  thanosY = 0;
-  leviX = 8400;
-  valkiriaX = -6200;
-  valkiriaY = 50;
-  rescueX = -6200;
-  mantisX = 6200;
-  marvelX = -11600;
-  okoyeX = -6200;
-  waspX = -6200;
-  shuriX = -6200;
-  gamoraX = -6200;
-  stanLeeImageX = -3000;
-  finalScore();
-  audio.load();
-  audio2.load();
-}
-
-//---Generic collision function---//
-
-function collision(
-  object1Image,
-  object1X,
-  object1Y,
-  object2Image,
-  object2X,
-  object2Y
-) {
-  let object1Left = object1X;
-  let object1Right = object1X + object1Image.width;
-  let object1Top = object1Y;
-  let object1Bottom = object1Y + object1Image.height;
-
-  // variables to store the positions of the spaceDogs
-  let object2Left = object2X;
-  let object2Right = object2X + object2Image.width;
-  let object2Top = object2Y;
-  let object2Bottom = object2Y + object2Image.height;
-
-  // checks the crash cases
-  let crashRight = object2Left <= object1Right && object2Right >= object1Left;
-  let crashLeft = object2Right >= object1Left && object2Left <= object1Right;
-  let crashTop = object2Bottom >= object1Top && object2Top <= object1Bottom;
-  let crashBottom =
-    object2Bottom <= object1Bottom && object2Bottom >= object1Top;
-
-  // Checking if the collision happens
-
-  if ((crashLeft || crashRight) && (crashTop || crashBottom)) {
-    isGameOver = true;
+function endTheGame() {
+  isRunning = false;
+  if (animationId !== null) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
   }
-  return false;
-}
 
-//-----COLLISION FUNCTIONS----//
+  canvas.style.display = "none";
+  backGround.style.display = "block";
+  gameOvBtn.style.display = "block";
+  endGameScreen.style.display = "block";
+  backToStart.style.display = "block";
+  showFinalScore();
 
-//When SpaceDogs crash with Wanda = Game Over
-function collisionWithWanda(spaceDogs) {
-  let scarletLeft = scarletX;
-  let scarletRight = scarletX + wandaImage.width;
-  let scarletTop = scarletY;
-  let scarletBottom = scarletY + wandaImage.height;
-
-  // variables to store the positions of the spaceDogs
-  let spaceDogsLeft = spaceDogs.x;
-  let spaceDogsRight = spaceDogs.x + spaceDogsImage.width;
-  let spaceDogsTop = spaceDogs.y;
-  let spaceDogsBottom = spaceDogs.y + spaceDogsImage.height;
-
-  // checks the crash cases
-  let crashRight =
-    spaceDogsLeft <= scarletRight && spaceDogsRight >= scarletLeft;
-  let crashLeft =
-    spaceDogsRight >= scarletLeft && spaceDogsLeft <= scarletRight;
-  let crashTop = spaceDogsBottom >= scarletTop && spaceDogsTop <= scarletBottom;
-  let crashBottom =
-    spaceDogsBottom <= scarletBottom && spaceDogsBottom >= scarletTop;
-
-  // Checking if the collision happens
-
-  if ((crashLeft || crashRight) && (crashTop || crashBottom)) {
-    isGameOver = true;
-  }
-  return false;
-}
-
-function collisionWithGaunlet(spaceDogs) {
-  let gaunletLeft = gaunletImageX;
-  let gaunletRight = gaunletImageX + gaunletImage.width;
-  let gaunletTop = gaunletImageY;
-  let gaunletBottom = gaunletImageY + gaunletImage.height;
-
-  // variables to store the positions of the spaceDogs
-  let spaceDogsLeft = spaceDogs.x;
-  let spaceDogsRight = spaceDogs.x + spaceDogsImage.width;
-  let spaceDogsTop = spaceDogs.y;
-  let spaceDogsBottom = spaceDogs.y + spaceDogsImage.height;
-
-  // checks the crash cases
-  let crashRight =
-    spaceDogsLeft <= gaunletRight && spaceDogsRight >= gaunletLeft;
-  let crashLeft =
-    spaceDogsRight >= gaunletLeft && spaceDogsLeft <= gaunletRight;
-  let crashTop = spaceDogsBottom >= gaunletTop && spaceDogsTop <= gaunletBottom;
-  let crashBottom =
-    spaceDogsBottom <= gaunletBottom && spaceDogsBottom >= gaunletTop;
-
-  // actual collision check
-
-  if ((crashLeft || crashRight) && (crashTop || crashBottom)) {
-    isGameOver = true;
-  }
-  return false;
-}
-
-function collisionWithWomen(spaceDogs) {
-  let valkiriaLeft = valkiriaX;
-  let valkiriaRight = valkiriaX + valkiriaImage.width;
-  let valkiriaTop = valkiriaY;
-  let valkiriaBottom = valkiriaY + valkiriaImage.height;
-
-  // variables to store the positions of the spaceDogs
-  let spaceDogsLeft = spaceDogs.x;
-  let spaceDogsRight = spaceDogs.x + spaceDogsImage.width;
-  let spaceDogsTop = spaceDogs.y;
-  let spaceDogsBottom = spaceDogs.y + spaceDogsImage.height;
-
-  // checks the crash cases
-  let crashRight =
-    spaceDogsLeft <= valkiriaRight && spaceDogsRight >= valkiriaLeft;
-  let crashLeft =
-    spaceDogsRight >= valkiriaLeft && spaceDogsLeft <= valkiriaRight;
-  let crashTop =
-    spaceDogsBottom >= valkiriaTop && spaceDogsTop <= valkiriaBottom;
-  let crashBottom =
-    spaceDogsBottom <= valkiriaBottom && spaceDogsBottom >= valkiriaTop;
-
-  // actual collision check
-
-  if ((crashLeft || crashRight) && (crashTop || crashBottom)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function collisionWithBall(currentBall, currentSpaceDog) {
-  //I give two parameters because the space dogs are not defined inside the function
-  let spaceDogsLeft = currentSpaceDog.x;
-  let spaceDogsRight = currentSpaceDog.x + spaceDogsImage.width;
-  let spaceDogsTop = currentSpaceDog.y;
-  let spaceDogsBottom = currentSpaceDog.y + spaceDogsImage.width;
-
-  let ballsRight = currentBall.x + ballImage.width;
-  let ballsLeft = currentBall.x;
-  let ballsTop = currentBall.y;
-  let ballsBottom = currentBall.y + ballImage.width;
-
-  let crashRight = spaceDogsLeft <= ballsRight && spaceDogsRight >= ballsLeft;
-  let crashLeft = spaceDogsRight >= ballsLeft && spaceDogsLeft <= ballsRight;
-  let crashTop = spaceDogsBottom >= ballsTop && spaceDogsTop <= ballsBottom;
-  let crashBottom =
-    spaceDogsBottom <= ballsBottom && spaceDogsBottom >= ballsTop;
-
-  if ((crashLeft || crashRight) && (crashTop || crashBottom)) {
-    return true;
-  }
+  audio.pause();
+  audio2.pause();
 }
 
 //---AUDIO SETTINGS---//
-let audio = new Audio(
+const MUSIC_START_SECONDS = 96;
+
+const audio = new Audio(
   "./assets/Alan Silvestri - Portals (From Avengers EndgameAudio Only).mp3"
 );
 audio.volume = 0.01;
 
-let audio2 = new Audio("./assets/avengers_assemble_.mp3");
+const audio2 = new Audio("./assets/avengers_assemble_.mp3");
 audio2.volume = 0.03;
 
 //Sound effect for choosing character
-let audioBalls = new Audio("./assets/ballsSound.mp3");
+const audioBalls = new Audio("./assets/ballsSound.mp3");
+audioBalls.volume = 0.02;
+
+//Browsers reject play() until the user has interacted with the page, and an
+//unhandled rejection shows up as an error in the console.
+function playSafely(sound) {
+  const attempt = sound.play();
+  if (attempt && typeof attempt.catch === "function") {
+    attempt.catch(() => {});
+  }
+}
+
+function playMusic() {
+  playSafely(audio);
+  playSafely(audio2);
+}
+
+//Restarting used to call audio.load(), which aborts the in-flight request and
+//re-downloads several megabytes of MP3 every time. Rewinding is enough.
+function rewindMusic() {
+  audio.pause();
+  audio2.pause();
+  //Seeking before the metadata has arrived throws; in that case the
+  //loadedmetadata handler below sets the start point instead.
+  if (audio.readyState > 0) {
+    audio.currentTime = MUSIC_START_SECONDS;
+  }
+  if (audio2.readyState > 0) {
+    audio2.currentTime = 0;
+  }
+}
 
 audio.addEventListener(
   "loadedmetadata",
   function () {
-    this.currentTime = 96;
+    this.currentTime = MUSIC_START_SECONDS;
   },
   false
 );
@@ -707,22 +547,35 @@ window.addEventListener("load", () => {
   endGameScreen.style.display = "none";
   backToStart.style.display = "none";
 
+  //No starting until every sprite has decoded
+  startBtn.disabled = true;
+  const startLabel = startBtn.innerText;
+  startBtn.innerText = "LOADING...";
+
+  loadImages().then(() => {
+    resetGame();
+    startBtn.disabled = false;
+    startBtn.innerText = startLabel;
+    document.body.dataset.assetsReady = "true";
+  });
+
   wandaPlayer.addEventListener("click", () => {
     chooseCharacter = "wanda";
     wandaPlayer.className = "wanda";
-    audioBalls.play();
-    audioBalls.volume = 0.02;
+    playSafely(audioBalls);
   });
+
   cpMarvelPlayer.addEventListener("click", () => {
     chooseCharacter = "cpMarvel";
-    audioBalls.play();
-    audioBalls.volume = 0.02;
+    playSafely(audioBalls);
   });
+
   startBtn.addEventListener("click", () => {
     startTheGame();
   });
+
   gameOvBtn.addEventListener("click", () => {
-    resetVariables();
+    resetGame();
     startTheGame();
   });
 
@@ -736,6 +589,6 @@ window.addEventListener("load", () => {
     gameOvBtn.style.display = "none";
     startBtn.style.display = "block";
     audioFirstScreen.style.display = "block";
-    resetVariables();
+    resetGame();
   });
 });
