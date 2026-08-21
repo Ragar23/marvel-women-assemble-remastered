@@ -71,8 +71,8 @@ export function endGame() {
 
   gameOverTitle.innerText =
     run.stonesHp <= 0
-      ? "THEY TOOK THE STONES"
-      : "YOU SHOULD HAVE GONE FOR THE HEAD";
+      ? "DOOMSDAY HAS COME"
+      : "HELL ANSWERS TO ME";
   countUp(statScore, run.score);
   countUp(statWave, run.wave, 0.6);
   countUp(statKills, run.kills, 0.75);
