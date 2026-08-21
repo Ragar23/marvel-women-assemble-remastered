@@ -19,7 +19,7 @@ W, H, SCALE = 52, 48, 2
 cx, cy, r = 44, 20, 8
 
 
-def build(with_shield):
+def build(weapon):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
 
@@ -67,8 +67,22 @@ def build(with_shield):
     d.polygon([(30, 16), (38, 17), (38, 18), (30, 17)], fill=Bl)
     d.polygon([(37, 16), (42, 17), (42, 24), (37, 23)], fill=R)    # glove
 
-    # the shield, on his forearm mid-release
-    if not with_shield:
+    # what he is holding
+    if weapon is None:
+        return im
+    if weapon == "mjolnir":
+        # Worthy: Mjolnir in hand, wreathed in lightning
+        d.rectangle([(36, 17), (43, 19)], fill=(104, 68, 42, 255))      # handle
+        d.rectangle([(43, 13), (50, 23)], fill=(150, 158, 172, 255))    # head
+        d.rectangle([(43, 13), (50, 14)], fill=(206, 214, 228, 255))
+        d.rectangle([(43, 22), (50, 23)], fill=(96, 104, 120, 255))
+        d.rectangle([(44, 16), (46, 18)], fill=(214, 226, 240, 255))    # sheen
+        # short diagonal arcs, so it crackles rather than sprouting ears
+        for pts in (((42, 11), (44, 12), (43, 10)),
+                    ((51, 12), (49, 13), (52, 14)),
+                    ((41, 25), (44, 24), (42, 27)),
+                    ((51, 24), (49, 23), (52, 26))):
+            d.polygon(pts, fill=(186, 243, 255, 255))
         return im
     for rad, col in ((r, R), (r - 1.5, Wh), (r - 3, R), (r - 4.5, B)):
         d.ellipse([(cx - rad, cy - rad), (cx + rad, cy + rad)], fill=col)
@@ -91,17 +105,23 @@ def outline(image):
                    for dx, dy in ((1,0),(-1,0),(0,1),(0,-1))):
                 px[x, y] = K
 
-held = build(True)
+held = build("shield")
 outline(held)
 held.resize((W * SCALE, H * SCALE), Image.NEAREST).save("images/cap.png")
 print(f"cap.png {W*SCALE}x{H*SCALE}")
 
 # The same figure with an empty hand, for the frames where the shield is in
 # flight — otherwise he throws it and is still visibly holding it.
-empty = build(False)
+empty = build(None)
 outline(empty)
 empty.resize((W * SCALE, H * SCALE), Image.NEAREST).save("images/cap-empty.png")
 print(f"cap-empty.png {W*SCALE}x{H*SCALE}")
+
+# Worthy: the Endgame moment, for the fifteen seconds he holds the hammer.
+worthy = build("mjolnir")
+outline(worthy)
+worthy.resize((W * SCALE, H * SCALE), Image.NEAREST).save("images/cap-worthy.png")
+print(f"cap-worthy.png {W*SCALE}x{H*SCALE}")
 
 # ------------------------------------------------ the thrown shield
 S, SC = 22, 2

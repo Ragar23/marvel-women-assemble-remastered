@@ -6,7 +6,7 @@ import { burst, floatText } from "./effects.js";
 import { heldKeys } from "./input.js";
 import { endGame } from "./loop.js";
 import { throwMjolnir, updateMjolnir } from "./mjolnir.js";
-import { updateShieldStorm } from "./shield.js";
+import { throwLightning, throwShield, updateShield, updateWorthy } from "./shield.js";
 import { bullets, fx, heroDef, heroTint, run, world } from "./state.js";
 import { clamp } from "./util.js";
 import { startWave, waveIsClear } from "./waves.js";
@@ -26,7 +26,8 @@ export function update(dt) {
   updatePowerUps(dt);
   updateMissiles(dt);
   updateMjolnir(dt);
-  updateShieldStorm(dt);
+  updateShield(dt);
+  updateWorthy(dt);
   updateHeroes(dt);
   updateDressing(dt);
   updateEffects(dt);
@@ -86,6 +87,11 @@ export function fire() {
     throwMjolnir();
     return;
   }
+  if (hero.ult === "worthy") {
+    if (world.player.worthy > 0) throwLightning();
+    else throwShield();
+    return;
+  }
   const [bw, bh] = hero.bulletSize;
   world.player.cooldown =
     hero.cooldown * (world.player.rapid > 0 ? CONFIG.powerUp.rapidFactor : 1);
@@ -101,13 +107,8 @@ export function fire() {
       dmg: hero.damage,
       pierce: hero.pierce || 0,
       struck: new Set(),
-      //Cap's throw leaves his hand at an angle and bounces off the top and
-      //bottom of the screen, alternating direction with each throw.
-      vy: hero.ricochet ? (world.player.throwUp ? -hero.ricochet : hero.ricochet) : 0,
-      spin: hero.ricochet ? 0 : undefined,
     });
   }
-  if (hero.ricochet) world.player.throwUp = !world.player.throwUp;
   //muzzle flash
   burst(world.player.x + world.player.w, world.player.y + world.player.h / 2, heroTint(), 5, 150);
   playSfx("shoot", 0.16, heroDef().shootRate || 1);

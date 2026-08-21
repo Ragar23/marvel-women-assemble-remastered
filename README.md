@@ -50,8 +50,13 @@ mostly works too, but a local server is more reliable for the audio and font fil
   | Thor | 3 | 0.34s | Bolts pierce 2 extra enemies |
 - **Escalating waves** — eight enemy types, arriving faster and tougher as you go.
   Ultrons weave, Cull Obsidian soaks damage, Leviathans are slow and enormous.
-- **A Thanos boss fight** every fifth wave, with a health bar, homing blasts and
-  summoned minions.
+- **A boss every fifth wave**, alternating. **Ultron** at wave 5 — the enemy of
+  the original 2021 game — firing spreads and building more of himself; **Thanos**
+  at wave 10, with homing blasts and summoned minions.
+- **The Black Order as mini-bosses.** Nebula blinks toward you, Proxima Midnight
+  throws spears from range, Corvus Glaive lines up and charges, and Cull Obsidian
+  wears plating that soaks damage until you break it open. Each arrives named,
+  alone, with its own health bar.
 - **Three lives plus an Infinity Stones health bar.** Anything that reaches the
   left edge damages the Stones by an amount matched to how dangerous it was.
 - **Power-ups** from kills — rapid fire, shield, screen-clearing blast.

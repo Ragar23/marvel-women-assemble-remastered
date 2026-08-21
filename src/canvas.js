@@ -5,6 +5,10 @@
 
 export const canvas = document.getElementById("myCanvas");
 export const ctx = canvas.getContext("2d");
+
+//Canvas smooths images when it scales them, which turns pixel art to mush.
+//It matters most for the bosses, drawn several times their native size.
+ctx.imageSmoothingEnabled = false;
 export const W = canvas.width;
 export const H = canvas.height;
 

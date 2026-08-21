@@ -124,6 +124,8 @@ export function resetGame() {
     recoil: 0, //1 right after firing, decaying to 0
     charge: 0, //ultimate meter, 0 → CONFIG.ult.max
     hex: 0, //Wanda: seconds of slowed time remaining
+    worthy: 0, //Cap: seconds holding Mjolnir
+    throwUp: false, //which way his next throw leaves his hand
     ignition: 0, //Captain Marvel: seconds of beam remaining
   };
 

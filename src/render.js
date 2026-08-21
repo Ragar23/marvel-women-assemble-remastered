@@ -4,7 +4,7 @@ import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { drawBanner, drawHud } from "./hud.js";
 import { drawMjolnir } from "./mjolnir.js";
-import { drawShieldStorm } from "./shield.js";
+import { drawShield } from "./shield.js";
 import { boltArcs, bullets, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroes, particles, pops, powerUps, world } from "./state.js";
 import { clamp, drawSprite, rand } from "./util.js";
 
@@ -40,7 +40,7 @@ export function draw() {
 
   drawMissiles();
   drawMjolnir();
-  drawShieldStorm();
+  drawShield();
   if (world.player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
   drawBoltArcs();
@@ -107,8 +107,25 @@ export function drawEnemy(enemy) {
     }
   );
 
-  //A slim health bar, only once it has actually taken a hit
-  if (enemy.maxHp > 1 && enemy.hp < enemy.maxHp) {
+  //Elites carry their name and a bar from the moment they arrive
+  if (enemy.def.elite) {
+    ctx.font = "18px Marvel";
+    ctx.textAlign = "center";
+    ctx.fillStyle = enemy.def.tint;
+    ctx.fillText(enemy.def.name, enemy.x + enemy.w / 2, enemy.y - 14);
+    ctx.textAlign = "left";
+    const pct = clamp(enemy.hp / enemy.maxHp, 0, 1);
+    ctx.fillStyle = "rgba(0,0,0,.65)";
+    ctx.fillRect(enemy.x - 6, enemy.y - 10, enemy.w + 12, 5);
+    ctx.fillStyle = enemy.def.tint;
+    ctx.fillRect(enemy.x - 6, enemy.y - 10, (enemy.w + 12) * pct, 5);
+    //Cull's plating shows as a separate strip above his health
+    if (enemy.def.behaviour === "armour" && !enemy.cracked) {
+      const ap = clamp(enemy.plating / enemy.def.armourHp, 0, 1);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(enemy.x - 6, enemy.y - 17, (enemy.w + 12) * ap, 3);
+    }
+  } else if (enemy.maxHp > 1 && enemy.hp < enemy.maxHp) {
     const pct = enemy.hp / enemy.maxHp;
     ctx.fillStyle = "rgba(0,0,0,.6)";
     ctx.fillRect(enemy.x, enemy.y - 8, enemy.w, 4);
@@ -123,7 +140,7 @@ export function drawBoss() {
   const breath = Math.sin(fx.elapsed * 2) * 0.018;
   const swell = world.boss.windup * 0.09;
   drawSprite(
-    img.thanos,
+    img[world.boss.def.sprite],
     world.boss.x + world.boss.knock * 10 - world.boss.lunge * 22,
     world.boss.y,
     world.boss.w,
@@ -138,7 +155,7 @@ export function drawBoss() {
 
   //Aura: tightens and brightens as the blast charges
   ctx.save();
-  ctx.strokeStyle = `rgba(192,132,252,${0.45 + world.boss.windup * 0.5})`;
+  ctx.strokeStyle = hexToRgba(world.boss.def.tint, 0.45 + world.boss.windup * 0.5);
   ctx.lineWidth = 3 + world.boss.windup * 4;
   ctx.beginPath();
   ctx.arc(
@@ -152,9 +169,15 @@ export function drawBoss() {
   ctx.restore();
 }
 
-export function drawBossDeath() {
+export //Canvas has no colour-with-alpha helper, and the boss aura needs one.
+function hexToRgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
+function drawBossDeath() {
   const p = world.bossDying.t / world.bossDying.dur;
-  drawSprite(img.thanos, world.bossDying.x, world.bossDying.y, world.bossDying.w, world.bossDying.h, {
+  drawSprite(img[world.bossDying.sprite], world.bossDying.x, world.bossDying.y, world.bossDying.w, world.bossDying.h, {
     rot: world.bossDying.spin * p,
     sx: 1 - p * 0.25,
     sy: 1 - p * 0.25,
@@ -169,7 +192,7 @@ export function drawEnemyShot(s) {
   const cy = s.y + s.h / 2;
   const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, s.w);
   grd.addColorStop(0, "#ffffff");
-  grd.addColorStop(0.4, "#c084fc");
+  grd.addColorStop(0.4, s.color || "#c084fc");
   grd.addColorStop(1, "rgba(168,85,247,0)");
   ctx.fillStyle = grd;
   ctx.beginPath();
@@ -212,8 +235,15 @@ export function drawPlayer() {
     //Thor and Cap have their weapon in hand in the sprite, so while it is
     //in flight they need the empty-handed version instead.
     const hero = heroDef();
+    //Worthy overrides everything; otherwise show empty hands while the
+    //weapon is in flight.
     const away = world.mjolnir || world.shield;
-    const sprite = away && hero.emptySprite ? hero.emptySprite : hero.sprite;
+    const sprite =
+      world.player.worthy > 0 && hero.worthySprite
+        ? hero.worthySprite
+        : away && hero.emptySprite
+        ? hero.emptySprite
+        : hero.sprite;
     drawSprite(
       img[sprite],
       world.player.x - r * CONFIG.anim.recoilPx,
@@ -348,8 +378,11 @@ export function drawBullet(b) {
     });
   } else if (hero.ult === "hex") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: fx.elapsed * 11 });
-  } else if (hero.ult === "shieldstorm") {
-    drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: b.spin || 0 });
+  } else if (b.lightning) {
+    drawSprite(sprite, b.x, b.y, b.w, b.h, {
+      sx: 1.1 + Math.sin(fx.elapsed * 50) * 0.14,
+      flash: 0.5 + Math.sin(fx.elapsed * 44) * 0.35,
+    });
   } else if (hero.ult === "barrage") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { flash: 0.2 });
   } else {

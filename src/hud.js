@@ -107,7 +107,7 @@ export function drawBossBar() {
 
   ctx.fillStyle = "rgba(5,6,10,.75)";
   ctx.fillRect(x, 78, barW, 26);
-  ctx.fillStyle = "#a855f7";
+  ctx.fillStyle = world.boss.def.tint;
   ctx.fillRect(x, 78, barW * pct, 26);
   ctx.strokeStyle = "rgba(255,255,255,.35)";
   ctx.lineWidth = 2;
@@ -116,7 +116,7 @@ export function drawBossBar() {
   ctx.font = "24px Marvel";
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.fillText("THANOS", W / 2, 98);
+  ctx.fillText(world.boss.def.name, W / 2, 98);
   ctx.textAlign = "left";
 }
 
@@ -126,6 +126,11 @@ export function drawActivePowerUps() {
   if (world.player.rapid > 0) {
     ctx.fillStyle = "#f0b323";
     ctx.fillText(`RAPID FIRE ${world.player.rapid.toFixed(1)}s`, 24, y);
+    y -= 26;
+  }
+  if (world.player.worthy > 0) {
+    ctx.fillStyle = "#bae6fd";
+    ctx.fillText(`WORTHY ${world.player.worthy.toFixed(1)}s`, 24, y);
     y -= 26;
   }
   if (world.player.shield > 0) {

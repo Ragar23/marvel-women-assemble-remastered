@@ -47,10 +47,11 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     const u = await p.evaluate(() => { const g = window.game;
       return { charge: Math.round(g.world.player.charge), hex: +g.world.player.hex.toFixed(1),
                ign: +g.world.player.ignition.toFixed(1), arcs: g.boltArcs.length,
-               miss: g.missiles.length, shield: g.world.shield ? 1 : 0 }; });
-    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0), JSON.stringify(u));
+               miss: g.missiles.length, shield: g.world.shield ? 1 : 0,
+               worthy: +g.world.player.worthy.toFixed(1) }; });
+    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0), JSON.stringify(u));
     if (hero === 'thor') check('thor: mjolnir in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
-    if (hero === 'cap') check('cap: throw ricochets', await p.evaluate(() => window.game.HEROES.cap.ricochet > 0));
+    if (hero === 'cap') check('cap: worthy holds Mjolnir', await p.evaluate(() => window.game.world.player.worthy > 10));
     await p.evaluate(() => { window.game.world.player.lives = 0; });
     await p.waitForTimeout(400);
   }
@@ -59,7 +60,8 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.locator('#retry-button').click(); await p.waitForTimeout(300);
   await p.evaluate(() => { const g = window.game; g.enemies.length = 0; g.spawnQueue.length = 0; g.startWave(5); });
   await p.waitForTimeout(1600);
-  check('boss spawns', await p.evaluate(() => !!window.game.world.boss));
+  check('wave 5 boss is Ultron', await p.evaluate(() => window.game.world.boss?.def.name === 'ULTRON'));
+  check('wave 10 boss is Thanos', await p.evaluate(() => window.game.bossForWave(10).name === 'THANOS'));
   await p.screenshot({ path: S + 'split-boss.png' });
   await p.evaluate(() => window.game.damageBoss(9999, 100, 100));
   await p.waitForTimeout(300);

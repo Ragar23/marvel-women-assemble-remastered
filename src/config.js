@@ -27,6 +27,9 @@ export const CONFIG = {
   //Wave N multiplies every enemy speed by this, capped, so runs build.
   difficulty: { speedStep: 0.075, speedCap: 2.1, hpEveryWaves: 4 },
   bossEvery: 5,
+  //Wave 5 is Ultron — the enemy of the original 2021 game — and wave 10 is
+  //Thanos. After that they alternate, each turn tougher than the last.
+  bossOrder: ["ultron", "thanos"],
   //Ultimates: a meter filled by kills, spent with Space.
   ult: {
     max: 100,
@@ -44,11 +47,21 @@ export const CONFIG = {
     missileTurn: 5.5, //radians per second of steering authority
     missileLife: 3.2,
   },
-  //Captain America's ultimate: one shield chaining through a dozen targets.
+  //Captain America's throw, and the fifteen seconds where he puts the
+  //shield down and picks up Mjolnir instead.
   shield: {
-    damage: 6,
-    speed: 1500,
-    maxHops: 12,
+    damage: 4,
+    speed: 1150,
+    returnSpeed: 1450,
+    ricochet: 760, //vertical component; it bounces off the top and bottom
+    maxHits: 4,
+    outTime: 1.15,
+  },
+  worthy: {
+    duration: 15,
+    boltDamage: 9,
+    boltCooldown: 0.42,
+    boltArcRange: 260, //lightning forks to anything within this of a hit
   },
   //Thor throws Mjolnir instead of firing bolts. One hammer at a time, so
   //his rhythm is throw-and-wait rather than hold-to-spray, and each throw
@@ -114,18 +127,16 @@ export const HEROES = {
     sprite: "cap",
     //Shown while the shield is away, so he is not still holding it
     emptySprite: "capEmpty",
-    bullet: "shield",
-    bulletSize: [40, 40],
-    damage: 2,
-    cooldown: 0.3,
-    //His throw ricochets off the top and bottom of the screen, alternating
-    //which way it leaves his hand. A shot crosses the screen in ~1.1s, so
-    //this has to be fast enough to reach an edge before it exits right.
-    ricochet: 760,
+    worthySprite: "capWorthy",
+    bullet: "lightning",
+    bulletSize: [128, 68],
+    damage: 4,
+    cooldown: 0.12,
+
     tint: "#4d82d6",
     shootRate: 0.95,
-    ult: "shieldstorm",
-    ultName: "SHIELD RICOCHET",
+    ult: "worthy",
+    ultName: "WORTHY",
   },
   ironman: {
     sprite: "ironman",
@@ -148,11 +159,65 @@ export const ENEMY_TYPES = {
   outrider: { sprite: "spaceDogs", speed: 480, hp: 1, points: 10, leak: 7 },
   ultron: { sprite: "ultron", speed: 620, hp: 1, points: 15, leak: 7, weave: 150 },
   chitauri: { sprite: "chit2", speed: 430, hp: 2, points: 20, leak: 9, animated: true },
-  nebula: { sprite: "nebula", speed: 545, hp: 3, points: 35, leak: 12 },
-  proxima: { sprite: "proxima", speed: 500, hp: 4, points: 40, leak: 14, weave: 90 },
-  corvus: { sprite: "corvus", speed: 505, hp: 4, points: 40, leak: 14 },
-  cull: { sprite: "cull", speed: 300, hp: 6, points: 55, leak: 20 },
+  //The Black Order. Each is an event rather than a statistic: a name, a
+  //visible health bar from the moment it arrives, and its own behaviour.
+  nebula: {
+    sprite: "nebula", speed: 300, hp: 10, points: 160, leak: 14,
+    elite: true, name: "NEBULA", tint: "#7dd3fc",
+    //Blinks forward in bursts, so she closes distance unpredictably
+    behaviour: "blink", blinkGap: 1.5, blinkDist: 150,
+  },
+  proxima: {
+    sprite: "proxima", speed: 240, hp: 12, points: 190, leak: 16,
+    elite: true, name: "PROXIMA MIDNIGHT", tint: "#f0abfc",
+    //Hangs back and throws spears at wherever you are
+    behaviour: "spear", spearGap: 1.6, weave: 70,
+  },
+  corvus: {
+    sprite: "corvus", speed: 250, hp: 13, points: 200, leak: 16,
+    elite: true, name: "CORVUS GLAIVE", tint: "#a5b4fc",
+    //Lines up with you, then charges
+    behaviour: "charge", chargeSpeed: 1500, chargeWindup: 0.55, chargeGap: 2.2,
+  },
+  cull: {
+    sprite: "cull", speed: 170, hp: 20, points: 240, leak: 22,
+    elite: true, name: "CULL OBSIDIAN", tint: "#fbbf24",
+    //Armoured: shrugs off most damage until the plating is broken open
+    behaviour: "armour", armour: 0.34, armourHp: 8,
+  },
   levi: { sprite: "levi", speed: 265, hp: 9, points: 90, leak: 24 },
+};
+
+export const BOSSES = {
+  ultron: {
+    sprite: "ultron",
+    name: "ULTRON",
+    size: 200,
+    hp: (wave) => 34 + wave * 6,
+    tint: "#86efac",
+    shotColor: "#4ade80",
+    //Fires a spread and builds more of himself
+    shots: 3,
+    spread: 150,
+    fireGap: 1.5,
+    minion: "ultron",
+    summonGap: 1.9,
+    bobSpeed: 1.8, //restless, unlike Thanos's slow sweep
+  },
+  thanos: {
+    sprite: "thanos",
+    name: "THANOS",
+    size: 250,
+    hp: (wave) => 40 + wave * 8,
+    tint: "#c084fc",
+    shotColor: "#c084fc",
+    shots: 1,
+    spread: 0,
+    fireGap: 1.7,
+    minion: "outrider",
+    summonGap: 2.4,
+    bobSpeed: 0.9,
+  },
 };
 
 //Which enemies each wave may draw from, and how many to send.
@@ -160,10 +225,21 @@ export const WAVE_PLAN = [
   { count: 20, mix: ["outrider"] },
   { count: 26, mix: ["outrider", "ultron"] },
   { count: 32, mix: ["outrider", "ultron", "chitauri"] },
-  { count: 36, mix: ["outrider", "chitauri", "nebula", "cull"] },
-  { count: 42, mix: ["outrider", "ultron", "chitauri", "proxima", "corvus"] },
-  { count: 48, mix: ["ultron", "chitauri", "nebula", "corvus", "cull", "levi"] },
+  { count: 36, mix: ["outrider", "chitauri", "ultron"] },
+  { count: 42, mix: ["outrider", "ultron", "chitauri", "levi"] },
+  { count: 48, mix: ["ultron", "chitauri", "outrider", "levi"] },
 ];
+
+//The Black Order arrive one at a time, on top of the ordinary wave, so each
+//one lands as an event instead of being lost in the crowd.
+export const ELITE_SCHEDULE = {
+  3: ["nebula"],
+  4: ["proxima"],
+  6: ["corvus"],
+  7: ["nebula", "proxima"],
+  8: ["cull"],
+  9: ["corvus", "cull"],
+};
 
 //=====================================================================//
 //  ASSETS

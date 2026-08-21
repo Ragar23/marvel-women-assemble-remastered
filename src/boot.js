@@ -1,12 +1,13 @@
 import { fireUlt } from "./abilities.js";
 import { img, loadImages } from "./assets.js";
 import { sfx } from "./audio.js";
-import { CONFIG, ENEMY_TYPES, HEROES, WAVE_PLAN } from "./config.js";
+import { BOSSES, CONFIG, ELITE_SCHEDULE, ENEMY_TYPES, HEROES, WAVE_PLAN } from "./config.js";
 import { startBtn } from "./dom.js";
 import { heldKeys } from "./input.js";
 import { throwMjolnir } from "./mjolnir.js";
+import { becomeWorthy, throwShield } from "./shield.js";
 import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, missiles, particles, playerHitbox, pops, powerUps, resetGame, run, sess, spawnQueue, world } from "./state.js";
-import { startWave } from "./waves.js";
+import { bossForWave, startWave, summonBoss } from "./waves.js";
 import { damageBoss, damageEnemy } from "./world.js";
 
 export function splitTitle() {
@@ -58,4 +59,5 @@ window.game = {
   img, sfx, heldKeys,
   heroDef, heroTint, playerHitbox, comboMultiplier,
   fireUlt, startWave, damageBoss, damageEnemy, throwMjolnir, resetGame,
+  bossForWave, summonBoss, throwShield, becomeWorthy, BOSSES, ELITE_SCHEDULE,
 };

@@ -15,6 +15,20 @@ export function updateSpawning(dt) {
 }
 
 export function damageEnemy(enemy, amount, hitX, hitY) {
+  //Cull Obsidian's plating soaks most of a hit until it is broken open
+  if (enemy.def.behaviour === "armour" && !enemy.cracked) {
+    enemy.plating = (enemy.plating || enemy.def.armourHp) - amount;
+    if (enemy.plating > 0) {
+      enemy.hitFlash = 0.12;
+      burst(hitX, hitY, "#fde68a", 6, 200);
+      playSfx("hit", 0.2, 0.55);
+      return false;
+    }
+    enemy.cracked = true;
+    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#fbbf24", 30, 400);
+    addShake(7);
+    floatText(enemy.x + enemy.w / 2, enemy.y, "ARMOUR BROKEN", "#fbbf24");
+  }
   enemy.hp -= amount;
   enemy.hitFlash = 0.12;
   if (enemy.hp > 0) {
@@ -63,6 +77,63 @@ export function enemyLeaked(enemy) {
   floatText(410, H - 46, `-${enemy.def.leak}`, "#c084fc");
 }
 
+//The Black Order do not simply advance. Each has one idea, and the timers
+//that drive it live on the enemy itself.
+function updateElite(enemy, dt) {
+  const def = enemy.def;
+  enemy.timer = (enemy.timer || 0) - dt;
+
+  if (def.behaviour === "spear") {
+    //Hangs back and throws at wherever you actually are
+    if (enemy.timer <= 0) {
+      enemy.timer = def.spearGap;
+      const cy = enemy.y + enemy.h / 2;
+      const dy = clamp((world.player.y + world.player.h / 2 - cy) * 1.4, -320, 320);
+      enemyShots.push({
+        x: enemy.x, y: cy - 10, w: 22, h: 20,
+        vx: -720, vy: dy, color: def.tint,
+      });
+      burst(enemy.x, cy, def.tint, 8, 200);
+      playSfx("shoot", 0.16, 0.7);
+    }
+  } else if (def.behaviour === "charge") {
+    //Lines up, winds up visibly, then commits
+    const aligned = Math.abs(
+      world.player.y + world.player.h / 2 - (enemy.y + enemy.h / 2)
+    ) < 70;
+    if (!enemy.charging && enemy.timer <= 0 && aligned) {
+      enemy.charging = "windup";
+      enemy.timer = def.chargeWindup;
+      enemy.hitFlash = def.chargeWindup;
+    } else if (enemy.charging === "windup" && enemy.timer <= 0) {
+      enemy.charging = "go";
+      enemy.timer = 0.7;
+      addShake(4);
+      burst(enemy.x, enemy.y + enemy.h / 2, def.tint, 16, 320);
+    } else if (enemy.charging === "go") {
+      enemy.x -= def.chargeSpeed * dt * enemySpeedScale();
+      if (enemy.timer <= 0) {
+        enemy.charging = null;
+        enemy.timer = def.chargeGap;
+      }
+    }
+  } else if (def.behaviour === "blink") {
+    //Vanishes and reappears further in
+    if (enemy.timer <= 0) {
+      enemy.timer = def.blinkGap;
+      burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, def.tint, 14, 260);
+      enemy.x -= def.blinkDist;
+      enemy.y = clamp(
+        world.player.y + world.player.h / 2 - enemy.h / 2 + rand(-90, 90),
+        0, H - enemy.h
+      );
+      burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, def.tint, 14, 260);
+      playSfx("hit", 0.16, 0.6);
+    }
+  }
+  //"armour" needs no timer: it is handled where damage is applied
+}
+
 export function updateEnemies(dt) {
   const survivors = [];
 
@@ -71,6 +142,7 @@ export function updateEnemies(dt) {
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
     enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
     enemy.bob += dt * 3.4;
+    if (enemy.def.behaviour) updateElite(enemy, dt);
     if (enemy.def.weave) {
       enemy.phase += dt * 2.2;
       enemy.y = clamp(
@@ -131,7 +203,9 @@ export function updateBoss(dt) {
     }
   } else {
     world.boss.phase += dt;
-    world.boss.y = H / 2 - world.boss.h / 2 + Math.sin(world.boss.phase * 0.9) * (H / 2 - world.boss.h / 2 - 20);
+    world.boss.y =
+      H / 2 - world.boss.h / 2 +
+      Math.sin(world.boss.phase * world.boss.def.bobSpeed) * (H / 2 - world.boss.h / 2 - 20);
 
     world.boss.fireTimer -= dt;
     //The last 0.6s before a shot is a visible wind-up: he swells, the aura
@@ -154,21 +228,28 @@ export function updateBoss(dt) {
     }
 
     if (world.boss.fireTimer <= 0) {
-      world.boss.fireTimer = clamp(1.7 - run.wave * 0.05, 0.7, 1.7);
+      const bd = world.boss.def;
+      world.boss.fireTimer = clamp(bd.fireGap - run.wave * 0.04, 0.6, bd.fireGap);
       world.boss.windup = 0;
       world.boss.lunge = 1;
       const cy = world.boss.y + world.boss.h / 2;
       const targetY = world.player.y + world.player.h / 2;
       const dy = clamp((targetY - cy) * 1.2, -260, 260);
-      enemyShots.push({
-        x: world.boss.x,
-        y: cy - 14,
-        w: 30,
-        h: 28,
-        vx: -680,
-        vy: dy,
-      });
-      burst(world.boss.x, cy, "#c084fc", 14, 280);
+      //Ultron fires a spread; Thanos fires one heavy bolt
+      const n = bd.shots;
+      for (let i = 0; i < n; i++) {
+        const offset = n === 1 ? 0 : (i / (n - 1) - 0.5) * bd.spread;
+        enemyShots.push({
+          x: world.boss.x,
+          y: cy - 14,
+          w: 30,
+          h: 28,
+          vx: -680,
+          vy: dy + offset,
+          color: bd.shotColor,
+        });
+      }
+      burst(world.boss.x, cy, bd.shotColor, 14, 280);
       addShake(5);
     }
     world.boss.lunge = Math.max(0, world.boss.lunge - dt * 4);
@@ -176,8 +257,8 @@ export function updateBoss(dt) {
 
     world.boss.spawnTimer -= dt;
     if (world.boss.spawnTimer <= 0) {
-      world.boss.spawnTimer = 2.4;
-      spawnEnemy(Math.random() < 0.5 ? "outrider" : "ultron");
+      world.boss.spawnTimer = world.boss.def.summonGap;
+      spawnEnemy(world.boss.def.minion);
     }
   }
 
@@ -211,6 +292,7 @@ export function damageBoss(amount, hitX, hitY) {
   playSfx("explode", 0.6, 0.7);
   //He does not vanish: he comes apart in slow motion over a second and a half
   world.bossDying = {
+    sprite: world.boss.def.sprite,
     x: world.boss.x,
     y: world.boss.y,
     w: world.boss.w,
