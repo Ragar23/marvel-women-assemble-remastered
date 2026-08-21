@@ -8,14 +8,12 @@ import { banner } from "./waves.js";
 export function assembleTheWomen() {
   if (heroes.length) return;
   const roster = [
-    "valkiria",
-    "rescuePotts",
-    "mantis",
-    "okoye",
-    "wasp",
-    "shuri",
-    "gamora",
-    "marvel",
+    "ddReed",
+    "ddBeast",
+    "ddBucky",
+    "ddMystique",
+    "ddLoki",
+    "ddMagneto",
   ];
   roster.forEach((name, i) => {
     const sprite = img[name];
@@ -28,7 +26,7 @@ export function assembleTheWomen() {
       speed: 420 + i * 18,
     });
   });
-  banner("ASSEMBLE", "", "#f0b323");
+  banner("ASSEMBLE", "", "#4ade80");
   playAssembleTheme();
 }
 

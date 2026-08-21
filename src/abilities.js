@@ -44,6 +44,33 @@ export function fireUlt() {
     screenFlash("#f0b323", 0.38);
     addShake(16);
     burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#f0b323", 50, 420);
+  } else if (kind === "pantherblast") {
+    //Shuri: kinetic energy dumped back out in one purple shockwave
+    screenFlash("#c084fc", 0.45);
+    addShake(20);
+    for (let i = 0; i < 5; i++) {
+      pop(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#c084fc", 110 + i * 90);
+    }
+    burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#c084fc", 70, 520);
+    for (const enemy of [...enemies]) {
+      damageEnemy(enemy, 999, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+    }
+    enemies.length = 0;
+    if (world.boss) damageBoss(28, world.boss.x, world.boss.y + world.boss.h / 2);
+  } else if (kind === "flameon") {
+    //Johnny goes up: everything on screen burns, and he stays alight
+    world.player.worthy = CONFIG.worthy.duration;
+    screenFlash("#ff8a3d", 0.5);
+    addShake(22);
+    burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#ff8a3d", 80, 560);
+    for (const enemy of [...enemies]) {
+      damageEnemy(enemy, 999, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+    }
+    enemies.length = 0;
+    if (world.boss) damageBoss(22, world.boss.x, world.boss.y + world.boss.h / 2);
   } else if (kind === "worthy") {
     becomeWorthy();
   } else if (kind === "barrage") {

@@ -3,7 +3,7 @@ import { playSfx } from "./audio.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst, pop, screenFlash } from "./effects.js";
-import { boltArcs, enemies, particles, punches, world } from "./state.js";
+import { boltArcs, enemies, heroDef, particles, punches, world } from "./state.js";
 import { clamp, drawSprite, overlaps, rand, sweep } from "./util.js";
 import { damageBoss, damageEnemy } from "./world.js";
 
@@ -156,7 +156,9 @@ export function updateShield(dt) {
 export function drawShield() {
   const s = world.shield;
   if (!s) return;
-  drawSprite(img.shield, s.x - 22, s.y - 22, 44, 44, { rot: s.spin, flash: 0.15 });
+  const sprite = img.shield || img[heroDef().bullet];
+  if (!sprite) return;
+  drawSprite(sprite, s.x - 22, s.y - 22, 44, 44, { rot: s.spin, flash: 0.15 });
 }
 
 //=====================================================================//
@@ -210,6 +212,7 @@ export function punch() {
   } else {
     playSfx("shoot", 0.1, 0.6);
   }
+  return landed > 0;
 }
 
 export function updatePunches(dt) {

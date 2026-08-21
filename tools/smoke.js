@@ -21,10 +21,11 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.waitForSelector('body[data-assets-ready="true"]', { timeout: 20000 });
   check('modules load and assets resolve', true);
   check('debug handle present', await p.evaluate(() => !!window.game));
-  check('title split into letters', await p.locator('.game-title .ch').count() === 16);
-  check('all five heroes on the menu', await p.locator('.hero-card').count() === 5);
+  check('title split into letters', await p.locator('.game-title .ch').count() === 8);
+  check('countdown is ticking', await p.evaluate(() => document.querySelector('#countdown [data-unit="seconds"]').textContent !== '00'));
+  check('all four heroes on the menu', await p.locator('.hero-card').count() === 4);
 
-  for (const hero of ['wanda','cpMarvel','thor','ironman','cap']) {
+  for (const hero of ['thor','cyclops','shuri','torch']) {
     if (await p.locator('#screen-gameover.is-active').count()) { await p.locator('#menu-button').click(); await p.waitForTimeout(300); }
     await p.locator(`.hero-card[data-character="${hero}"]`).click();
     await p.locator('#start-button').click();
@@ -42,48 +43,24 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     }));
     check(`${hero}: kills enemies`, r.kills > 0, JSON.stringify(r));
     // ultimate
-    const MAXC = await p.evaluate(() => { window.game.world.player.charge = window.game.CONFIG.ult.max; window.game.fireUlt(); return window.game.CONFIG.ult.max; }); global.window = { MAXC };
+    const MAXC = await p.evaluate(() => {
+      const g = window.game;
+      window.__before = g.enemies.length;
+      g.world.player.charge = g.CONFIG.ult.max;
+      g.fireUlt();
+      return g.CONFIG.ult.max;
+    }); global.window = { MAXC };
     await p.waitForTimeout(400);
     const u = await p.evaluate(() => { const g = window.game;
       return { charge: Math.round(g.world.player.charge), hex: +g.world.player.hex.toFixed(1),
                ign: +g.world.player.ignition.toFixed(1), arcs: g.boltArcs.length,
                miss: g.missiles.length, shield: g.world.shield ? 1 : 0,
-               worthy: +g.world.player.worthy.toFixed(1) }; });
-    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0), JSON.stringify(u));
-    if (hero === 'thor') check('thor: mjolnir in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
-    if (hero === 'cap') check('cap: worthy holds Mjolnir', await p.evaluate(() => window.game.world.player.worthy > 10));
-    if (hero === 'cap') {
-      // while worthy he should throw the hammer, not the shield
-      const wielded = await p.evaluate(() => new Promise(res => {
-        const g = window.game;
-        g.world.mjolnir = null; g.world.shield = null; g.world.player.cooldown = 0;
-        g.heldKeys.add('KeyS');
-        let hammer = false, shield = false;
-        const t0 = performance.now();
-        (function poll(){ if (g.world.mjolnir) hammer = true; if (g.world.shield) shield = true;
-          if (performance.now()-t0 < 900) requestAnimationFrame(poll);
-          else { g.heldKeys.delete('KeyS'); res({ hammer, shield }); } })();
-      }));
-      check('cap: worthy throws Mjolnir, not the shield',
-            wielded.hammer && !wielded.shield, JSON.stringify(wielded));
-    }
-    if (hero === 'cap') {
-      // with the shield away he should punch, not stand there
-      const punched = await p.evaluate(() => new Promise(res => {
-        const g = window.game;
-        g.world.player.worthy = 0; g.world.player.cooldown = 0;
-        g.throwShield();                       // shield away
-        let seen = 0;
-        g.heldKeys.add('KeyS');
-        const t0 = performance.now();
-        (function poll(){ seen = Math.max(seen, g.punches.length);
-          if (performance.now()-t0 < 900) requestAnimationFrame(poll);
-          else { g.heldKeys.delete('KeyS'); res(seen); } })();
-      }));
-      check('cap: punches while the shield is away', punched > 0, `${punched} swings`);
-      const ric = await p.evaluate(() => window.game.CONFIG.shield.minSin > 0);
-      check('cap: shield ricochets', ric);
-    }
+               worthy: +g.world.player.worthy.toFixed(1),
+               //A one-shot screen clear leaves no lasting state, so the
+               //only evidence is the enemies it removed.
+               cleared: (window.__before || 0) > 0 && g.enemies.length === 0 }; });
+    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0 || u.cleared), JSON.stringify(u));
+    if (hero === 'thor') check('thor: stormbreaker in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
     await p.evaluate(() => { window.game.world.player.lives = 0; });
     await p.waitForTimeout(400);
   }
@@ -92,8 +69,8 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.locator('#retry-button').click(); await p.waitForTimeout(300);
   await p.evaluate(() => { const g = window.game; g.enemies.length = 0; g.spawnQueue.length = 0; g.startWave(5); });
   await p.waitForTimeout(1600);
-  check('wave 5 boss is Ultron', await p.evaluate(() => window.game.world.boss?.def.name === 'ULTRON'));
-  check('wave 10 boss is Thanos', await p.evaluate(() => window.game.bossForWave(10).name === 'THANOS'));
+  check('wave 5 boss is a Sentinel Prime', await p.evaluate(() => window.game.world.boss?.def.name === 'SENTINEL PRIME'));
+  check('wave 10 boss is Doctor Doom', await p.evaluate(() => window.game.bossForWave(10).name === 'DOCTOR DOOM'));
   await p.screenshot({ path: S + 'split-boss.png' });
   await p.evaluate(() => window.game.damageBoss(9999, 100, 100));
   await p.waitForTimeout(300);
@@ -107,7 +84,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   check('resume', await p.evaluate(() => window.game.sess.state === 'playing'));
   await p.keyboard.press('w'); await p.waitForTimeout(300);
-  check('easter egg', await p.evaluate(() => window.game.heroes.length === 8));
+  check('the line-up arrives', await p.evaluate(() => window.game.heroes.length === 6));
   await p.keyboard.press('m'); await p.waitForTimeout(150);
   check('mute toggles', await p.locator('#mute-button.is-muted').count() === 1);
 

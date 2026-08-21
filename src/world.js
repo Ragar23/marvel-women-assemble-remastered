@@ -338,6 +338,11 @@ export function updateBossDeath(dt) {
 export function updateBullets(dt) {
   for (const b of bullets) {
     b.x += CONFIG.bullet.speed * dt;
+    //Shuri's pulses carry only so far before they dissipate
+    if (b.range !== undefined) {
+      b.travelled = (b.travelled || 0) + CONFIG.bullet.speed * dt;
+      if (b.travelled > b.range) b.spent = true;
+    }
     if (!b.vy) continue;
     b.spin += dt * 18;
     b.y += b.vy * dt;

@@ -37,9 +37,9 @@ export const CONFIG = {
     waveTime: 1.5,
   },
   bossEvery: 5,
-  //Wave 5 is Ultron — the enemy of the original 2021 game — and wave 10 is
-  //Thanos. After that they alternate, each turn tougher than the last.
-  bossOrder: ["ultron", "thanos"],
+  //Wave 5 is a Sentinel Prime; wave 10 is Doom himself. They alternate
+  //after that, each turn tougher than the last.
+  bossOrder: ["sentinelPrime", "doom"],
   //Ultimates: a meter filled by kills, spent with Space.
   ult: {
     max: 100,
@@ -79,7 +79,7 @@ export const CONFIG = {
     maxHits: 5,
     outTime: 2.1,
   },
-  //With the shield away he closes in and fights. Short reach, so he has to
+  //Captain America and Shuri both close in and fight. Short reach, so he has to
   //put himself in danger to use it — which is the point of him.
   punch: {
     damage: 6,
@@ -121,156 +121,138 @@ export const CONFIG = {
 };
 
 export const HEROES = {
-  wanda: {
-    sprite: "wanda",
-    bullet: "ball",
-    bulletSize: [43, 36],
-    damage: 2,
-    cooldown: 0.22,
-    tint: "#e0457b",
-    shootRate: 0.85,
-    ult: "hex",
-    ultName: "CHAOS HEX",
-  },
-  cpMarvel: {
-    sprite: "marvel",
-    bullet: "blast",
-    bulletSize: [76, 42],
-    damage: 1,
-    cooldown: 0.11,
-    tint: "#f0b323",
-    shootRate: 1.35,
-    ult: "ignition",
-    ultName: "BINARY IGNITION",
-  },
   thor: {
-    sprite: "thor",
-    emptySprite: "thorEmpty",
-    bullet: "mjolnir",
-    bulletSize: [54, 48],
+    sprite: "ddThor",
+    emptySprite: "ddThorEmpty",
+    bullet: "stormbreaker",
+    bulletSize: [60, 48],
     damage: CONFIG_MJOLNIR_DAMAGE,
-    cooldown: 0.12, //only gates the throw; the flight time is the real cooldown
-    throwsMjolnir: true,
+    cooldown: 0.12,
+    throwsMjolnir: true, //Stormbreaker uses the same throw-and-return
     tint: "#7dd3fc",
     ult: "godblast",
     ultName: "GOD BLAST",
   },
-  cap: {
-    sprite: "cap",
-    //Shown while the shield is away, so he is not still holding it
-    emptySprite: "capEmpty",
-    worthySprite: "capWorthy",
-    bullet: "shield",
-    bulletSize: [44, 44],
-    damage: 4,
-    cooldown: 0.12,
-
-    tint: "#4d82d6",
-    shootRate: 0.95,
-    ult: "worthy",
-    ultName: "WORTHY",
+  cyclops: {
+    sprite: "ddCyclops",
+    bullet: "optic",
+    bulletSize: [110, 42],
+    damage: 2,
+    cooldown: 0.24,
+    pierce: 99, //the beam does not stop at the first thing it meets
+    tint: "#ff4d4d",
+    shootRate: 1.1,
+    ult: "ignition",
+    ultName: "OPTIC OVERLOAD",
   },
-  ironman: {
-    sprite: "ironman",
-    bullet: "repulsor",
-    bulletSize: [40, 20],
-    damage: 1,
-    cooldown: 0.16,
-    //Twin repulsors: one shot from each palm, so he covers a band rather
-    //than a line. Offsets are fractions of his height.
-    barrels: [-0.26, 0.26],
-    ult: "barrage",
-    ultName: "MICRO-MISSILES",
-    tint: "#ff6b3d",
-    shootRate: 1.15,
+  shuri: {
+    sprite: "ddShuri",
+    bullet: "claw",
+    bulletSize: [56, 48],
+    damage: 2,
+    cooldown: 0.2,
+    range: 340, //kinetic pulses fade fast; she has to close in
+    melee: true, //and she punches, the way Captain America does
+    tint: "#c084fc",
+    ult: "pantherblast",
+    ultName: "KINETIC BLAST",
+  },
+  torch: {
+    sprite: "ddTorch",
+    worthySprite: "ddTorchFlame",
+    bullet: "fire",
+    bulletSize: [56, 48],
+    damage: 2,
+    cooldown: 0.13,
+    tint: "#ff8a3d",
+    shootRate: 1.25,
+    ult: "flameon",
+    ultName: "FLAME ON",
   },
 };
 
 //baseSpeed px/s, hp, points, stone damage when it gets through
 export const ENEMY_TYPES = {
-  outrider: { sprite: "spaceDogs", speed: 480, hp: 1, points: 10, leak: 7 },
-  ultron: { sprite: "ultron", speed: 620, hp: 1, points: 15, leak: 7, weave: 150 },
+  //Sentinels replace the space dogs: slower, heavier, and there are a lot
+  //of them.
+  sentinel: { sprite: "ddSentinel", speed: 380, hp: 2, points: 12, leak: 8 },
+  sentinelFast: {
+    sprite: "ddSentinel", speed: 560, hp: 1, points: 16, leak: 8, weave: 140,
+  },
   chitauri: { sprite: "chit2", speed: 430, hp: 2, points: 20, leak: 9, animated: true },
-  //The Black Order. Each is an event rather than a statistic: a name, a
-  //visible health bar from the moment it arrives, and its own behaviour.
-  nebula: {
-    sprite: "nebula", speed: 300, hp: 10, points: 160, leak: 14,
-    elite: true, name: "NEBULA", tint: "#7dd3fc",
-    //Blinks forward in bursts, so she closes distance unpredictably
-    behaviour: "blink", blinkGap: 1.5, blinkDist: 150,
-  },
-  proxima: {
-    sprite: "proxima", speed: 240, hp: 12, points: 190, leak: 16,
-    elite: true, name: "PROXIMA MIDNIGHT", tint: "#f0abfc",
-    //Hangs back and throws spears at wherever you are
-    behaviour: "spear", spearGap: 1.6, weave: 70,
-  },
-  corvus: {
-    sprite: "corvus", speed: 250, hp: 13, points: 200, leak: 16,
-    elite: true, name: "CORVUS GLAIVE", tint: "#a5b4fc",
-    //Lines up with you, then charges
-    behaviour: "charge", chargeSpeed: 1500, chargeWindup: 0.55, chargeGap: 2.2,
-  },
-  cull: {
-    sprite: "cull", speed: 170, hp: 20, points: 240, leak: 22,
-    elite: true, name: "CULL OBSIDIAN", tint: "#fbbf24",
-    //Armoured: shrugs off most damage until the plating is broken open
-    behaviour: "armour", armour: 0.34, armourHp: 8,
-  },
   levi: { sprite: "levi", speed: 265, hp: 9, points: 90, leak: 24 },
+
+  //Doom's coven. Marvel has confirmed the Latverian Witches but not their
+  //powers, so these are three distinct ideas built from the premise: a
+  //hooded order serving Doom, blending Latverian sorcery.
+  witchHex: {
+    sprite: "ddWitchHex", speed: 250, hp: 12, points: 190, leak: 16,
+    elite: true, name: "THE HEXWEAVER", tint: "#8cff96",
+    behaviour: "spear", spearGap: 1.5, weave: 70,
+  },
+  witchVeil: {
+    sprite: "ddWitchVeil", speed: 300, hp: 10, points: 170, leak: 14,
+    elite: true, name: "THE VEILED", tint: "#cea0ff",
+    behaviour: "blink", blinkGap: 1.4, blinkDist: 160,
+  },
+  witchWard: {
+    sprite: "ddWitchWard", speed: 175, hp: 20, points: 240, leak: 22,
+    elite: true, name: "THE WARDEN", tint: "#96dcff",
+    behaviour: "armour", armour: 0.34, armourHp: 9,
+  },
 };
 
 export const BOSSES = {
-  ultron: {
-    sprite: "ultron",
-    name: "ULTRON",
-    size: 200,
+  sentinelPrime: {
+    sprite: "ddSentinel",
+    name: "SENTINEL PRIME",
+    size: 230,
     hp: (wave) => 34 + wave * 6,
-    tint: "#86efac",
-    shotColor: "#4ade80",
-    //Fires a spread and builds more of himself
+    tint: "#c084fc",
+    shotColor: "#d0a0ff",
     shots: 3,
     spread: 150,
     fireGap: 1.5,
-    minion: "ultron",
+    minion: "sentinelFast",
     summonGap: 1.9,
-    bobSpeed: 1.8, //restless, unlike Thanos's slow sweep
+    bobSpeed: 1.8, //restless, where Doom is deliberate
   },
-  thanos: {
-    sprite: "thanos",
-    name: "THANOS",
+  doom: {
+    sprite: "ddDoom",
+    name: "DOCTOR DOOM",
     size: 250,
-    hp: (wave) => 40 + wave * 8,
-    tint: "#c084fc",
-    shotColor: "#c084fc",
-    shots: 1,
-    spread: 0,
-    fireGap: 1.7,
-    minion: "outrider",
-    summonGap: 2.4,
-    bobSpeed: 0.9,
+    hp: (wave) => 44 + wave * 8,
+    tint: "#4ade80",
+    shotColor: "#86efac",
+    //A wide green wave rather than a single bolt
+    shots: 5,
+    spread: 210,
+    fireGap: 1.6,
+    minion: "sentinel",
+    summonGap: 2.2,
+    bobSpeed: 1.0,
   },
 };
 
 //Which enemies each wave may draw from, and how many to send.
 export const WAVE_PLAN = [
-  { count: 20, mix: ["outrider"] },
-  { count: 26, mix: ["outrider", "ultron"] },
-  { count: 32, mix: ["outrider", "ultron", "chitauri"] },
-  { count: 36, mix: ["outrider", "chitauri", "ultron"] },
-  { count: 42, mix: ["outrider", "ultron", "chitauri", "levi"] },
-  { count: 48, mix: ["ultron", "chitauri", "outrider", "levi"] },
+  { count: 20, mix: ["sentinel"] },
+  { count: 26, mix: ["sentinel", "sentinelFast"] },
+  { count: 32, mix: ["sentinel", "sentinelFast", "chitauri"] },
+  { count: 36, mix: ["sentinel", "chitauri", "sentinelFast"] },
+  { count: 42, mix: ["sentinel", "sentinelFast", "chitauri", "levi"] },
+  { count: 48, mix: ["sentinelFast", "chitauri", "sentinel", "levi"] },
 ];
 
 //The Black Order arrive one at a time, on top of the ordinary wave, so each
 //one lands as an event instead of being lost in the crowd.
 export const ELITE_SCHEDULE = {
-  3: ["nebula"],
-  4: ["proxima"],
-  6: ["corvus"],
-  7: ["nebula", "proxima"],
-  8: ["cull"],
-  9: ["corvus", "cull"],
+  3: ["witchVeil"],
+  4: ["witchHex"],
+  6: ["witchWard"],
+  7: ["witchVeil", "witchHex"],
+  8: ["witchWard"],
+  9: ["witchHex", "witchWard", "witchVeil"],
 };
 
 //=====================================================================//

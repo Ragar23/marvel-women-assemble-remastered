@@ -18,7 +18,7 @@ export const sess = {
   state: "menu", // menu | playing | paused | gameover
   animationId: null,
   lastFrameTime: 0,
-  chosenHero: "wanda",
+  chosenHero: "thor",
 };
 
 //Everything the scoreboard cares about; cleared on every new run.

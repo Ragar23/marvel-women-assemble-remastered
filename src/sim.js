@@ -7,10 +7,10 @@ import { heldKeys } from "./input.js";
 import { endGame } from "./loop.js";
 import { throwMjolnir, updateMjolnir } from "./mjolnir.js";
 import { punch, throwShield, updatePunches, updateShield, updateWorthy } from "./shield.js";
-import { bullets, fx, heroDef, heroTint, run, world } from "./state.js";
-import { clamp } from "./util.js";
+import { bullets, enemies, fx, heroDef, heroTint, run, world } from "./state.js";
+import { clamp, overlaps, sweep } from "./util.js";
 import { startWave, waveIsClear } from "./waves.js";
-import { updateBoss, updateBossDeath, updateBullets, updateDressing, updateEffects, updateEnemies, updateHeroes, updatePowerUps, updateSpawning } from "./world.js";
+import { damageEnemy, updateBoss, updateBossDeath, updateBullets, updateDressing, updateEffects, updateEnemies, updateHeroes, updatePowerUps, updateSpawning } from "./world.js";
 
 //=====================================================================//
 export function update(dt) {
@@ -29,6 +29,16 @@ export function update(dt) {
   updateShield(dt);
   updatePunches(dt);
   updateWorthy(dt);
+  //While Johnny is alight, anything that touches him burns
+  if (heroDef().ult === "flameon" && world.player.worthy > 0) {
+    world.player.invuln = Math.max(world.player.invuln, 0.1);
+    for (const enemy of [...enemies]) {
+      if (!overlaps(enemy, world.player)) continue;
+      burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ff8a3d", 16, 300);
+      damageEnemy(enemy, 999, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+    }
+    sweep(enemies, (e) => e.hp > 0);
+  }
   updateHeroes(dt);
   updateDressing(dt);
   updateEffects(dt);
@@ -88,6 +98,12 @@ export function fire() {
     throwMjolnir();
     return;
   }
+  //Shuri fights close in as well as firing, so anything in reach gets hit
+  if (hero.melee) {
+    const reached = punch();
+    if (reached) return;
+  }
+
   if (hero.ult === "worthy") {
     //While worthy he wields Mjolnir the same way Thor does — the same
     //hammer, the same throw-and-return. Otherwise it is the shield, and
@@ -117,6 +133,7 @@ export function fire() {
       dmg: hero.damage,
       pierce: hero.pierce || 0,
       struck: new Set(),
+      range: hero.range,
     });
   }
   //muzzle flash

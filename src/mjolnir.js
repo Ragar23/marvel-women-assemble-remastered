@@ -4,7 +4,7 @@ import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst } from "./effects.js";
 import { forkLightning } from "./shield.js";
-import { enemies, particles, playerHitbox, world } from "./state.js";
+import { enemies, heroDef, particles, playerHitbox, world } from "./state.js";
 import { clamp, drawSprite, overlaps, rand, sweep } from "./util.js";
 import { damageBoss, damageEnemy } from "./world.js";
 
@@ -121,8 +121,9 @@ export function updateMjolnir(dt) {
 
 export function drawMjolnir() {
   if (!world.mjolnir) return;
+  //Whatever this hero throws: Mjolnir, or Stormbreaker on the Doomsday cast
   drawSprite(
-    img.mjolnir,
+    img.mjolnir || img[heroDef().bullet],
     world.mjolnir.x - world.mjolnir.w / 2,
     world.mjolnir.y - world.mjolnir.h / 2,
     world.mjolnir.w,

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23e62429'/%3E%3Ctext x='16' y='23' font-family='Impact,sans-serif' font-size='20' fill='white' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232ea84a'/%3E%3Ctext x='16' y='23' font-family='Impact,sans-serif' font-size='20' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E"
     />
     <link href="style.css" rel="stylesheet" />
-    <title>MARVEL. WOMEN, ASSEMBLE!</title>
+    <title>AVENGERS: DOOMSDAY</title>
   </head>
 
   <body>
@@ -16,41 +16,46 @@
     <section id="screen-menu" class="screen is-active">
       <div class="menu-inner">
         <header class="title-block">
-          <img class="studios" src="images/mWmn.png" alt="Marvel Studios" />
-          <h1 class="game-title">WOMEN, ASSEMBLE!</h1>
+          <p class="studios-word">MARVEL STUDIOS</p>
+          <h1 class="game-title">DOOMSDAY</h1>
           <p class="tagline">
-            The space dogs are coming for the Infinity Stones. Hold the line.
+            Doom's Sentinels are coming for the Stones. Hold the line.
           </p>
+          <div class="countdown" id="countdown" aria-label="Time until release">
+            <p class="countdown-label">DOOMSDAY IS COMING</p>
+            <div class="countdown-clock">
+              <div><span data-unit="months">00</span><label>MONTHS</label></div>
+              <div><span data-unit="days">00</span><label>DAYS</label></div>
+              <div><span data-unit="hours">00</span><label>HOURS</label></div>
+              <div><span data-unit="minutes">00</span><label>MINUTES</label></div>
+              <div><span data-unit="seconds">00</span><label>SECONDS</label></div>
+            </div>
+          </div>
         </header>
 
         <div class="panels">
           <section class="panel">
             <h2>CHOOSE YOUR HERO</h2>
             <div class="hero-cards">
-              <button class="hero-card is-selected" data-character="wanda">
-                <img src="images/scarlet-witch.png" alt="Scarlet Witch" />
-                <span class="hero-name">SCARLET WITCH</span>
-                <span class="hero-perk">Heavy hits &middot; Chaos Hex</span>
-              </button>
-              <button class="hero-card" data-character="cpMarvel">
-                <img src="images/marvel.png" alt="Captain Marvel" />
-                <span class="hero-name">CAPTAIN MARVEL</span>
-                <span class="hero-perk">Rapid fire &middot; Binary Ignition</span>
-              </button>
-              <button class="hero-card" data-character="thor">
-                <img src="images/thor.png" alt="Thor" />
+              <button class="hero-card is-selected" data-character="thor">
+                <img src="images/dd-thor.png" alt="Thor" />
                 <span class="hero-name">THOR</span>
-                <span class="hero-perk">Throws Mjolnir &middot; God Blast</span>
+                <span class="hero-perk">Stormbreaker &middot; God Blast</span>
               </button>
-              <button class="hero-card" data-character="cap">
-                <img src="images/cap.png" alt="Captain America" />
-                <span class="hero-name">CAPT. AMERICA</span>
-                <span class="hero-perk">Shield &amp; fists &middot; Worthy: Mjolnir</span>
+              <button class="hero-card" data-character="cyclops">
+                <img src="images/dd-cyclops.png" alt="Cyclops" />
+                <span class="hero-name">CYCLOPS</span>
+                <span class="hero-perk">Optic blast &middot; Optic Overload</span>
               </button>
-              <button class="hero-card" data-character="ironman">
-                <img src="images/ironman.png" alt="Iron Man" />
-                <span class="hero-name">IRON MAN</span>
-                <span class="hero-perk">Twin repulsors &middot; Micro-Missiles</span>
+              <button class="hero-card" data-character="shuri">
+                <img src="images/dd-shuri.png" alt="Shuri" />
+                <span class="hero-name">SHURI</span>
+                <span class="hero-perk">Claws &amp; fists &middot; Kinetic Blast</span>
+              </button>
+              <button class="hero-card" data-character="torch">
+                <img src="images/dd-torch.png" alt="Human Torch" />
+                <span class="hero-name">HUMAN TORCH</span>
+                <span class="hero-perk">Fireballs &middot; Flame On</span>
               </button>
             </div>
           </section>
@@ -62,8 +67,8 @@
               <li><b>You have 3 lives.</b> A hit costs one, with a moment of invulnerability after.</li>
               <li><b>Chain kills</b> without letting anything through to build your multiplier.</li>
               <li><b>Grab the drops</b> for rapid fire, a shield, or a screen-clearing blast.</li>
-              <li><b>Watch for the Black Order.</b> Named, tougher, and each fights its own way.</li>
-              <li><b>Every fifth wave is a boss.</b> Ultron first. Thanos at wave ten.</li>
+              <li><b>Watch for the Latverian Witches.</b> Doom's coven, and each one fights its own way.</li>
+              <li><b>Every fifth wave is a boss.</b> A Sentinel Prime first. Doom himself at wave ten.</li>
             </ul>
           </section>
 
@@ -75,7 +80,7 @@
               <li><kbd>Space</kbd><span>Ultimate &mdash; once the meter is full</span></li>
               <li><kbd>Esc</kbd><span>Pause</span></li>
               <li><kbd>M</kbd><span>Mute</span></li>
-              <li><kbd>W</kbd><span>&hellip;the women assemble</span></li>
+              <li><kbd>W</kbd><span>&hellip;the line-up arrives</span></li>
             </ul>
           </section>
         </div>
@@ -99,7 +104,7 @@
     <!-- ============ GAME OVER ============ -->
     <section id="screen-gameover" class="screen">
       <div class="gameover-inner">
-        <h2 id="gameover-title">YOU SHOULD HAVE GONE FOR THE HEAD</h2>
+        <h2 id="gameover-title">DOOM WILL HAVE HIS DUE</h2>
         <div class="stats">
           <div class="stat"><span id="stat-score">0</span><label>SCORE</label></div>
           <div class="stat"><span id="stat-wave">1</span><label>WAVE REACHED</label></div>
