@@ -114,6 +114,7 @@ const HEROES = {
     barrels: [-0.26, 0.26],
     ult: "barrage",
     ultName: "MICRO-MISSILES",
+    tint: "#ff6b3d",
   },
 };
 
@@ -303,6 +304,13 @@ function playerHitbox() {
 
 function heroDef() {
   return HEROES[chosenHero];
+}
+
+//Never hand canvas an undefined colour: assigning one to fillStyle is a
+//silent no-op that leaves the previous colour in place, which paints the
+//element in whatever was drawn before it.
+function heroTint() {
+  return heroDef().tint || "#ffffff";
 }
 
 function speedMultiplier() {
@@ -561,7 +569,7 @@ function fireUlt() {
   if (!ultReady()) return;
   player.charge = 0;
   const kind = heroDef().ult;
-  banner(heroDef().ultName, "", heroDef().tint);
+  banner(heroDef().ultName, "", heroTint());
   playSfx(audioBalls, 0.4);
 
   if (kind === "hex") {
@@ -919,7 +927,7 @@ function fire() {
     });
   }
   //muzzle flash
-  burst(player.x + player.w, player.y + player.h / 2, hero.tint, 5, 150);
+  burst(player.x + player.w, player.y + player.h / 2, heroTint(), 5, 150);
   playSfx(audioBalls, 0.12);
 }
 
@@ -1710,7 +1718,7 @@ function drawUltMeter() {
   ctx.fillStyle = "rgba(5,6,10,.7)";
   ctx.fillRect(x, y, barW, 18);
   //Pulse the fill once it is spendable
-  ctx.fillStyle = hero.tint;
+  ctx.fillStyle = heroTint();
   ctx.globalAlpha = ready ? 0.75 + Math.sin(elapsed * 8) * 0.25 : 1;
   ctx.fillRect(x, y, barW * pct, 18);
   ctx.globalAlpha = 1;
@@ -1721,7 +1729,7 @@ function drawUltMeter() {
 
   ctx.font = "20px Marvel";
   ctx.textAlign = "right";
-  ctx.fillStyle = ready ? hero.tint : "#9aa3b2";
+  ctx.fillStyle = ready ? heroTint() : "#9aa3b2";
   ctx.fillText(ready ? `${hero.ultName} — SPACE` : hero.ultName, x + barW, y - 6);
   ctx.textAlign = "left";
 }
