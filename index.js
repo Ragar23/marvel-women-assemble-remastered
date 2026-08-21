@@ -13,6 +13,8 @@ const H = canvas.height;
 //  All speeds are pixels per SECOND, so the game plays identically on a
 //  60Hz laptop and a 120Hz display.
 //=====================================================================//
+const CONFIG_MJOLNIR_DAMAGE = 6;
+
 const CONFIG = {
   player: {
     speed: 980,
@@ -56,6 +58,17 @@ const CONFIG = {
     missileTurn: 5.5, //radians per second of steering authority
     missileLife: 3.2,
   },
+  //Thor throws Mjolnir instead of firing bolts. One hammer at a time, so
+  //his rhythm is throw-and-wait rather than hold-to-spray, and each throw
+  //hits far harder than a bolt did.
+  mjolnir: {
+    damage: 6,
+    speed: 1050,
+    turn: 7,
+    maxHits: 3,
+    outTime: 1.0, //comes back on its own if it finds nothing
+    returnSpeed: 1350,
+  },
   //Animation and juice. Durations in seconds, angles in radians.
   anim: {
     bankAngle: 0.26, //how far the hero tilts at full vertical speed
@@ -78,6 +91,7 @@ const HEROES = {
     damage: 2,
     cooldown: 0.22,
     tint: "#e0457b",
+    shootRate: 0.85,
     ult: "hex",
     ultName: "CHAOS HEX",
   },
@@ -88,17 +102,17 @@ const HEROES = {
     damage: 1,
     cooldown: 0.11,
     tint: "#f0b323",
+    shootRate: 1.35,
     ult: "ignition",
     ultName: "BINARY IGNITION",
   },
   thor: {
     sprite: "thor",
-    bullet: "lightning",
-    bulletSize: [70, 38],
-    damage: 3,
-    cooldown: 0.34,
-    //Each bolt arcs through this many extra enemies before it dies.
-    pierce: 2,
+    bullet: "mjolnir",
+    bulletSize: [54, 48],
+    damage: CONFIG_MJOLNIR_DAMAGE,
+    cooldown: 0.12, //only gates the throw; the flight time is the real cooldown
+    throwsMjolnir: true,
     tint: "#7dd3fc",
     ult: "godblast",
     ultName: "GOD BLAST",
@@ -115,6 +129,7 @@ const HEROES = {
     ult: "barrage",
     ultName: "MICRO-MISSILES",
     tint: "#ff6b3d",
+    shootRate: 1.15,
   },
 };
 
@@ -176,6 +191,7 @@ const imageSources = {
   ironman: "./images/ironman.png",
   repulsor: "./images/repulsor.png",
   lightning: "./images/lightning.png",
+  mjolnir: "./images/mjolnir.png",
 };
 
 const img = {};
@@ -281,7 +297,7 @@ let chosenHero = "wanda";
 
 let player, bullets, enemyShots, enemies, powerUps, particles, floatTexts;
 let boss, spawnQueue, heroes;
-let corpses, pops, bossDying, boltArcs, missiles;
+let corpses, pops, bossDying, boltArcs, missiles, mjolnir;
 let hitStop, slowMo, timeScale;
 let nextEnemyId = 0;
 
@@ -374,6 +390,7 @@ function resetGame() {
   pops = [];
   boltArcs = [];
   missiles = [];
+  mjolnir = null;
   bossDying = null;
   hitStop = 0;
   slowMo = 0;
@@ -570,7 +587,7 @@ function fireUlt() {
   player.charge = 0;
   const kind = heroDef().ult;
   banner(heroDef().ultName, "", heroTint());
-  playSfx(audioBalls, 0.4);
+  playSfx(kind === "godblast" ? "thunder" : "ultimate", 0.45);
 
   if (kind === "hex") {
     player.hex = CONFIG.ult.hexDuration;
@@ -613,7 +630,6 @@ function launchBarrage() {
       smoke: 0,
     });
   }
-  playSfx(audioBalls, 0.35);
 }
 
 function nearestTarget(m) {
@@ -722,6 +738,7 @@ function godBlast() {
   const from = { x: player.x + player.w, y: player.y + player.h / 2 };
   boltArcs = [];
   missiles = [];
+  mjolnir = null;
 
   for (const enemy of [...enemies]) {
     boltArcs.push({
@@ -837,7 +854,11 @@ function assembleTheWomen() {
     });
   });
   banner("ASSEMBLE", "", "#f0b323");
-  playSfx(audioBalls);
+  //The one moment this track was made for.
+  if (!muted) {
+    assembleTheme.currentTime = 0;
+    playSafely(assembleTheme);
+  }
 }
 
 //=====================================================================//
@@ -855,6 +876,7 @@ function update(dt) {
   updateBullets(dt);
   updatePowerUps(dt);
   updateMissiles(dt);
+  updateMjolnir(dt);
   updateHeroes(dt);
   updateDressing(dt);
   updateEffects(dt);
@@ -865,6 +887,7 @@ function update(dt) {
     betweenTimer = 2.2;
     const bonus = 100 * wave;
     score += bonus;
+    playSfx("wave", 0.35);
     floatText(W / 2 - 60, H / 2, `WAVE CLEAR +${bonus}`, "#4ade80");
   }
   if (betweenWaves) {
@@ -909,6 +932,10 @@ function updatePlayer(dt) {
 
 function fire() {
   const hero = heroDef();
+  if (hero.throwsMjolnir) {
+    throwMjolnir();
+    return;
+  }
   const [bw, bh] = hero.bulletSize;
   player.cooldown =
     hero.cooldown * (player.rapid > 0 ? CONFIG.powerUp.rapidFactor : 1);
@@ -928,7 +955,130 @@ function fire() {
   }
   //muzzle flash
   burst(player.x + player.w, player.y + player.h / 2, heroTint(), 5, 150);
-  playSfx(audioBalls, 0.12);
+  playSfx("shoot", 0.16, heroDef().shootRate || 1);
+}
+
+//=====================================================================//
+//  MJOLNIR
+//=====================================================================//
+function throwMjolnir() {
+  if (mjolnir) return; //it has to come back before it can go out again
+  const cfg = CONFIG.mjolnir;
+  player.cooldown = 0.1;
+  player.recoil = 1;
+  mjolnir = {
+    x: player.x + player.w * 0.7,
+    y: player.y + player.h / 2,
+    w: 54,
+    h: 48,
+    angle: 0,
+    spin: 0,
+    phase: "out",
+    life: cfg.outTime,
+    hits: new Set(),
+  };
+  playSfx("hammer", 0.3, 1.15);
+  burst(mjolnir.x, mjolnir.y, "#cfd8e8", 8, 200);
+}
+
+function mjolnirStrike(target) {
+  const cfg = CONFIG.mjolnir;
+  burst(mjolnir.x, mjolnir.y, "#dbeafe", 20, 340);
+  addShake(4);
+  playSfx("hammer", 0.32, rand(0.85, 1.05));
+
+  if (target === boss) {
+    mjolnir.hits.add("boss");
+    damageBoss(cfg.damage, mjolnir.x, mjolnir.y);
+  } else {
+    mjolnir.hits.add(target.id);
+    damageEnemy(target, cfg.damage, mjolnir.x, mjolnir.y);
+    if (target.hp <= 0) enemies = enemies.filter((e) => e !== target);
+  }
+  if (mjolnir.hits.size >= cfg.maxHits) mjolnir.phase = "back";
+}
+
+function updateMjolnir(dt) {
+  if (!mjolnir) return;
+  const cfg = CONFIG.mjolnir;
+  const m = mjolnir;
+  m.spin += dt * 22; //it tumbles end over end
+
+  let aim = null;
+  if (m.phase === "out") {
+    m.life -= dt;
+    //Only chase what it has not already struck
+    let best = null;
+    let bestDist = Infinity;
+    const candidates = boss && !m.hits.has("boss") ? [...enemies, boss] : enemies;
+    for (const c of candidates) {
+      if (c.id !== undefined && m.hits.has(c.id)) continue;
+      const dx = c.x + c.w / 2 - m.x;
+      const dy = c.y + c.h / 2 - m.y;
+      if (dx < -80) continue;
+      const d = dx * dx + dy * dy;
+      if (d < bestDist) { bestDist = d; best = c; }
+    }
+    if (!best || m.life <= 0) m.phase = "back";
+    else aim = { x: best.x + best.w / 2, y: best.y + best.h / 2 };
+  }
+
+  if (m.phase === "back") {
+    aim = { x: player.x + player.w / 2, y: player.y + player.h / 2 };
+  }
+
+  if (aim) {
+    const want = Math.atan2(aim.y - m.y, aim.x - m.x);
+    let diff = want - m.angle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    m.angle += clamp(diff, -cfg.turn * dt, cfg.turn * dt);
+  }
+
+  const speed = m.phase === "back" ? cfg.returnSpeed : cfg.speed;
+  m.x += Math.cos(m.angle) * speed * dt;
+  m.y += Math.sin(m.angle) * speed * dt;
+
+  //A trail of sparks, so the flight path reads
+  if (Math.random() < 0.7) {
+    particles.push({
+      x: m.x, y: m.y,
+      vx: rand(-40, 40), vy: rand(-40, 40),
+      life: 0.25, maxLife: 0.25, size: rand(2, 4),
+      color: Math.random() < 0.5 ? "#dbeafe" : "#7dd3fc",
+    });
+  }
+
+  //It hurts on the way out and on the way home alike
+  const box = { x: m.x - 22, y: m.y - 20, w: 44, h: 40 };
+  for (const enemy of [...enemies]) {
+    if (m.hits.has(enemy.id)) continue;
+    if (overlaps(box, enemy)) { mjolnirStrike(enemy); break; }
+  }
+  if (boss && !m.hits.has("boss") && overlaps(box, boss)) mjolnirStrike(boss);
+
+  //Caught: he can throw again
+  if (m.phase === "back" && overlaps(box, playerHitbox())) {
+    burst(m.x, m.y, "#cfd8e8", 10, 220);
+    mjolnir = null;
+    return;
+  }
+  //Never let it strand itself off screen
+  if (m.x < -200 || m.x > W + 300 || m.y < -200 || m.y > H + 200) {
+    m.phase = "back";
+  }
+}
+
+function drawMjolnir() {
+  if (!mjolnir) return;
+  drawSprite(
+    img.mjolnir,
+    mjolnir.x - mjolnir.w / 2,
+    mjolnir.y - mjolnir.h / 2,
+    mjolnir.w,
+    mjolnir.h,
+    { rot: mjolnir.spin, flash: 0.25 }
+  );
 }
 
 function updateSpawning(dt) {
@@ -942,8 +1092,10 @@ function damageEnemy(enemy, amount, hitX, hitY) {
   enemy.hitFlash = 0.12;
   if (enemy.hp > 0) {
     burst(hitX, hitY, "#ffd27f", 5, 180);
+    playSfx("hit", 0.18, rand(0.9, 1.15));
     return false;
   }
+  playSfx("explode", 0.22, rand(0.9, 1.2));
 
   combo++;
   bestCombo = Math.max(bestCombo, comboMultiplier());
@@ -1129,6 +1281,7 @@ function damageBoss(amount, hitX, hitY) {
   floatText(boss.x + 40, boss.y + boss.h / 2, `+${gained}`, "#f0b323");
   addShake(24);
   screenFlash("#ffffff", 0.45);
+  playSfx("explode", 0.6, 0.7);
   //He does not vanish: he comes apart in slow motion over a second and a half
   bossDying = {
     x: boss.x,
@@ -1206,7 +1359,7 @@ function updatePowerUps(dt) {
 }
 
 function applyPowerUp(kind) {
-  playSfx(audioBalls, 0.3);
+  playSfx("pickup", 0.35);
   if (kind === "rapid") {
     player.rapid = CONFIG.powerUp.rapidDuration;
     floatText(player.x, player.y - 10, "RAPID FIRE", "#f0b323");
@@ -1235,6 +1388,7 @@ function hitPlayer() {
   player.lives--;
   player.invuln = CONFIG.player.invulnAfterHit;
   combo = 0;
+  playSfx("hurt", 0.45);
   addShake(18);
   screenFlash("#ff2b2b", 0.45);
   burst(player.x + player.w / 2, player.y + player.h / 2, "#ff4d4d", 34, 420);
@@ -1332,6 +1486,7 @@ function draw() {
   for (const s of enemyShots) drawEnemyShot(s);
 
   drawMissiles();
+  drawMjolnir();
   if (player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
   drawBoltArcs();
@@ -1919,7 +2074,31 @@ const audio = new Audio(
 audio.volume = 0.22;
 audio.loop = true;
 
-const audioBalls = new Audio("./assets/ballsSound.mp3");
+//One clip played at different volumes used to cover shooting, pickups and
+//ultimates alike. Each event now has its own sound.
+const SFX_SOURCES = {
+  shoot: "./assets/sfx-shoot.wav",
+  hit: "./assets/sfx-hit.wav",
+  explode: "./assets/sfx-explode.wav",
+  pickup: "./assets/sfx-pickup.wav",
+  hurt: "./assets/sfx-hurt.wav",
+  ultimate: "./assets/sfx-ultimate.wav",
+  thunder: "./assets/sfx-thunder.wav",
+  hammer: "./assets/sfx-hammer.wav",
+  wave: "./assets/sfx-wave.wav",
+  select: "./assets/ballsSound.mp3",
+};
+
+const sfx = {};
+for (const [name, src] of Object.entries(SFX_SOURCES)) {
+  const a = new Audio(src);
+  a.preload = "auto";
+  sfx[name] = a;
+}
+
+//Kept for the easter egg, where it is the whole point.
+const assembleTheme = new Audio("./assets/avengers_assemble_.mp3");
+assembleTheme.volume = 0.5;
 
 audio.addEventListener("loadedmetadata", function () {
   this.currentTime = MUSIC_START_SECONDS;
@@ -1938,18 +2117,25 @@ function playMusic() {
 }
 
 //Short effects need to overlap, so each one plays on its own clone.
-function playSfx(sound, volume = 0.25) {
+//`rate` detunes a shared clip, which is how the four heroes get four
+//distinct weapon sounds out of one recording.
+function playSfx(name, volume = 0.25, rate = 1) {
   if (muted) return;
-  const shot = sound.cloneNode();
-  shot.volume = volume;
+  const source = sfx[name];
+  if (!source) return;
+  const shot = source.cloneNode();
+  shot.volume = clamp(volume, 0, 1);
+  shot.playbackRate = rate;
   playSafely(shot);
 }
 
 function toggleMute() {
   muted = !muted;
   muteBtn.classList.toggle("is-muted", muted);
-  if (muted) audio.pause();
-  else if (state === "playing") playMusic();
+  if (muted) {
+    audio.pause();
+    assembleTheme.pause();
+  } else if (state === "playing") playMusic();
 }
 
 //=====================================================================//
@@ -1960,7 +2146,7 @@ heroCards.forEach((card) => {
     heroCards.forEach((c) => c.classList.remove("is-selected"));
     card.classList.add("is-selected");
     chosenHero = card.dataset.character;
-    playSfx(audioBalls, 0.3);
+    playSfx("select", 0.3);
   });
 });
 
