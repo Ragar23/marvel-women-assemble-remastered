@@ -4,7 +4,7 @@ import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { drawBanner, drawHud } from "./hud.js";
 import { drawMjolnir } from "./mjolnir.js";
-import { drawShield } from "./shield.js";
+import { drawPunches, drawShield } from "./shield.js";
 import { boltArcs, bullets, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroes, particles, pops, powerUps, world } from "./state.js";
 import { clamp, drawSprite, rand } from "./util.js";
 
@@ -41,6 +41,7 @@ export function draw() {
   drawMissiles();
   drawMjolnir();
   drawShield();
+  drawPunches();
   if (world.player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
   drawBoltArcs();

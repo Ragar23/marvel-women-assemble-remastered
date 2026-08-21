@@ -53,6 +53,7 @@ export const corpses = [];
 export const pops = [];
 export const boltArcs = [];
 export const missiles = [];
+export const punches = [];
 
 //=====================================================================//
 
@@ -126,6 +127,7 @@ export function resetGame() {
     hex: 0, //Wanda: seconds of slowed time remaining
     worthy: 0, //Cap: seconds holding Mjolnir
     throwUp: false, //which way his next throw leaves his hand
+    punchHand: 0, //alternates, so the swings read as a combo
     ignition: 0, //Captain Marvel: seconds of beam remaining
   };
 
@@ -142,6 +144,7 @@ export function resetGame() {
   pops.length = 0;
   boltArcs.length = 0;
   missiles.length = 0;
+  punches.length = 0;
   world.mjolnir = null;
   world.shield = null;
   world.bossDying = null;

@@ -1,3 +1,5 @@
+import { punch } from "./shield.js";
+
 //=====================================================================//
 export const CONFIG_MJOLNIR_DAMAGE = 6;
 
@@ -51,11 +53,32 @@ export const CONFIG = {
   //shield down and picks up Mjolnir instead.
   shield: {
     damage: 4,
-    speed: 1150,
-    returnSpeed: 1450,
-    ricochet: 760, //vertical component; it bounces off the top and bottom
-    maxHits: 4,
-    outTime: 1.15,
+    //Slower forward and steeper vertically than the first attempt, which
+    //only managed one bounce per throw and so never read as a ricochet.
+    speed: 900,
+    returnSpeed: 1500,
+    //It leaves his hand at a steep angle, so the first wall comes fast and
+    //the ricochet is visible from the outset.
+    launchAngle: 0.95, //radians, alternating up and down
+    //It steers like Mjolnir, and reflects off the top and bottom while it
+    //does. Steering alone missed almost everything; bouncing alone was luck.
+    turn: 4.2,
+    //Steering alone flattened the flight into a straight line at the target
+    //and it stopped bouncing altogether. A floor on the vertical component
+    //keeps it crossing the screen while it closes, so it zig-zags toward
+    //targets instead of flying at them.
+    minSin: 0.5,
+    maxHits: 5,
+    outTime: 2.1,
+  },
+  //With the shield away he closes in and fights. Short reach, so he has to
+  //put himself in danger to use it — which is the point of him.
+  punch: {
+    damage: 6,
+    cooldown: 0.19,
+    reach: 108,
+    height: 0.82, //fraction of his height the swing covers
+    knockback: 300,
   },
   worthy: {
     duration: 15,

@@ -196,6 +196,23 @@ drawn with a flat `drawImage(x, y)`, which cannot express rotation, scale or fad
   effects carried inside a sprite's bounds (a repulsor blast, thruster flames)
   cannot kill you. Pickups still use the full bounds.
 
+## Balance, measured
+
+Kills in eight seconds against a constant crowd, best of a ranged and a
+close-range play style (`tools/` harness):
+
+| Hero | Before punches | After |
+| --- | --- | --- |
+| Captain America | 20 | 55 |
+| Iron Man | 36 | 71 |
+| Thor | 22 | 31 |
+| Captain Marvel | 19 | 19 |
+| Scarlet Witch | 15 | 15 |
+
+Scarlet Witch is now the weakest of the five and is the next one worth
+looking at — her hex is utility rather than damage, which may be enough,
+but it has not been measured against a real run.
+
 ## Known and left alone
 
 ## Deliberately not changing

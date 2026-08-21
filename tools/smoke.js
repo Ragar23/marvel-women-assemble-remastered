@@ -52,6 +52,23 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0), JSON.stringify(u));
     if (hero === 'thor') check('thor: mjolnir in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
     if (hero === 'cap') check('cap: worthy holds Mjolnir', await p.evaluate(() => window.game.world.player.worthy > 10));
+    if (hero === 'cap') {
+      // with the shield away he should punch, not stand there
+      const punched = await p.evaluate(() => new Promise(res => {
+        const g = window.game;
+        g.world.player.worthy = 0; g.world.player.cooldown = 0;
+        g.throwShield();                       // shield away
+        let seen = 0;
+        g.heldKeys.add('KeyS');
+        const t0 = performance.now();
+        (function poll(){ seen = Math.max(seen, g.punches.length);
+          if (performance.now()-t0 < 900) requestAnimationFrame(poll);
+          else { g.heldKeys.delete('KeyS'); res(seen); } })();
+      }));
+      check('cap: punches while the shield is away', punched > 0, `${punched} swings`);
+      const ric = await p.evaluate(() => window.game.CONFIG.shield.minSin > 0);
+      check('cap: shield ricochets', ric);
+    }
     await p.evaluate(() => { window.game.world.player.lives = 0; });
     await p.waitForTimeout(400);
   }

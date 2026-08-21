@@ -6,7 +6,7 @@ import { burst, floatText } from "./effects.js";
 import { heldKeys } from "./input.js";
 import { endGame } from "./loop.js";
 import { throwMjolnir, updateMjolnir } from "./mjolnir.js";
-import { throwLightning, throwShield, updateShield, updateWorthy } from "./shield.js";
+import { punch, throwLightning, throwShield, updatePunches, updateShield, updateWorthy } from "./shield.js";
 import { bullets, fx, heroDef, heroTint, run, world } from "./state.js";
 import { clamp } from "./util.js";
 import { startWave, waveIsClear } from "./waves.js";
@@ -27,6 +27,7 @@ export function update(dt) {
   updateMissiles(dt);
   updateMjolnir(dt);
   updateShield(dt);
+  updatePunches(dt);
   updateWorthy(dt);
   updateHeroes(dt);
   updateDressing(dt);
@@ -88,7 +89,9 @@ export function fire() {
     return;
   }
   if (hero.ult === "worthy") {
+    //Lightning while worthy, the shield when he has it, fists when he does not
     if (world.player.worthy > 0) throwLightning();
+    else if (world.shield) punch();
     else throwShield();
     return;
   }

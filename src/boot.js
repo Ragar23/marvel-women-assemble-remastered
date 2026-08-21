@@ -5,8 +5,8 @@ import { BOSSES, CONFIG, ELITE_SCHEDULE, ENEMY_TYPES, HEROES, WAVE_PLAN } from "
 import { startBtn } from "./dom.js";
 import { heldKeys } from "./input.js";
 import { throwMjolnir } from "./mjolnir.js";
-import { becomeWorthy, throwShield } from "./shield.js";
-import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, missiles, particles, playerHitbox, pops, powerUps, resetGame, run, sess, spawnQueue, world } from "./state.js";
+import { becomeWorthy, punch, throwShield } from "./shield.js";
+import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, missiles, particles, playerHitbox, pops, powerUps, punches, resetGame, run, sess, spawnQueue, world } from "./state.js";
 import { bossForWave, startWave, summonBoss } from "./waves.js";
 import { damageBoss, damageEnemy } from "./world.js";
 
@@ -59,5 +59,6 @@ window.game = {
   img, sfx, heldKeys,
   heroDef, heroTint, playerHitbox, comboMultiplier,
   fireUlt, startWave, damageBoss, damageEnemy, throwMjolnir, resetGame,
-  bossForWave, summonBoss, throwShield, becomeWorthy, BOSSES, ELITE_SCHEDULE,
+  bossForWave, summonBoss, throwShield, becomeWorthy, punch, punches,
+  BOSSES, ELITE_SCHEDULE,
 };

@@ -1,10 +1,10 @@
 import { img } from "./assets.js";
 import { playSfx } from "./audio.js";
-import { H, W } from "./canvas.js";
+import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst, pop, screenFlash } from "./effects.js";
-import { boltArcs, bullets, enemies, particles, world } from "./state.js";
-import { drawSprite, overlaps, rand, sweep } from "./util.js";
+import { boltArcs, bullets, enemies, particles, punches, world } from "./state.js";
+import { clamp, drawSprite, overlaps, rand, sweep } from "./util.js";
 import { damageBoss, damageEnemy } from "./world.js";
 
 //=====================================================================//
@@ -26,10 +26,13 @@ export function throwShield() {
   world.shield = {
     x: world.player.x + world.player.w * 0.7,
     y: world.player.y + world.player.h / 2,
-    vy: world.player.throwUp ? -cfg.ricochet : cfg.ricochet,
+    //A heading rather than a plain vertical speed, so it can steer and
+    //reflect at the same time.
+    angle: world.player.throwUp ? -cfg.launchAngle : cfg.launchAngle,
     spin: 0,
     phase: "out",
     life: cfg.outTime,
+    bounces: 0,
     hits: new Set(),
   };
   world.player.throwUp = !world.player.throwUp;
@@ -63,22 +66,66 @@ export function updateShield(dt) {
 
   if (s.phase === "out") {
     s.life -= dt;
-    s.x += cfg.speed * dt;
-    s.y += s.vy * dt;
-    //The bounce is the whole point of the throw
-    if (s.y <= 22) {
-      s.y = 22;
-      s.vy = -s.vy;
-      burst(s.x, s.y, "#e2e8f0", 8, 200);
-      playSfx("hit", 0.14, 1.8);
-    } else if (s.y >= H - 22) {
-      s.y = H - 22;
-      s.vy = -s.vy;
-      burst(s.x, s.y, "#e2e8f0", 8, 200);
-      playSfx("hit", 0.14, 1.8);
+
+    //Steer toward whatever it has not hit yet, the way Mjolnir does.
+    //Steering alone missed nearly everything; bouncing alone was luck.
+    let best = null;
+    let bestDist = Infinity;
+    for (const e of enemies) {
+      if (s.hits.has(e.id)) continue;
+      const dx = e.x + e.w / 2 - s.x;
+      if (dx < -40) continue;
+      const d = Math.hypot(dx, e.y + e.h / 2 - s.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = e;
+      }
     }
-    if (s.life <= 0 || s.x > W - 20) s.phase = "back";
+    if (best) {
+      const want = Math.atan2(best.y + best.h / 2 - s.y, best.x + best.w / 2 - s.x);
+      let diff = want - s.angle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      s.angle += clamp(diff, -cfg.turn * dt, cfg.turn * dt);
+    }
+    //Never let it flatten out: it has to keep crossing the screen. Working
+    //on the vertical component keeps this correct once it turns for home.
+    const vy = Math.sin(s.angle);
+    if (Math.abs(vy) < cfg.minSin) {
+      const up = vy >= 0 ? 1 : -1;
+      const fwd = Math.cos(s.angle) >= 0 ? 1 : -1;
+      s.angle = Math.atan2(up * cfg.minSin, fwd * Math.sqrt(1 - cfg.minSin ** 2));
+    }
+
+    s.x += Math.cos(s.angle) * cfg.speed * dt;
+    s.y += Math.sin(s.angle) * cfg.speed * dt;
+
+    //It bounces off the far side too and zig-zags back, so a throw sweeps
+    //the screen twice rather than making one diagonal pass.
+    if (s.x >= W - 24 && Math.cos(s.angle) > 0) {
+      s.x = W - 24;
+      s.angle = Math.PI - s.angle;
+      s.bounces++;
+      burst(s.x, s.y, "#e2e8f0", 12, 240);
+      addShake(2);
+      playSfx("hit", 0.15, 1.7);
+    }
+
+    //Reflecting off the top and bottom is the whole point of the throw
+    if (s.y <= 22 || s.y >= H - 22) {
+      s.y = s.y <= 22 ? 22 : H - 22;
+      s.angle = -s.angle;
+      s.bounces++;
+      burst(s.x, s.y, "#e2e8f0", 10, 220);
+      addShake(2);
+      playSfx("hit", 0.15, 1.9);
+    }
+    //Home once it has swept back level with him, or when the flight is spent
+    if (s.life <= 0 || (Math.cos(s.angle) < 0 && s.x < world.player.x + world.player.w)) {
+      s.phase = "back";
+    }
   } else {
+    //Home to his hand; he cannot throw again until he catches it
     const px = world.player.x + world.player.w / 2;
     const py = world.player.y + world.player.h / 2;
     const dx = px - s.x;
@@ -95,7 +142,7 @@ export function updateShield(dt) {
   }
 
   //It hurts on the way out and on the way home alike
-  const box = { x: s.x - 20, y: s.y - 20, w: 40, h: 40 };
+  const box = { x: s.x - 27, y: s.y - 27, w: 54, h: 54 };
   for (const enemy of [...enemies]) {
     if (s.hits.has(enemy.id)) continue;
     if (overlaps(box, enemy)) {
@@ -110,6 +157,79 @@ export function drawShield() {
   const s = world.shield;
   if (!s) return;
   drawSprite(img.shield, s.x - 22, s.y - 22, 44, 44, { rot: s.spin, flash: 0.15 });
+}
+
+//=====================================================================//
+//  CLOSE COMBAT
+//
+//  With the shield in the air he is not unarmed — he closes in. The reach
+//  is short on purpose: it fills the window where he would otherwise have
+//  nothing to do, and it costs him the safety of range to use it.
+//=====================================================================//
+export function punch() {
+  const cfg = CONFIG.punch;
+  world.player.cooldown = cfg.cooldown;
+  world.player.recoil = 1;
+  world.player.punchHand = 1 - world.player.punchHand;
+
+  const box = {
+    x: world.player.x + world.player.w * 0.55,
+    y: world.player.y + (world.player.h * (1 - cfg.height)) / 2,
+    w: cfg.reach,
+    h: world.player.h * cfg.height,
+  };
+
+  let landed = 0;
+  for (const enemy of [...enemies]) {
+    if (!overlaps(box, enemy)) continue;
+    landed++;
+    //Shoved back, so a connected punch buys him room
+    enemy.x += cfg.knockback * 0.06;
+    enemy.knock = 0.18;
+    damageEnemy(enemy, cfg.damage, enemy.x, enemy.y + enemy.h / 2);
+  }
+  sweep(enemies, (e) => e.hp > 0);
+
+  if (world.boss && overlaps(box, world.boss)) {
+    landed++;
+    damageBoss(cfg.damage, world.boss.x, world.boss.y + world.boss.h / 2);
+  }
+
+  punches.push({
+    x: box.x + box.w * 0.75,
+    y: world.player.y + world.player.h * (world.player.punchHand ? 0.38 : 0.62),
+    t: 0,
+    dur: 0.16,
+    hit: landed > 0,
+  });
+
+  if (landed) {
+    addShake(5);
+    playSfx("hit", 0.34, 0.75);
+    burst(box.x + box.w, world.player.y + world.player.h / 2, "#f2f4f8", 14, 260);
+  } else {
+    playSfx("shoot", 0.1, 0.6);
+  }
+}
+
+export function updatePunches(dt) {
+  for (const s of punches) s.t += dt;
+  sweep(punches, (s) => s.t < s.dur);
+}
+
+//A short arc sweeping out from his fist, brighter when it connects
+export function drawPunches() {
+  for (const s of punches) {
+    const k = s.t / s.dur;
+    ctx.save();
+    ctx.globalAlpha = 1 - k;
+    ctx.strokeStyle = s.hit ? "#ffffff" : "rgba(226,232,240,.7)";
+    ctx.lineWidth = s.hit ? 6 : 3;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 26 + k * 46, -0.9, 0.9);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 //=====================================================================//
