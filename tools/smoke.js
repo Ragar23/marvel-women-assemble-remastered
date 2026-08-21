@@ -53,6 +53,21 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     if (hero === 'thor') check('thor: mjolnir in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
     if (hero === 'cap') check('cap: worthy holds Mjolnir', await p.evaluate(() => window.game.world.player.worthy > 10));
     if (hero === 'cap') {
+      // while worthy he should throw the hammer, not the shield
+      const wielded = await p.evaluate(() => new Promise(res => {
+        const g = window.game;
+        g.world.mjolnir = null; g.world.shield = null; g.world.player.cooldown = 0;
+        g.heldKeys.add('KeyS');
+        let hammer = false, shield = false;
+        const t0 = performance.now();
+        (function poll(){ if (g.world.mjolnir) hammer = true; if (g.world.shield) shield = true;
+          if (performance.now()-t0 < 900) requestAnimationFrame(poll);
+          else { g.heldKeys.delete('KeyS'); res({ hammer, shield }); } })();
+      }));
+      check('cap: worthy throws Mjolnir, not the shield',
+            wielded.hammer && !wielded.shield, JSON.stringify(wielded));
+    }
+    if (hero === 'cap') {
       // with the shield away he should punch, not stand there
       const punched = await p.evaluate(() => new Promise(res => {
         const g = window.game;

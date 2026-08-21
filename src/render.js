@@ -236,15 +236,15 @@ export function drawPlayer() {
     //Thor and Cap have their weapon in hand in the sprite, so while it is
     //in flight they need the empty-handed version instead.
     const hero = heroDef();
-    //Worthy overrides everything; otherwise show empty hands while the
-    //weapon is in flight.
+    //Empty-handed whenever what he threw is still in the air — which now
+    //includes Mjolnir, since Cap throws it too.
     const away = world.mjolnir || world.shield;
-    const sprite =
-      world.player.worthy > 0 && hero.worthySprite
-        ? hero.worthySprite
-        : away && hero.emptySprite
-        ? hero.emptySprite
-        : hero.sprite;
+    const worthy = world.player.worthy > 0 && hero.worthySprite;
+    const sprite = away
+      ? hero.emptySprite || hero.sprite
+      : worthy
+      ? hero.worthySprite
+      : hero.sprite;
     drawSprite(
       img[sprite],
       world.player.x - r * CONFIG.anim.recoilPx,
@@ -379,11 +379,7 @@ export function drawBullet(b) {
     });
   } else if (hero.ult === "hex") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: fx.elapsed * 11 });
-  } else if (b.lightning) {
-    drawSprite(sprite, b.x, b.y, b.w, b.h, {
-      sx: 1.1 + Math.sin(fx.elapsed * 50) * 0.14,
-      flash: 0.5 + Math.sin(fx.elapsed * 44) * 0.35,
-    });
+
   } else if (hero.ult === "barrage") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { flash: 0.2 });
   } else {

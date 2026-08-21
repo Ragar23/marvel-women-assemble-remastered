@@ -3,7 +3,7 @@ import { playSfx } from "./audio.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst, pop, screenFlash } from "./effects.js";
-import { boltArcs, bullets, enemies, particles, punches, world } from "./state.js";
+import { boltArcs, enemies, particles, punches, world } from "./state.js";
 import { clamp, drawSprite, overlaps, rand, sweep } from "./util.js";
 import { damageBoss, damageEnemy } from "./world.js";
 
@@ -249,34 +249,15 @@ export function becomeWorthy() {
         "#bae6fd", 60, 460);
 }
 
-//A bolt that pierces everything and forks into whatever it passes
-export function throwLightning() {
-  const cfg = CONFIG.worthy;
-  world.player.cooldown = cfg.boltCooldown;
-  world.player.recoil = 1;
-  bullets.push({
-    x: world.player.x + world.player.w - 20,
-    y: world.player.y + world.player.h / 2 - 34,
-    w: 128,
-    h: 68,
-    dmg: cfg.boltDamage,
-    pierce: 99,
-    struck: new Set(),
-    lightning: true,
-  });
-  addShake(4);
-  playSfx("thunder", 0.3, 1.6);
-}
-
-//Called when a worthy bolt connects: the strike forks outward
+//Every Mjolnir strike he lands throws lightning into everything nearby
 export function forkLightning(x, y) {
-  const range = CONFIG.worthy.boltArcRange;
+  const range = CONFIG.worthy.forkRange;
   for (const enemy of enemies) {
     const cx = enemy.x + enemy.w / 2;
     const cy = enemy.y + enemy.h / 2;
     if (Math.hypot(cx - x, cy - y) > range) continue;
     boltArcs.push({ from: { x, y }, to: { x: cx, y: cy }, t: 0, dur: 0.22 });
-    damageEnemy(enemy, 2, cx, cy);
+    damageEnemy(enemy, CONFIG.worthy.forkDamage, cx, cy);
   }
   sweep(enemies, (e) => e.hp > 0);
 }

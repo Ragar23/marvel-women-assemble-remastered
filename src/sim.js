@@ -6,7 +6,7 @@ import { burst, floatText } from "./effects.js";
 import { heldKeys } from "./input.js";
 import { endGame } from "./loop.js";
 import { throwMjolnir, updateMjolnir } from "./mjolnir.js";
-import { punch, throwLightning, throwShield, updatePunches, updateShield, updateWorthy } from "./shield.js";
+import { punch, throwShield, updatePunches, updateShield, updateWorthy } from "./shield.js";
 import { bullets, fx, heroDef, heroTint, run, world } from "./state.js";
 import { clamp } from "./util.js";
 import { startWave, waveIsClear } from "./waves.js";
@@ -89,10 +89,17 @@ export function fire() {
     return;
   }
   if (hero.ult === "worthy") {
-    //Lightning while worthy, the shield when he has it, fists when he does not
-    if (world.player.worthy > 0) throwLightning();
-    else if (world.shield) punch();
-    else throwShield();
+    //While worthy he wields Mjolnir the same way Thor does — the same
+    //hammer, the same throw-and-return. Otherwise it is the shield, and
+    //fists whenever whatever he threw is still in the air.
+    if (world.player.worthy > 0) {
+      if (world.mjolnir) punch();
+      else throwMjolnir();
+    } else if (world.shield) {
+      punch();
+    } else {
+      throwShield();
+    }
     return;
   }
   const [bw, bh] = hero.bulletSize;

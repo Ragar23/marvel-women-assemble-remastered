@@ -3,6 +3,7 @@ import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst } from "./effects.js";
+import { forkLightning } from "./shield.js";
 import { enemies, particles, playerHitbox, world } from "./state.js";
 import { clamp, drawSprite, overlaps, rand, sweep } from "./util.js";
 import { damageBoss, damageEnemy } from "./world.js";
@@ -30,6 +31,8 @@ export function throwMjolnir() {
 
 export function mjolnirStrike(target) {
   const cfg = CONFIG.mjolnir;
+  //In Cap's hands every strike throws lightning outward as well
+  if (world.player.worthy > 0) forkLightning(world.mjolnir.x, world.mjolnir.y);
   burst(world.mjolnir.x, world.mjolnir.y, "#dbeafe", 20, 340);
   addShake(4);
   playSfx("hammer", 0.32, rand(0.85, 1.05));

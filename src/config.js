@@ -82,9 +82,10 @@ export const CONFIG = {
   },
   worthy: {
     duration: 15,
-    boltDamage: 9,
-    boltCooldown: 0.42,
-    boltArcRange: 260, //lightning forks to anything within this of a hit
+    //He throws Mjolnir itself while worthy, so the only extra is the
+    //lightning that forks out of every strike he lands with it.
+    forkRange: 260,
+    forkDamage: 2,
   },
   //Thor throws Mjolnir instead of firing bolts. One hammer at a time, so
   //his rhythm is throw-and-wait rather than hold-to-spray, and each throw
@@ -151,8 +152,8 @@ export const HEROES = {
     //Shown while the shield is away, so he is not still holding it
     emptySprite: "capEmpty",
     worthySprite: "capWorthy",
-    bullet: "lightning",
-    bulletSize: [128, 68],
+    bullet: "shield",
+    bulletSize: [44, 44],
     damage: 4,
     cooldown: 0.12,
 
