@@ -1,16 +1,14 @@
-# MARVEL. ¡WOMEN, ASSEMBLE! — Remastered
+# AVENGERS: DOOMSDAY — arcade
 
-A remaster of the original browser arcade game built in 2021 with vanilla JavaScript
-and the HTML5 Canvas API. Pick a hero, hold the line against waves of Outriders,
-Ultrons, Chitauri and Black Order lieutenants, and keep them off the Infinity
-Stones. Every fifth wave, Thanos turns up.
+A Doomsday-themed reskin of the remastered arcade shooter, on its own branch.
+Same engine, different war: Doom's Sentinels come for the Stones, his coven of
+Latverian Witches arrives one at a time, and Doom himself waits at wave ten.
 
-This repository is the **working copy** where all improvements happen.
-The original game is preserved, untouched, at
-[Ragar23/marvel-women-assemble](https://github.com/Ragar23/marvel-women-assemble)
-(playable here: <https://ragar23.github.io/marvel-women-assemble/>).
+The countdown on the menu runs to **18 December 2026**. It is a single
+constant, `RELEASE`, at the top of `src/boot.js`.
 
-The original project README is kept as [`README.original.md`](./README.original.md).
+> This is the `doomsday` branch. `main` is the Avengers remaster, and nothing
+> here is merged back into it.
 
 ## Play it
 
@@ -41,26 +39,32 @@ mostly works too, but a local server is more reliable for the audio and font fil
 
 ## What's in it
 
-- **Five heroes that play differently**, tuned to near-identical single-target
-  damage so the choice is about style, not power:
-  | Hero | Damage | Cooldown | Special |
-  | --- | --- | --- | --- |
-  | Scarlet Witch | 2 | 0.22s | Balanced |
-  | Captain Marvel | 1 | 0.11s | Rapid fire |
-  | Thor | 3 | 0.34s | Bolts pierce 2 extra enemies |
-- **Escalating waves** — eight enemy types, arriving faster and tougher as you go.
-  Ultrons weave, Cull Obsidian soaks damage, Leviathans are slow and enormous.
-- **A boss every fifth wave**, alternating. **Ultron** at wave 5 — the enemy of
-  the original 2021 game — firing spreads and building more of himself; **Thanos**
-  at wave 10, with homing blasts and summoned minions.
-- **The Black Order as mini-bosses.** Nebula blinks toward you, Proxima Midnight
-  throws spears from range, Corvus Glaive lines up and charges, and Cull Obsidian
-  wears plating that soaks damage until you break it open. Each arrives named,
-  alone, with its own health bar.
-- **Three lives plus an Infinity Stones health bar.** Anything that reaches the
-  left edge damages the Stones by an amount matched to how dangerous it was.
-- **Power-ups** from kills — rapid fire, shield, screen-clearing blast.
-- **A combo multiplier** up to x5, reset by taking a hit or letting one through.
+- **Four heroes that play differently**, each with an ultimate charged by kills
+  and spent with `Space`:
+  - **Thor** — throws **Stormbreaker**, which seeks its own targets, strikes
+    several and returns to his hand; he cannot throw again until he catches it.
+    **God Blast** arcs lightning to every enemy on screen.
+  - **Cyclops** — a long optic blast from the visor that pierces everything in
+    its path. **Optic Overload** holds the beam open across the whole screen.
+  - **Shuri** as Black Panther — kinetic claw pulses that carry only so far, so
+    she has to close in, and she punches anything within reach. **Kinetic
+    Blast** dumps the stored energy back out as one purple shockwave.
+  - **Human Torch** — fireballs. **Flame On** sets him alight for fifteen
+    seconds: everything on screen burns at once, and anything that touches him
+    afterwards burns too.
+
+- **Sentinels** replace the space dogs — slower, heavier, and there are a lot
+  of them, in two speeds.
+- **The Latverian Witches** arrive one at a time, named, with a health bar from
+  the moment they appear. Marvel confirmed the coven at SDCC but has not
+  detailed their powers, so these are three distinct ideas built from the
+  premise, named by coven title rather than invented as canon: **The Hexweaver**
+  throws hexbolts from range, **The Veiled** blinks toward you, and **The
+  Warden** carries a ward that soaks damage until it breaks open.
+- **A boss every fifth wave** — a **Sentinel Prime** at wave 5, **Doctor Doom**
+  at wave 10 with a five-bolt green wave, alternating after that.
+- **The line-up** answering `W`: Reed Richards, Beast, Bucky Barnes, Mystique,
+  Loki and Magneto.
 
 - **Stan Lee wanders through.** Every twenty to fifty seconds he walks on from
   one side, stops in the middle to wave, and carries on out of frame.

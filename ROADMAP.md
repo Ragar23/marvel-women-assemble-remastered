@@ -1,228 +1,38 @@
-# Roadmap
+# Roadmap — Doomsday branch
 
-Ordered by impact. Everything in Phase 1 is a real defect found by reading the current
-`index.js` — line numbers refer to the code as it stands at the seed commit.
+This branch is a reskin. The engine, wave system, ultimates framework and
+smoke test all come from `main`; what changed is the cast, the villains, the
+palette and the menu.
 
----
+## What the reskin needed
 
-## Phase 1 — Fix what is broken ✅ done
+- **Twenty-one new sprites**, all side-facing on the same 52x48 grid so they
+  sit together. `tools/pixelfigure.py` holds the shared stride and shading;
+  `tools/make_doomsday.py` supplies each character's colours and props.
+  Regenerate with `python3 tools/make_doomsday.py`.
+- **A darker background.** `images/dd-bg.png` is generated from the original
+  `bg.png` — desaturated, dimmed and pushed toward green — so the purple is
+  gone without redrawing the scene.
+- **A countdown** to 18 December 2026, counting whole calendar months first,
+  the way the teaser's clock does.
 
-All eleven are fixed. Verified in headless Chromium: the game boots, the loop
-survives sustained fire, diagonal movement works, the easter egg fires, and a
-passive run ends at 3.5s versus 3.0s before — so the difficulty was not changed
-by accident. The diagnoses below are kept as a record of what was wrong.
+## Two bugs the reskin exposed in the engine
 
-### ✅ 1.1 Crash: Chitauri collisions are indexed by the wrong loop
+Both were latent on `main` and would have bitten any future theme:
 
-`index.js:391` calls `collisionWithWanda(arrayOfChitauris[i])` from inside the
-space-dogs loop. The two arrays are spliced independently whenever something is shot,
-so `i` runs past the end of `arrayOfChitauris` and the call receives `undefined` —
-reading `.x` off it throws and the animation loop dies mid-game.
+- `drawMjolnir` and `drawShield` hard-coded `img.mjolnir` and `img.shield`. A
+  theme loading neither crashed the render loop on the first frame the weapon
+  was in the air. Both now fall back to whatever the hero throws.
+- `sess.chosenHero` defaulted to a hero id that no longer existed, so the
+  first `resetGame()` read `undefined.sprite`.
 
-**Fix:** give the Chitauri their own loop, or guard the lookup.
+A check that every `img.X` reference is actually present in `imageSources`
+found both, and is worth running after any asset change.
 
-### ✅ 1.2 Wrong hitboxes for everything that is not a space dog
+## Still outstanding
 
-`collisionWithWanda`, `collisionWithGaunlet` and `collisionWithWomen` all measure the
-incoming enemy with `spaceDogsImage.width` / `.height`, whatever the enemy actually is.
-`collisionWithBall` uses `.width` for the *bottom* edge of both the enemy and the ball
-(`index.js:656`, `index.js:661`), so every hitbox is square regardless of the sprite.
-
-**Fix:** one `intersects(a, b)` helper taking explicit width/height, used everywhere.
-
-### ✅ 1.3 `arrayOfSpaceDogs < 6` compares an array to a number
-
-`index.js:406`. This coerces the array to a string and is always `false`, so the
-top-up never runs. Once you shoot the last space dog the wave is gone for good.
-Presumably meant to be `.length`.
-
-### ✅ 1.4 Enemies spawned without a `y`
-
-`index.js:207-211`: every `S` press pushes `{ x: 1300 }` and
-`{ x: 1800, x: 1800, x: 1800 }` (the same key three times — the object has one
-property). With no `y`, the sprite draws at `NaN` and its collision maths is `NaN`,
-so it is invisible and harmless.
-
-Separately: **shooting should not spawn enemies.** Right now firing makes the game
-harder, which is almost certainly not the intent.
-
-### ✅ 1.5 Splicing arrays while looping over them
-
-`index.js:315-319` and `index.js:384-388` `splice()` inside a forward `for` loop, which
-skips the next element. Two enemies overlapping a single shot means one survives.
-
-**Fix:** mark as dead, sweep after the loop (or iterate backwards).
-
-### ✅ 1.6 `keyup` clears every direction at once
-
-`index.js:234` resets all four flags no matter which key was released. Release `→`
-while still holding `↑` and the hero stops dead.
-
-**Fix:** switch on `event.code`, or track held keys in a `Set`.
-
-### ✅ 1.7 Movement is tied to frame rate
-
-Every position update adds a fixed number of pixels per frame. On a 144 Hz monitor the
-game runs ~2.4× faster than on a 60 Hz one — the same game, wildly different difficulty.
-
-**Fix:** delta-time the loop, express speeds in pixels per second.
-
-### ✅ 1.8 Final score shows 0 on every other game over
-
-`finalScore()` (`index.js:183`) *toggles* between the real score and the placeholder
-text instead of just setting it. It is also called from both the game-over branch and
-`resetVariables()`, so the toggles fight each other.
-
-**Fix:** set the text, don't toggle it.
-
-### ✅ 1.9 Levi is checked for collisions where it is not drawn
-
-`index.js:362` draws the sprite at `y = 250`, but `index.js:395` collision-checks it
-against `leviY`, which is `150` and never changes. You die to empty space a hundred
-pixels above it, and fly straight through the sprite itself.
-
-**Fix:** draw and collide against the same position — one entity object per enemy.
-
-### ✅ 1.10 The game loop is never really cancelled
-
-`intervalId` holds a `requestAnimationFrame` handle, but the branch that cancels it
-(`index.js:449`) runs *after* the frame that already scheduled the next one. Clicking
-START twice stacks a second loop on top of the first, and everything moves at double speed.
-
-**Fix:** a single `running` flag plus one scheduling site.
-
-### ✅ 1.11 Collisions run before the sprites have loaded
-
-Images are used the moment `draw()` starts. Until a sprite has decoded, `.width` is `0`,
-so early hitboxes are wrong — and the very first frames are the ones where the hero
-sits at the left edge.
-
-**Fix:** preload all assets, show a loading state, start the game only when ready.
-
----
-
-## Phase 2 — Make it feel like a game ✅ done
-
-- ✅ **The three-and-a-half-second death is gone.** The Stones now have 100 HP
-  and each leaker takes a bite out of it, sized to how dangerous it was.
-- ✅ **Shot cooldown**, per hero — Wanda hits for 2 every 0.22s, Captain Marvel
-  for 1 every 0.11s. Rapid fire cuts the delay to a third.
-- ✅ **Lives** — three of them, with i-frames after a hit. This was in the original backlog and never landed.
-- ✅ **Difficulty curve** — enemy speed and spawn rate rising with score, instead of everything at once from second zero.
-- ✅ **Waves** — replace the hand-written spawn coordinates (`x: 11800`, `x: 23100` …) with a spawner driven by time and difficulty.
-- ✅ **Hit feedback** — an explosion sprite, a small screen shake, a sound on impact.
-- **High score** in `localStorage`. Still outstanding.
-- ✅ **Pause** on `Esc` / window blur.
-- ✅ **A restart that actually restarts** — `resetVariables()` never resets `chit1ImageX`, which is decremented every single frame, so the walking Chitauri is already far off the left edge when the second run begins. The held-direction flags are not reset either.
-
-## Phase 3 — Reach more players ⚠️ partly done
-
-- ✅ **Responsive canvas** — it is hard-coded to 1364×768 (`index.html`), which overflows most laptop screens and every phone. Scale to the viewport, keep the aspect ratio.
-- **Touch controls** for mobile. Still outstanding — the layout scales, but there is no way to play without a keyboard.
-- ✅ **Audio that behaves** — browsers block autoplay, so the splash-screen music silently fails today. Add a mute toggle and remember the choice.
-- ⚠️ **Accessibility** (partly) — keyboard-reachable buttons, visible focus, respect `prefers-reduced-motion`, real `alt` text on the character images.
-- **Asset weight** — `assets/` is ~10 MB of MP3, most of it downloaded before you can play. Trim and compress.
-
-## Phase 4 — Make it pleasant to work on
-
-- ✅ **Split `index.js`** into modules under `src/`.
-- **Replace the 20+ loose `let` position variables** with entity objects in arrays.
-- **A game state machine** — `menu → playing → paused → gameOver` — instead of toggling `style.display` on eight elements in four places.
-- **Config file** for speeds, spawn rates and points, so tuning is not a code hunt.
-- **Tooling** — Vite dev server, ESLint + Prettier.
-- **CI** — GitHub Actions building and deploying to GitHub Pages on push to `main`.
-- **A few tests** around collision maths and scoring.
-
----
-
-## Added along the way
-
-Not on the original list, but they came out of playing it:
-
-- **Three distinct heroes.** Wanda trades fire rate for damage, Captain Marvel is
-  the opposite, and Thor hits hardest of all on the longest cooldown, with bolts
-  that arc through two extra enemies. Their single-target damage is within 4% of
-  each other, so the pick is about style rather than strength.
-- **A generated Thor sprite.** There was no Thor art in the 2021 assets, so
-  `tools/make-thor-sprite.py` draws him and his lightning bolt from primitives in
-  the same chibi pixel style. Re-run it to change the design, or drop in real art
-  over `images/thor.png` and delete the script.
-- **Eight enemy types**, including `ultron.png` and `cull.png` — both sitting
-  unused in `images/` since 2021. Ultrons weave, Cull soaks damage, Leviathans
-  are slow and huge.
-- **Thanos as a boss** every fifth wave: a health bar, homing energy blasts, and
-  minions summoned mid-fight.
-- **Power-ups** dropping from kills — rapid fire, shield, screen-clearing blast.
-- **A combo multiplier** up to x5, reset by taking a hit or letting one through.
-- **A parallax starfield**, particle explosions, screen shake, hit flashes and
-  floating score numbers.
-- **Mute** (`M`) and **pause** (`Esc`, and automatically when the window loses focus).
-
-## Animation and ultimates ✅ done
-
-Everything below came from transforming the sprites already in `images/` — no new
-art was needed. The enabler was a single `drawSprite()` helper: before it, the file
-contained exactly one canvas transform (the screen shake) and every sprite was
-drawn with a flat `drawImage(x, y)`, which cannot express rotation, scale or fade.
-
-- ✅ **Hero banking and recoil** — tilts into vertical moves, kicks back when firing.
-- ✅ **Enemy idle bob**, phase-offset per enemy so the swarm never marches in sync.
-- ✅ **Spawn-in** — enemies fade and scale up as they arrive instead of popping in.
-- ✅ **Death animations** — killed enemies spin, grow and fade instead of vanishing.
-- ✅ **Hit squash** and an additive brightness flash. This also fixes a portability
-  bug: the old flash used `ctx.filter`, unsupported in Safari before 16.4, so it
-  silently did nothing on older iPhones and Macs.
-- ✅ **Hit-stop** — 50ms freeze on each kill, drawn but not updated.
-- ✅ **Bullet character** — motion-blur ghosts on every shot, Thor's bolts flickering
-  and stretching, Wanda's orbs spinning.
-- ✅ **Boss choreography** — a 0.6s wind-up with converging motes before each blast,
-  knockback on every hit, a breathing idle, and a slow-motion death sequence with
-  staggered explosions.
-- ✅ **Power-up pops** — expanding rings on pickup.
-- ✅ **Banner slam** — scale overshoot plus cinematic bars.
-- ✅ **Menu animation** — the title assembles letter by letter, portraits idle,
-  the selected card pulses, a real loading bar, and end-of-run stats count up.
-- ✅ **Ultimates** — a meter filled by kills and spent with `Space`: Wanda's Chaos
-  Hex, Captain Marvel's Binary Ignition, Thor's God Blast, Iron Man's Micro-Missiles.
-- ✅ **Iron Man**, with twin repulsors and a homing missile swarm. His sprite is
-  generated pixel art — a side-facing hover-and-fire pose, matching Wanda and
-  Captain Marvel rather than Thor's static front view. Regenerate or tweak it
-  with `python3 tools/make_ironman.py`, or drop your own `ironman.png` into
-  `images/` at any size and nothing else needs to change.
-- ✅ **Captain America**, generated by `tools/make_cap.py` — a side-facing
-  throwing stance, with `cap-empty.png` for the frames where the shield is
-  away. `tools/make_thor_empty.py` does the same for Mjolnir.
-- ✅ **Forgiving hitboxes** — damage is taken on a box 58% of the sprite, so
-  effects carried inside a sprite's bounds (a repulsor blast, thruster flames)
-  cannot kill you. Pickups still use the full bounds.
-
-## Balance, measured
-
-Kills in eight seconds against a constant crowd, best of a ranged and a
-close-range play style (`tools/` harness):
-
-| Hero | Before punches | After |
-| --- | --- | --- |
-| Captain America | 20 | 55 |
-| Iron Man | 36 | 71 |
-| Thor | 22 | 31 |
-| Captain Marvel | 19 | 19 |
-| Scarlet Witch | 15 | 15 |
-
-Scarlet Witch is now the weakest of the five and is the next one worth
-looking at — her hex is utility rather than damage, which may be enough,
-but it has not been measured against a real run.
-
-## Reserved
-
-`images/spiderman.png` is kept in the repo but is no longer loaded or drawn.
-He was a static prop at the bottom of the screen; the sprite is held back for
-a future playable character.
-
-## Known and left alone
-
-## Deliberately not changing
-
-- The look. The Marvel font, the red buttons, the Endgame music and the Stan Lee cameo are the point.
-- The `W` easter egg.
-- The original repo — it stays exactly as it was in 2021.
+- Boss-wave music, and sound effects tuned to the greener palette.
+- The three witches share one hooded silhouette in three colours. Distinct
+  silhouettes would read better at speed.
+- Touch controls, WASD, and honouring reduced-motion on the canvas — all
+  still open on `main` too.
