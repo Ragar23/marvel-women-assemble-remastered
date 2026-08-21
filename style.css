@@ -225,8 +225,10 @@ kbd {
 }
 
 .hero-card img {
-  width: clamp(56px, 5vw, 76px);
-  height: auto;
+  /* Sized by height, the way the game sizes sprites, so a tall portrait
+     and a wide action pose still make matching cards. */
+  height: clamp(56px, 5vw, 76px);
+  width: auto;
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
   transition: transform 0.22s ease;
 }

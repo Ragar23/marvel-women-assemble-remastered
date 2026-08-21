@@ -3,7 +3,7 @@ import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { BOSSES, CONFIG, ELITE_SCHEDULE, ENEMY_TYPES, WAVE_PLAN } from "./config.js";
 import { addShake } from "./effects.js";
-import { enemies, fx, run, spawnQueue, speedMultiplier, world } from "./state.js";
+import { enemies, fitSprite, fx, run, spawnQueue, speedMultiplier, world } from "./state.js";
 import { clamp, rand } from "./util.js";
 
 //=====================================================================//
@@ -50,7 +50,8 @@ export function banner(title, subtitle, color) {
 export function spawnEnemy(typeName) {
   const def = ENEMY_TYPES[typeName];
   const sprite = img[def.sprite];
-  const y = rand(10, H - sprite.height - 10);
+  const size = fitSprite(sprite, def.height);
+  const y = rand(10, H - size.h - 10);
   //Bigger, tougher enemies appear from further out so they read as a threat.
   const hpBonus = Math.floor((run.wave - 1) / CONFIG.difficulty.hpEveryWaves);
   if (def.elite) {
@@ -65,8 +66,8 @@ export function spawnEnemy(typeName) {
     x: W + rand(20, 220),
     y,
     baseY: y,
-    w: sprite.width,
-    h: sprite.height,
+    w: size.w,
+    h: size.h,
     hp: def.hp + hpBonus,
     maxHp: def.hp + hpBonus,
     speed: def.speed * speedMultiplier(),

@@ -110,13 +110,23 @@ export function makeStars() {
   return out;
 }
 
+//Sprites are drawn at whatever size the PNG happens to be, so a hand-made
+//replacement at four times the resolution of the original would otherwise
+//walk on screen four times the size. Every sprite is fitted to the height
+//the game asks for and keeps its own aspect ratio, which means art can be
+//swapped in at any resolution.
+export function fitSprite(sprite, height) {
+  return { w: Math.round(height * (sprite.width / sprite.height)), h: height };
+}
+
 export function resetGame() {
   const sprite = img[heroDef().sprite];
+  const size = fitSprite(sprite, CONFIG.player.height);
   world.player = {
     x: 60,
-    y: H / 2 - sprite.height / 2,
-    w: sprite.width,
-    h: sprite.height,
+    y: H / 2 - size.h / 2,
+    w: size.w,
+    h: size.h,
     lives: CONFIG.player.lives,
     invuln: 0,
     cooldown: 0,

@@ -6,6 +6,8 @@ export const CONFIG_MJOLNIR_DAMAGE = 6;
 export const CONFIG = {
   player: {
     speed: 980,
+    //Every hero is drawn this tall, whatever the source PNG measures.
+    height: 96,
     invulnAfterHit: 1.6,
     lives: 3,
     margin: 8,
@@ -140,9 +142,10 @@ export const HEROES = {
     damage: 2,
     cooldown: 0.24,
     pierce: 99, //the beam does not stop at the first thing it meets
-    //The optic blast leaves the visor, not the hand. The visor sits at
-    //y=17 of the 96px sprite, so the shot spawns 31px above centre.
-    barrels: [-31 / 96],
+    //The optic blast leaves the visor, not the hand: the shot spawns this
+    //far above the sprite's centre, as a fraction of its height. Measured
+    //from the art — if you swap the sprite, re-measure the visor row.
+    barrels: [-0.31],
     tint: "#ff4d4d",
     shootRate: 1.1,
     ult: "ignition",
@@ -178,28 +181,28 @@ export const HEROES = {
 export const ENEMY_TYPES = {
   //Sentinels replace the space dogs: slower, heavier, and there are a lot
   //of them.
-  sentinel: { sprite: "ddSentinel", speed: 380, hp: 2, points: 12, leak: 8 },
+  sentinel: { sprite: "ddSentinel", speed: 380, height: 100, hp: 2, points: 12, leak: 8 },
   sentinelFast: {
-    sprite: "ddSentinel", speed: 560, hp: 1, points: 16, leak: 8, weave: 140,
+    sprite: "ddSentinel", speed: 560, height: 100, hp: 1, points: 16, leak: 8, weave: 140,
   },
-  chitauri: { sprite: "chit2", speed: 430, hp: 2, points: 20, leak: 9, animated: true },
-  levi: { sprite: "levi", speed: 265, hp: 9, points: 90, leak: 24 },
+  chitauri: { sprite: "chit2", speed: 430, height: 81, hp: 2, points: 20, leak: 9, animated: true },
+  levi: { sprite: "levi", speed: 265, height: 250, hp: 9, points: 90, leak: 24 },
 
   //Doom's coven. Marvel has confirmed the Latverian Witches but not their
   //powers, so these are three distinct ideas built from the premise: a
   //hooded order serving Doom, blending Latverian sorcery.
   witchHex: {
-    sprite: "ddWitchHex", speed: 250, hp: 12, points: 190, leak: 16,
+    sprite: "ddWitchHex", speed: 250, height: 96, hp: 12, points: 190, leak: 16,
     elite: true, name: "THE HEXWEAVER", tint: "#8cff96",
     behaviour: "spear", spearGap: 1.5, weave: 70,
   },
   witchVeil: {
-    sprite: "ddWitchVeil", speed: 300, hp: 10, points: 170, leak: 14,
+    sprite: "ddWitchVeil", speed: 300, height: 96, hp: 10, points: 170, leak: 14,
     elite: true, name: "THE VEILED", tint: "#cea0ff",
     behaviour: "blink", blinkGap: 1.4, blinkDist: 160,
   },
   witchWard: {
-    sprite: "ddWitchWard", speed: 175, hp: 20, points: 240, leak: 22,
+    sprite: "ddWitchWard", speed: 175, height: 96, hp: 20, points: 240, leak: 22,
     elite: true, name: "THE WARDEN", tint: "#96dcff",
     behaviour: "armour", armour: 0.34, armourHp: 9,
   },

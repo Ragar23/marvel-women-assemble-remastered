@@ -1,16 +1,28 @@
-# Sprites in here are hand-made art, not generated.
+# Sprites listed here are hand-made art, not generated.
 #
 # The generators in tools/ (make_doomsday.py, make_cap.py, ...) skip any
-# name listed below, so re-running them never overwrites art that someone
-# drew or downloaded by hand.
+# name below, so re-running them never overwrites art that someone drew
+# or downloaded by hand.
 #
 # To swap in your own art:
 #   1. Save the PNG over the existing file, keeping the same name —
-#      images/dd-cyclops.png, images/dd-thor.png, and so on. Transparent
-#      background, any size: the game reads the sprite's real dimensions
-#      at load, so a bigger image just means a bigger character.
-#   2. Add that sprite's name (no .png) to the list below.
+#      images/dd-cyclops.png, images/dd-thor.png, and so on.
+#   2. Add that sprite's name (no .png) to the list at the bottom.
 #   3. Commit and push.
 #
-# One line per sprite name, e.g.:
-#   dd-cyclops
+# What the art needs:
+#   * A transparent background — no white or coloured box.
+#   * Cropped tight to the character, no empty margin. Every sprite is
+#     scaled to a fixed height (CONFIG.player.height for heroes, the
+#     `height` on each entry in ENEMY_TYPES for the rest), so padding
+#     inside the file shrinks the character and pads out its hitbox.
+#   * Any resolution. The game fits the sprite to that height and keeps
+#     its aspect ratio, so a 300px drawing and a 96px one end up the same
+#     size on screen.
+#
+# One caveat: Cyclops' optic blast spawns at `barrels` in src/config.js,
+# a fraction of his height measured from the visor in the art. Replace
+# his sprite and that number needs re-measuring, or the beam leaves his
+# chin instead of his eyes.
+
+dd-cyclops
