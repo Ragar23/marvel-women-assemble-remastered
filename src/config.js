@@ -28,6 +28,14 @@ export const CONFIG = {
   },
   //Wave N multiplies every enemy speed by this, capped, so runs build.
   difficulty: { speedStep: 0.075, speedCap: 2.1, hpEveryWaves: 4 },
+  //Stan Lee does not stand around: he wanders on, stops to wave, and goes.
+  cameo: {
+    minGap: 22,
+    maxGap: 50,
+    walkSpeed: 95,
+    waveAt: 0.5, //dead centre, so he is clear of Groot from either side
+    waveTime: 1.5,
+  },
   bossEvery: 5,
   //Wave 5 is Ultron — the enemy of the original 2021 game — and wave 10 is
   //Thanos. After that they alternate, each turn tougher than the last.

@@ -417,7 +417,64 @@ export function hitPlayer() {
   burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#ff4d4d", 34, 420);
 }
 
+//He enters from whichever side, walks to about the middle, stops to wave,
+//then carries on out of frame — the way the cameos actually go.
+function startCameo() {
+  const cfg = CONFIG.cameo;
+  const fromLeft = Math.random() < 0.5;
+  fx.cameo = {
+    dir: fromLeft ? 1 : -1,
+    x: fromLeft ? -100 : W + 100,
+    phase: "walk",
+    waved: false,
+    timer: 0,
+    bob: 0,
+  };
+}
+
+function updateCameo(dt) {
+  const c = fx.cameo;
+  const cfg = CONFIG.cameo;
+  c.bob += dt * 9;
+
+  if (c.phase === "walk") {
+    c.x += c.dir * cfg.walkSpeed * dt;
+    const mark = c.dir > 0 ? W * cfg.waveAt : W * (1 - cfg.waveAt);
+    if (!c.waved && ((c.dir > 0 && c.x >= mark) || (c.dir < 0 && c.x <= mark))) {
+      c.phase = "wave";
+      c.waved = true;
+      c.timer = cfg.waveTime;
+    }
+    //Gone once he is fully off the far side
+    if (c.x < -140 || c.x > W + 140) {
+      fx.cameo = null;
+      fx.cameoTimer = rand(CONFIG.cameo.minGap, CONFIG.cameo.maxGap);
+    }
+  } else {
+    c.timer -= dt;
+    //A couple of sparkles while he waves, so the eye catches him
+    if (Math.random() < 0.25) {
+      particles.push({
+        x: c.x + rand(0, 90),
+        y: H - 100 + rand(0, 40),
+        vx: rand(-20, 20), vy: rand(-40, -10),
+        life: 0.5, maxLife: 0.5, size: rand(2, 3),
+        color: "#f0b323",
+      });
+    }
+    if (c.timer <= 0) c.phase = "walk";
+  }
+}
+
 export function updateDressing(dt) {
+  //Stan Lee turns up now and then rather than standing at the bottom
+  if (fx.cameo) {
+    updateCameo(dt);
+  } else {
+    fx.cameoTimer -= dt;
+    if (fx.cameoTimer <= 0) startCameo();
+  }
+
   fx.grootTimer += dt;
   if (fx.grootTimer >= 0.45) {
     fx.grootStanding = !fx.grootStanding;

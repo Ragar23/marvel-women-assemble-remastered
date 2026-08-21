@@ -32,6 +32,7 @@ export const fx = {
   shake: 0, flash: null, elapsed: 0, waveBanner: null,
   hitStop: 0, slowMo: 0, timeScale: 1,
   grootTimer: 0, grootStanding: true, chitFrame: 0, chitTimer: 0,
+  cameo: null, cameoTimer: 0,
   stars: [],
 };
 
@@ -167,6 +168,8 @@ export function resetGame() {
   fx.shake = 0;
   fx.flash = null;
   fx.elapsed = 0;
+  fx.cameo = null;
+  fx.cameoTimer = 14; //first one is not immediate
   fx.grootTimer = 0;
   fx.grootStanding = true;
   fx.chitFrame = 0;

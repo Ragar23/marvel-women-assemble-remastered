@@ -62,6 +62,8 @@ mostly works too, but a local server is more reliable for the audio and font fil
 - **Power-ups** from kills — rapid fire, shield, screen-clearing blast.
 - **A combo multiplier** up to x5, reset by taking a hit or letting one through.
 
+- **Stan Lee wanders through.** Every twenty to fifty seconds he walks on from
+  one side, stops in the middle to wave, and carries on out of frame.
 - **Animation throughout.** The hero banks into turns and kicks back when firing,
   enemies bob and fade in and spin apart when killed, Thanos telegraphs his blasts
   and comes apart in slow motion, and every kill freezes the game for a few frames

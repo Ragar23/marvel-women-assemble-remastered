@@ -70,12 +70,23 @@ export function drawStars() {
 }
 
 export function drawSetDressing() {
-  //Groot dancing, the Chitauri patrol, Spidey and Stan Lee — all the cameos
-  //Kept clear of the Infinity Stones bar, which owns the bottom-left.
-  ctx.drawImage(img.spiderman, 430, H - 290);
+  //Groot dances at the back, clear of the Infinity Stones bar. Spider-Man
+  //and the Chitauri used to stand here too, but they were props that never
+  //moved, so they are gone; spiderman.png is kept for a future character.
   ctx.drawImage(fx.grootStanding ? img.grootLeft : img.grootRight, 500, H - 98);
-  ctx.drawImage([img.chit2, img.chit3, img.chit4][fx.chitFrame], 620, H - 98);
-  ctx.drawImage(img.stanLee, 750, H - 98);
+  drawCameo();
+}
+
+function drawCameo() {
+  const c = fx.cameo;
+  if (!c) return;
+  const waving = c.phase === "wave";
+  //A small hop while he waves; he faces the way he is walking
+  const hop = waving ? Math.abs(Math.sin(c.bob)) * 7 : Math.abs(Math.sin(c.bob * 0.5)) * 2;
+  drawSprite(img.stanLee, c.x, H - 98 - hop, 90, 90, {
+    sx: c.dir,
+    rot: waving ? Math.sin(c.bob) * 0.12 : 0,
+  });
 }
 
 export function enemySprite(enemy) {

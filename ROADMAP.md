@@ -213,6 +213,12 @@ Scarlet Witch is now the weakest of the five and is the next one worth
 looking at — her hex is utility rather than damage, which may be enough,
 but it has not been measured against a real run.
 
+## Reserved
+
+`images/spiderman.png` is kept in the repo but is no longer loaded or drawn.
+He was a static prop at the bottom of the screen; the sprite is held back for
+a future playable character.
+
 ## Known and left alone
 
 ## Deliberately not changing

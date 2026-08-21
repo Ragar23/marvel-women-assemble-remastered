@@ -1,5 +1,7 @@
 //=====================================================================//
-export const imageSources = {
+export //images/spiderman.png is deliberately not loaded: he is no longer drawn,
+//but the sprite is kept in the repo for a future playable character.
+const imageSources = {
   bg: "./images/bg.png",
   spaceDogs: "./images/outriders.png",
   ultron: "./images/ultron.png",
@@ -24,7 +26,6 @@ export const imageSources = {
   gaunlet: "./images/stones.png",
   mantis: "./images/mantis.png",
   levi: "./images/levi.png",
-  spiderman: "./images/spiderman.png",
   chit2: "./images/chit2.png",
   chit3: "./images/chit3.png",
   chit4: "./images/chit4.png",
