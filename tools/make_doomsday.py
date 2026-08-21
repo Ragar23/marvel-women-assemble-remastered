@@ -2,7 +2,7 @@
 import sys, math
 sys.path.insert(0, "tools")
 from PIL import Image, ImageDraw
-from pixelfigure import figure, save, shade, outline, W, H, SCALE
+from pixelfigure import figure, save, shade, outline, limb, W, H
 
 GREEN      = (46, 168, 74)
 GREEN_HOT  = (150, 255, 160)
@@ -13,216 +13,216 @@ PURPLE     = (126, 74, 196)
 PURPLE_HOT = (208, 160, 255)
 
 # ---------------------------------------------------------------- heroes
-def storm(d, im, c):
-    # Stormbreaker: axe head and haft, with lightning at the edge
-    d.polygon([(37, 12), (48, 10), (49, 22), (37, 20)], fill=STEEL)
-    d.polygon([(37, 12), (48, 10), (48, 13), (37, 14)], fill=STEEL_LIT)
-    d.polygon([(44, 20), (49, 22), (47, 27), (43, 25)], fill=shade(STEEL, 0.7))
-    d.rectangle([(33, 15), (38, 18)], fill=(104, 68, 42, 255))
-    for x0, y0, x1, y1 in ((46, 6, 47, 9), (50, 12, 51, 15), (45, 27, 46, 30)):
-        d.rectangle([(x0, y0), (x1, y1)], fill=(186, 243, 255, 255))
+YELLOW = (232, 196, 58)
+YELLOW_D = (176, 142, 30)
 
-save(figure(suit=(84, 96, 118), accent=(150, 158, 172), hair=(226, 200, 132),
-            boots=(60, 62, 78), gloves=(70, 74, 92), cape=(150, 40, 46),
-            extra=storm), "dd-thor")
+def cyclops_kit(d, im, c):
+    """Blue suit with the yellow harness: straps over both shoulders meeting
+    at the chest, a yellow belt, and dark side panels."""
+    cx, hw = c["cx"], c["hw"]
+    d.polygon([(cx - hw + 3, 36), (cx + 2, 44), (cx + 2, 50), (cx - hw + 3, 42)], fill=YELLOW)
+    d.polygon([(cx + hw - 4, 34), (cx + 2, 44), (cx + 2, 50), (cx + hw - 4, 40)], fill=YELLOW_D)
+    d.rectangle([(cx - 2, 44), (cx + 4, 52)], fill=YELLOW)          # chest plate
+    d.polygon([(cx - 1, 45), (cx + 3, 51), (cx + 3, 45), (cx - 1, 51)], fill=(196, 40, 44, 255))
+    d.polygon([(cx + hw - 6, 40), (cx + hw - 1, 39), (cx + hw - 2, 62), (cx + hw - 7, 62)],
+              fill=(24, 38, 84, 255))                                # dark side panel
+    d.rectangle([(cx - hw + 2, 63), (cx + hw - 1, 71)], fill=YELLOW)  # belt
+    d.rectangle([(cx - 2, 63), (cx + 6, 71)], fill=YELLOW_D)
+    d.polygon([(cx - 1, 64), (cx + 5, 70), (cx + 5, 64), (cx - 1, 70)], fill=(196, 40, 44, 255))
 
 def optic(d, im, c):
-    # The beam leaves the visor, widening as it goes, with a white core
-    for i in range(33, 52):
-        k = (i - 33) / 19
-        half = 2 + k * 4
-        d.rectangle([(i, 10 - half), (i, 10 + half)], fill=(226, 40, 34, 190))
-        d.rectangle([(i, 10 - half * 0.55), (i, 10 + half * 0.55)], fill=(255, 128, 110, 235))
-        d.rectangle([(i, 9), (i, 11)], fill=(255, 246, 240, 255))
+    cx = c["cx"]
+    for i in range(cx + 12, 104):
+        k = (i - cx - 12) / (104 - cx - 12)
+        half = 3 + k * 6
+        d.rectangle([(i, 17 - half), (i, 17 + half)], fill=(226, 40, 34, 180))
+        d.rectangle([(i, 17 - half * 0.55), (i, 17 + half * 0.55)], fill=(255, 128, 110, 230))
+        d.rectangle([(i, 16), (i, 18)], fill=(255, 250, 246, 255))
 
-save(figure(suit=(48, 84, 176), accent=(214, 58, 52), skin=(232, 177, 138),
-            hair=(96, 62, 40), boots=(196, 46, 42), gloves=(196, 46, 42),
-            visor=(226, 52, 44), extra=optic), "dd-cyclops")
+save(figure(suit=(52, 92, 190), build="athletic", hair=(84, 54, 34),
+            boots=(112, 68, 40), gloves=(30, 32, 44), visor=(226, 52, 44),
+            belt=YELLOW, detail=cyclops_kit, extra=optic), "dd-cyclops")
 
-def claws(d, im, c):
-    d.polygon([(38, 18), (44, 16), (45, 18), (39, 21)], fill=PURPLE_HOT + (255,) if len(PURPLE_HOT) == 3 else PURPLE_HOT)
+def storm(d, im, c):
+    cx, hw = c["cx"], c["hw"]
+    x = cx + hw + 26
+    d.polygon([(x - 4, 26), (x + 18, 22), (x + 20, 50), (x - 4, 46)], fill=STEEL)
+    d.polygon([(x - 4, 26), (x + 18, 22), (x + 18, 30), (x - 4, 33)], fill=STEEL_LIT)
+    d.polygon([(x + 12, 46), (x + 20, 50), (x + 16, 60), (x + 9, 55)], fill=shade(STEEL, 0.66))
+    d.polygon([(x - 16, 40), (x - 2, 36), (x - 1, 44), (x - 15, 48)], fill=(104, 68, 42, 255))
+    for x0, y0, x1, y1 in ((x + 6, 12, x + 9, 21), (x + 22, 28, x + 25, 38),
+                           (x + 4, 60, x + 7, 70), (x - 10, 22, x - 7, 32)):
+        d.polygon([(x0, y0), (x1, y0 + 4), (x0 + 1, y1)], fill=(186, 243, 255, 255))
+
+def thor_kit(d, im, c):
+    cx, hw = c["cx"], c["hw"]
+    d.polygon([(cx - hw + 2, 38), (cx + hw - 2, 36), (cx + hw - 3, 43), (cx - hw + 2, 45)],
+              fill=(150, 158, 172, 255))                             # chest armour band
+    for gx in range(cx - hw + 4, cx + hw - 4, 6):
+        d.rectangle([(gx, 46), (gx + 2, 60)], fill=shade((84, 96, 118), 0.75))
+
+save(figure(suit=(84, 96, 118), build="heavy", hair=(228, 202, 134), hairStyle="short",
+            boots=(52, 54, 68), gloves=(64, 68, 86), cape=(150, 40, 46),
+            belt=(150, 158, 172), detail=thor_kit, extra=storm), "dd-thor")
+save(figure(suit=(84, 96, 118), build="heavy", hair=(228, 202, 134), hairStyle="short",
+            boots=(52, 54, 68), gloves=(64, 68, 86), cape=(150, 40, 46),
+            belt=(150, 158, 172), detail=thor_kit), "dd-thor-empty")
+
+def shuri_kit(d, im, c):
+    cx, hw = c["cx"], c["hw"]
+    for i in range(6):                                               # vibranium seams
+        d.line([(cx - hw + 3, 40 + i * 5), (cx + hw - 3, 38 + i * 5)],
+               fill=(126, 74, 196, 255), width=1)
+    d.polygon([(cx - 4, 42), (cx + 4, 40), (cx + 6, 50), (cx, 54), (cx - 6, 50)],
+              fill=(150, 96, 226, 255))                              # panther silver
+
+def shuri_claws(d, im, c):
+    cx, hw = c["cx"], c["hw"]
     for i in range(3):
-        d.rectangle([(41 + i * 2, 15 + i), (42 + i * 2, 24 - i)], fill=(216, 176, 255, 255))
+        d.polygon([(cx + hw + 30, 40 + i * 5), (cx + hw + 44, 36 + i * 6),
+                   (cx + hw + 30, 44 + i * 5)], fill=(216, 176, 255, 255))
 
-save(figure(suit=(58, 52, 78), accent=PURPLE_HOT, skin=(92, 62, 48),
-            helmet=(48, 42, 66), boots=(42, 36, 58), gloves=PURPLE,
-            visor=(214, 176, 255), extra=claws), "dd-shuri")
+save(figure(suit=(46, 42, 62), build="slim", helmet=(38, 34, 54), skin=(92, 62, 48),
+            boots=(34, 30, 48), gloves=(126, 74, 196), visor=(214, 176, 255),
+            belt=(126, 74, 196), detail=shuri_kit, extra=shuri_claws), "dd-shuri")
+
+def torch_kit(d, im, c):
+    cx, hw = c["cx"], c["hw"]
+    d.ellipse([(cx - 7, 42), (cx + 7, 56)], fill=(28, 28, 34, 255))  # the 4
+    d.rectangle([(cx - 3, 45), (cx - 1, 53)], fill=(255, 236, 150, 255))
+    d.rectangle([(cx - 3, 49), (cx + 4, 51)], fill=(255, 236, 150, 255))
+    d.rectangle([(cx + 2, 45), (cx + 4, 53)], fill=(255, 236, 150, 255))
 
 def flame(d, im, c):
-    for i, (r, col) in enumerate(((13, (255, 92, 20, 210)), (9, (255, 168, 42, 235)), (5, (255, 236, 150, 255)))):
-        d.ellipse([(36 - r + 8, 20 - r), (36 + r + 8, 20 + r)], fill=col)
-    for x, y, h in ((16, 6, 7), (24, 3, 9), (31, 5, 8), (10, 12, 6)):
-        d.polygon([(x, y + h), (x + 3, y), (x + 6, y + h)], fill=(255, 150, 40, 230))
-        d.polygon([(x + 1, y + h), (x + 3, y + 3), (x + 5, y + h)], fill=(255, 232, 140, 240))
+    cx, hw = c["cx"], c["hw"]
+    for r, col in ((17, (255, 96, 20, 190)), (12, (255, 168, 42, 225)), (7, (255, 240, 160, 255))):
+        d.ellipse([(cx + hw + 25 - r, 46 - r), (cx + hw + 25 + r, 46 + r)], fill=col)
+    for x, y, h in ((16, 6, 14), (30, 0, 18), (44, 4, 16), (8, 22, 12)):
+        d.polygon([(x, y + h), (x + 6, y), (x + 12, y + h)], fill=(255, 150, 40, 220))
+        d.polygon([(x + 2, y + h), (x + 6, y + 6), (x + 10, y + h)], fill=(255, 236, 150, 235))
 
-save(figure(suit=(238, 118, 26), accent=(255, 214, 110), skin=(255, 196, 96),
-            hair=(255, 176, 60), boots=(214, 84, 18), gloves=(255, 196, 96),
-            extra=flame), "dd-torch")
+save(figure(suit=(238, 122, 26), build="slim", hair=(255, 186, 70), hairStyle="swept",
+            skin=(255, 208, 130), boots=(214, 88, 18), gloves=(255, 214, 120),
+            belt=(28, 28, 34), detail=torch_kit, extra=flame), "dd-torch")
+save(figure(suit=(255, 172, 44), build="slim", hair=(255, 226, 130), hairStyle="swept",
+            skin=(255, 232, 170), boots=(255, 136, 24), gloves=(255, 240, 170),
+            belt=(255, 200, 90), detail=torch_kit, extra=flame), "dd-torch-flame")
 
-# ---------------------------------------------------------------- villains
-def doomhand(d, im, c):
-    for r, col in ((11, (46, 168, 74, 190)), (7, (120, 240, 130, 225)), (3, (240, 255, 240, 255))):
-        d.ellipse([(44 - r, 20 - r), (44 + r, 20 + r)], fill=col)
 
-def doomface(d, im, c):
-    #The mask: riveted steel with dark eye slots and a mouth grille, and the
-    #green hood of the cowl behind it.
-    d.polygon([(19, 3), (27, 2), (28, 17), (20, 16)], fill=(40, 70, 44, 255))
-    d.ellipse([(21, 2), (34, 17)], fill=STEEL)
-    d.polygon([(21, 2), (27, 2), (26, 16), (22, 15)], fill=STEEL_LIT)
-    d.rectangle([(27, 7), (31, 10)], fill=(22, 24, 30, 255))     # eye slot
-    d.rectangle([(28, 7), (29, 8)], fill=(150, 255, 160, 255))   # a glint of green
-    d.rectangle([(28, 13), (33, 15)], fill=(30, 32, 40, 255))    # mouth grille
-    for gx in range(28, 33, 2):
-        d.rectangle([(gx, 13), (gx, 15)], fill=STEEL)
-    d.rectangle([(22, 1), (32, 2)], fill=(212, 180, 60, 255))    # cowl clasp
-    doomhand(d, im, c)
-
-doom = figure(suit=DOOM_GREEN, accent=(96, 140, 88),
-              boots=shade(DOOM_GREEN, 0.7), gloves=STEEL,
-              cape=(38, 66, 40), extra=doomface)
-save(doom, "dd-doom")
-
-def hood_witch(tone, glow, name):
-    def spell(d, im, c):
-        for r, col in ((9, glow + (150,)), (5, glow + (220,)), (2, (255, 255, 255, 255))):
-            d.ellipse([(42 - r, 20 - r), (42 + r, 20 + r)], fill=col)
-    save(figure(suit=tone, accent=shade(tone, 1.3), hood=tone,
-                boots=shade(tone, 0.6), gloves=shade(tone, 0.8),
-                cape=shade(tone, 0.8), belt=False, extra=spell), name)
-
-hood_witch((46, 74, 52), (140, 255, 150), "dd-witch-hex")
-hood_witch((40, 58, 64), (150, 220, 255), "dd-witch-ward")
-hood_witch((58, 48, 70), (206, 160, 255), "dd-witch-veil")
-
-# ---- Sentinel: a slab of a robot, drawn at its own larger size ----
-def sentinel():
-    w, h, s = 30, 34, 3
-    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+# ---------------------------------------------------------------- Doctor Doom
+# Drawn front-on rather than through the shared side-facing builder: he is
+# the boss, he faces the player, and both hands are up and charged.
+def doctor_doom():
+    im = Image.new("RGBA", (104, 104), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    body = (132, 68, 168); lit = (176, 116, 208); dark = (86, 40, 116)
-    trim = (196, 176, 96)
-    d.polygon([(6, 10), (24, 10), (26, 26), (4, 26)], fill=body)      # torso
-    d.polygon([(6, 10), (11, 10), (9, 26), (4, 26)], fill=lit)
-    d.polygon([(21, 10), (24, 10), (26, 26), (23, 26)], fill=dark)
-    d.rectangle([(11, 15), (19, 19)], fill=trim)                      # chest plate
-    d.polygon([(9, 2), (21, 2), (22, 9), (8, 9)], fill=body)          # head
-    d.rectangle([(10, 4), (20, 6)], fill=(255, 244, 180))             # visor band
-    d.rectangle([(1, 12), (5, 24)], fill=dark)                        # arms
-    d.rectangle([(25, 12), (29, 24)], fill=dark)
-    d.rectangle([(8, 26), (13, 33)], fill=dark)                       # legs
-    d.rectangle([(17, 26), (22, 33)], fill=body)
+    CLOAK = (44, 82, 44); CLOAK_L = (66, 112, 62); CLOAK_D = (26, 52, 30)
+    MASK = (156, 162, 170); MASK_L = (206, 212, 220); MASK_D = (96, 102, 112)
+    GOLD = (214, 176, 52); DARK = (20, 26, 20)
+
+    d.polygon([(18, 40), (52, 22), (86, 40), (92, 100), (12, 100)], fill=CLOAK)   # cloak
+    d.polygon([(18, 40), (52, 22), (52, 100), (12, 100)], fill=CLOAK_L)
+    d.polygon([(74, 34), (86, 40), (92, 100), (74, 100)], fill=CLOAK_D)
+    d.polygon([(30, 18), (52, 8), (74, 18), (78, 44), (26, 44)], fill=CLOAK_D)    # hood
+    d.polygon([(30, 18), (52, 8), (52, 44), (26, 44)], fill=CLOAK)
+
+    d.rounded_rectangle([(38, 20), (66, 54)], radius=5, fill=MASK)                # mask
+    d.rounded_rectangle([(38, 20), (52, 54)], radius=5, fill=MASK_L)
+    d.rectangle([(42, 30), (49, 37)], fill=(250, 250, 250))                       # eyes
+    d.rectangle([(55, 30), (62, 37)], fill=(250, 250, 250))
+    d.rectangle([(44, 32), (47, 36)], fill=DARK)
+    d.rectangle([(57, 32), (60, 36)], fill=DARK)
+    d.rectangle([(41, 42), (63, 51)], fill=MASK_D)                                # grille
+    for gx in range(43, 63, 4):
+        d.rectangle([(gx, 42), (gx + 1, 51)], fill=MASK_L)
+    d.rectangle([(36, 54), (68, 58)], fill=GOLD)                                  # collar clasp
+    d.ellipse([(48, 52), (56, 60)], fill=GOLD)
+
+    d.rectangle([(34, 74), (70, 82)], fill=(58, 44, 30))                          # belt
+    d.rectangle([(46, 72), (58, 84)], fill=GOLD)
+    d.rectangle([(50, 76), (54, 80)], fill=DARK)
+    d.rectangle([(24, 92), (48, 104)], fill=MASK_D)                               # boots
+    d.rectangle([(56, 92), (80, 104)], fill=MASK_D)
+
+    for cx, cy in ((20, 66), (84, 66)):                                           # charged hands
+        for r, col in ((15, (60, 200, 80, 150)), (11, (120, 240, 130, 210)),
+                       (7, (200, 255, 200, 245)), (3, (255, 255, 255, 255))):
+            d.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=col)
+        d.rectangle([(cx - 6, cy - 4), (cx + 6, cy + 4)], fill=MASK_D)
+        d.rectangle([(cx - 6, cy - 4), (cx + 6, cy - 1)], fill=MASK)
     outline(im)
-    im.resize((w * s, h * s), Image.NEAREST).save("images/dd-sentinel.png")
+    im.save("images/dd-doom.png")
+
+doctor_doom()
+
+# ---------------------------------------------------------------- the coven
+def witch(tone, glow, name):
+    def spell(d, im, c):
+        cx, hw = c["cx"], c["hw"]
+        for r, col in ((14, glow + (140,)), (9, glow + (215,)), (4, (255, 255, 255, 255))):
+            d.ellipse([(cx + hw + 24 - r, 46 - r), (cx + hw + 24 + r, 46 + r)], fill=col)
+    def robes(d, im, c):
+        cx, hw = c["cx"], c["hw"]
+        for i in range(5):                       # hanging folds
+            d.line([(cx - hw + 4 + i * 6, 40), (cx - hw + 2 + i * 6, 70)],
+                   fill=shade(tone, 0.62), width=1)
+    save(figure(suit=tone, build="slim", hood=tone, boots=shade(tone, 0.55),
+                gloves=shade(tone, 0.75), cape=shade(tone, 0.72),
+                belt=shade(tone, 0.5), detail=robes, extra=spell), name)
+
+witch((48, 78, 54), (140, 255, 150), "dd-witch-hex")
+witch((40, 58, 66), (150, 220, 255), "dd-witch-ward")
+witch((60, 48, 74), (206, 160, 255), "dd-witch-veil")
+
+# ---------------------------------------------------------------- Sentinel
+def sentinel():
+    im = Image.new("RGBA", (86, 100), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    body = (128, 66, 164); lit = (172, 112, 204); dark = (82, 38, 112)
+    trim = (206, 186, 104); glass = (255, 246, 190)
+    d.polygon([(20, 30), (66, 30), (74, 78), (12, 78)], fill=body)      # torso
+    d.polygon([(20, 30), (40, 30), (36, 78), (12, 78)], fill=lit)
+    d.polygon([(58, 30), (66, 30), (74, 78), (64, 78)], fill=dark)
+    d.rectangle([(32, 44), (54, 56)], fill=trim)                        # chest plate
+    d.rectangle([(36, 47), (50, 53)], fill=shade(trim, 0.7))
+    d.polygon([(28, 6), (58, 6), (62, 28), (24, 28)], fill=body)        # head
+    d.polygon([(28, 6), (43, 6), (41, 28), (24, 28)], fill=lit)
+    d.rectangle([(30, 12), (56, 19)], fill=glass)                       # visor band
+    d.rectangle([(30, 12), (42, 19)], fill=(255, 255, 236))
+    d.polygon([(4, 34), (18, 32), (20, 70), (6, 72)], fill=dark)        # arms
+    d.polygon([(68, 32), (82, 34), (80, 72), (66, 70)], fill=dark)
+    d.rectangle([(2, 68), (20, 80)], fill=body)
+    d.rectangle([(66, 68), (84, 80)], fill=body)
+    d.rectangle([(20, 78), (38, 99)], fill=dark)                        # legs
+    d.rectangle([(48, 78), (66, 99)], fill=body)
+    d.rectangle([(16, 94), (42, 99)], fill=trim)
+    d.rectangle([(44, 94), (70, 99)], fill=trim)
+    outline(im)
+    im.save("images/dd-sentinel.png")
 
 sentinel()
 
-def lokihorns(d, im, c):
-    gold = (212, 180, 60, 255)
-    d.polygon([(23, 4), (26, 5), (21, -3)], fill=gold)
-    d.polygon([(29, 4), (32, 5), (33, -3)], fill=gold)
-
 # ---------------------------------------------------------------- the line-up
 LINEUP = [
-    ("dd-reed",     dict(suit=(58, 92, 168), accent=(226, 230, 240), skin=(232, 177, 138),
-                         hair=(206, 210, 220), boots=(38, 62, 120), gloves=(226, 230, 240))),
-    ("dd-beast",    dict(suit=(52, 96, 196), accent=(40, 74, 156), skin=(64, 118, 214),
-                         hair=(38, 78, 176), boots=(30, 58, 132), gloves=(64, 118, 214))),
-    ("dd-bucky",    dict(suit=(44, 46, 58), accent=STEEL, skin=(232, 177, 138),
-                         hair=(72, 54, 40), boots=(30, 30, 40), gloves=STEEL)),
-    ("dd-mystique", dict(suit=(28, 60, 74), accent=(210, 180, 60), skin=(78, 150, 168),
-                         hair=(190, 60, 60), boots=(22, 46, 58), gloves=(78, 150, 168))),
-    ("dd-loki",     dict(suit=(38, 96, 66), accent=(212, 180, 60), skin=(232, 177, 138),
-                         hair=(44, 40, 44), boots=(30, 30, 38), gloves=(150, 40, 46),
-                         cape=(150, 40, 46), helmet=(212, 180, 60), extra=lokihorns)),
-    ("dd-magneto",  dict(suit=(150, 40, 46), accent=(140, 40, 140), skin=(232, 177, 138),
-                         hair=(214, 216, 224), boots=(110, 28, 34), gloves=(140, 40, 140),
-                         cape=(140, 40, 140), helmet=(150, 40, 46))),
+    ("dd-reed",     dict(suit=(58, 92, 168), build="slim", skin=(232, 177, 138),
+                         hair=(210, 214, 224), hairStyle="swept", boots=(38, 62, 120),
+                         gloves=(226, 230, 240), belt=(226, 230, 240))),
+    ("dd-beast",    dict(suit=(52, 96, 196), build="heavy", skin=(64, 118, 214),
+                         hair=(34, 70, 168), hairStyle="long", boots=(30, 58, 132),
+                         gloves=(64, 118, 214), belt=(30, 58, 132))),
+    ("dd-bucky",    dict(suit=(44, 46, 58), build="athletic", skin=(232, 177, 138),
+                         hair=(72, 54, 40), hairStyle="long", boots=(28, 28, 38),
+                         gloves=STEEL, belt=(28, 28, 38))),
+    ("dd-mystique", dict(suit=(30, 66, 80), build="slim", skin=(78, 150, 168),
+                         hair=(196, 58, 58), hairStyle="long", boots=(22, 46, 58),
+                         gloves=(78, 150, 168), belt=(210, 180, 60))),
+    ("dd-loki",     dict(suit=(38, 96, 66), build="slim", skin=(232, 177, 138),
+                         hair=(40, 36, 40), hairStyle="long", boots=(28, 28, 36),
+                         gloves=(150, 40, 46), cape=(150, 40, 46), belt=(212, 180, 60))),
+    ("dd-magneto",  dict(suit=(158, 40, 46), build="athletic", skin=(232, 177, 138),
+                         hair=(218, 220, 228), hairStyle="short", boots=(104, 26, 32),
+                         gloves=(142, 40, 142), cape=(142, 40, 142), helmet=(158, 40, 46),
+                         belt=(142, 40, 142))),
 ]
 for name, kw in LINEUP:
     save(figure(**kw), name)
-
-print("generated:", len([n for n in __import__("os").listdir("images") if n.startswith("dd-")]), "doomsday sprites")
-
-# ---------------------------------------------------------------- variants and props
-# Thor without Stormbreaker, for the frames where it is in the air
-save(figure(suit=(84, 96, 118), accent=(150, 158, 172), hair=(226, 200, 132),
-            boots=(60, 62, 78), gloves=(70, 74, 92), cape=(150, 40, 46)), "dd-thor-empty")
-
-# Johnny fully alight, for Flame On
-def blaze(d, im, c):
-    for x, y, h in ((8, 2, 10), (16, -1, 12), (25, 1, 11), (33, 4, 9), (4, 10, 8), (38, 12, 8)):
-        d.polygon([(x, y + h), (x + 4, y), (x + 8, y + h)], fill=(255, 140, 30, 235))
-        d.polygon([(x + 1, y + h), (x + 4, y + 4), (x + 7, y + h)], fill=(255, 238, 150, 245))
-    for r, col in ((22, (255, 110, 20, 120)), (15, (255, 176, 50, 160))):
-        d.ellipse([(26 - r, 24 - r), (26 + r, 24 + r)], fill=col)
-
-save(figure(suit=(255, 168, 40), accent=(255, 236, 150), skin=(255, 226, 150),
-            hair=(255, 220, 120), boots=(255, 132, 24), gloves=(255, 236, 150),
-            extra=blaze), "dd-torch-flame")
-
-
-def prop(name, w, h, s, paint):
-    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    paint(ImageDraw.Draw(im), im)
-    outline(im)
-    im.resize((w * s, h * s), Image.NEAREST).save(f"images/{name}.png")
-
-# Stormbreaker, thrown
-prop("dd-stormbreaker", 20, 16, 3, lambda d, im: (
-    d.polygon([(1, 2), (11, 1), (12, 12), (1, 13)], fill=STEEL),
-    d.polygon([(1, 2), (11, 1), (11, 4), (1, 5)], fill=STEEL_LIT),
-    d.polygon([(9, 12), (13, 13), (11, 15), (8, 14)], fill=shade(STEEL, 0.7)),
-    d.rectangle([(12, 6), (18, 9)], fill=(104, 68, 42, 255)),
-    d.rectangle([(3, 6), (6, 8)], fill=(186, 243, 255, 255)),
-))
-
-# Optic blast bolt
-prop("dd-optic", 26, 10, 3, lambda d, im: (
-    d.ellipse([(0, 1), (25, 8)], fill=(226, 40, 34, 255)),
-    d.ellipse([(3, 2), (24, 7)], fill=(255, 128, 110, 255)),
-    d.ellipse([(7, 3), (23, 6)], fill=(255, 250, 245, 255)),
-))
-
-# Shuri's kinetic pulse
-prop("dd-claw", 16, 14, 3, lambda d, im: (
-    d.polygon([(2, 1), (14, 6), (2, 12), (6, 6)], fill=(126, 74, 196, 255)),
-    d.polygon([(4, 3), (12, 6), (4, 10), (7, 6)], fill=(208, 160, 255, 255)),
-    d.polygon([(6, 5), (11, 6), (6, 8)], fill=(255, 255, 255, 255)),
-))
-
-# Fireball
-prop("dd-fire", 16, 14, 3, lambda d, im: (
-    d.ellipse([(0, 1), (13, 12)], fill=(255, 110, 20, 255)),
-    d.ellipse([(2, 3), (12, 11)], fill=(255, 186, 60, 255)),
-    d.ellipse([(4, 5), (10, 9)], fill=(255, 250, 210, 255)),
-    d.polygon([(13, 4), (16, 7), (13, 10)], fill=(255, 150, 40, 255)),
-))
-print("variants and props written")
-
-# ---------------------------------------------------------------- background
-# The original scene is a bright blue-purple moonscape. Doomsday wants it
-# darker and green, so it is desaturated, dimmed, and tinted rather than
-# redrawn from scratch.
-from PIL import ImageEnhance
-bg = Image.open("images/bg.png").convert("RGB")
-bg = ImageEnhance.Color(bg).enhance(0.30)      # pull most of the purple out
-bg = ImageEnhance.Brightness(bg).enhance(0.46) # and take it down
-px = bg.load()
-for y in range(bg.height):
-    for x in range(bg.width):
-        r, g, b = px[x, y]
-        # push what light remains toward green, and hold the blues back
-        px[x, y] = (int(r * 0.62), int(min(255, g * 1.08 + 6)), int(b * 0.66))
-glow = Image.new("RGB", bg.size, (0, 0, 0))
-gd = ImageDraw.Draw(glow)
-for i in range(26):                              # a soft green wash from above
-    k = i / 26
-    gd.rectangle([(0, int(k * bg.height)), (bg.width, bg.height)],
-                 fill=(0, int(16 * (1 - k)), int(6 * (1 - k))))
-bg = Image.blend(bg, Image.blend(bg, glow, 0.0), 0)
-bg = Image.composite(bg, bg, Image.new("L", bg.size, 255))
-from PIL import ImageChops
-bg = ImageChops.add(bg, glow)
-bg.save("images/dd-bg.png")
-print("dd-bg.png written", bg.size)
+print("all doomsday art regenerated")
