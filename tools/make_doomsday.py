@@ -149,8 +149,7 @@ def doctor_doom():
             d.ellipse([(cx - r, cy - r), (cx + r, cy + r)], fill=col)
         d.rectangle([(cx - 6, cy - 4), (cx + 6, cy + 4)], fill=MASK_D)
         d.rectangle([(cx - 6, cy - 4), (cx + 6, cy - 1)], fill=MASK)
-    outline(im)
-    im.save("images/dd-doom.png")
+    save(im, "dd-doom")
 
 doctor_doom()
 
@@ -196,8 +195,7 @@ def sentinel():
     d.rectangle([(48, 78), (66, 99)], fill=body)
     d.rectangle([(16, 94), (42, 99)], fill=trim)
     d.rectangle([(44, 94), (70, 99)], fill=trim)
-    outline(im)
-    im.save("images/dd-sentinel.png")
+    save(im, "dd-sentinel")
 
 sentinel()
 

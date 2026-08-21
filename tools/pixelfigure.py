@@ -9,6 +9,7 @@ Silhouette varies per character through `build`, `hair`, `cape`, `helmet`
 and a `detail` callback for costume work, so a heavy character is visibly
 heavier and a costume can carry straps, emblems and panel lines.
 """
+import pathlib
 from PIL import Image, ImageDraw
 
 W, H = 104, 96
@@ -150,7 +151,24 @@ def figure(suit, skin=(232, 177, 138), build="athletic", hair=None,
     return im
 
 
+#Any sprite name listed in images/handmade.txt is art someone drew by hand
+#and dropped in. The generators leave those alone, so re-running a tool
+#never quietly overwrites better art than it can make.
+def handmade():
+    f = pathlib.Path("images/handmade.txt")
+    if not f.exists():
+        return set()
+    return {
+        line.split("#")[0].strip()
+        for line in f.read_text().splitlines()
+        if line.split("#")[0].strip()
+    }
+
+
 def save(im, name):
+    if name in handmade():
+        print(f"  skip {name}.png (listed in images/handmade.txt)")
+        return name
     outline(im)
     im.save(f"images/{name}.png")
     return name

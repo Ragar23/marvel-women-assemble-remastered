@@ -140,6 +140,9 @@ export const HEROES = {
     damage: 2,
     cooldown: 0.24,
     pierce: 99, //the beam does not stop at the first thing it meets
+    //The optic blast leaves the visor, not the hand. The visor sits at
+    //y=17 of the 96px sprite, so the shot spawns 31px above centre.
+    barrels: [-31 / 96],
     tint: "#ff4d4d",
     shootRate: 1.1,
     ult: "ignition",

@@ -267,8 +267,6 @@ kbd {
 .btn {
   font-family: var(--font-display);
   font-weight: 700;
-
-  font-family: var(--font);
   cursor: pointer;
   border: none;
   border-radius: 10px;

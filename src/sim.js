@@ -125,9 +125,10 @@ export function fire() {
   //Most heroes fire a single shot down the centre; Iron Man has two palms.
   const barrels = hero.barrels || [0];
   for (const offset of barrels) {
+    const muzzleY = world.player.y + world.player.h / 2 + offset * world.player.h;
     bullets.push({
       x: world.player.x + world.player.w - 10,
-      y: world.player.y + world.player.h / 2 - bh / 2 + offset * world.player.h,
+      y: muzzleY - bh / 2,
       w: bw,
       h: bh,
       dmg: hero.damage,
@@ -135,9 +136,9 @@ export function fire() {
       struck: new Set(),
       range: hero.range,
     });
+    //muzzle flash, at whichever barrel the shot actually came from
+    burst(world.player.x + world.player.w, muzzleY, heroTint(), 5, 150);
   }
-  //muzzle flash
-  burst(world.player.x + world.player.w, world.player.y + world.player.h / 2, heroTint(), 5, 150);
   playSfx("shoot", 0.16, heroDef().shootRate || 1);
 }
 

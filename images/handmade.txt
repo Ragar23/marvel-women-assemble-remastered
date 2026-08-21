@@ -1,0 +1,16 @@
+# Sprites in here are hand-made art, not generated.
+#
+# The generators in tools/ (make_doomsday.py, make_cap.py, ...) skip any
+# name listed below, so re-running them never overwrites art that someone
+# drew or downloaded by hand.
+#
+# To swap in your own art:
+#   1. Save the PNG over the existing file, keeping the same name —
+#      images/dd-cyclops.png, images/dd-thor.png, and so on. Transparent
+#      background, any size: the game reads the sprite's real dimensions
+#      at load, so a bigger image just means a bigger character.
+#   2. Add that sprite's name (no .png) to the list below.
+#   3. Commit and push.
+#
+# One line per sprite name, e.g.:
+#   dd-cyclops
