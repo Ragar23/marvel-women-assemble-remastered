@@ -41,7 +41,7 @@ mostly works too, but a local server is more reliable for the audio and font fil
 
 ## What's in it
 
-- **Four heroes that play differently**, tuned to near-identical single-target
+- **Five heroes that play differently**, tuned to near-identical single-target
   damage so the choice is about style, not power:
   | Hero | Damage | Cooldown | Special |
   | --- | --- | --- | --- |

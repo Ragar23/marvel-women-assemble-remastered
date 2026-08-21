@@ -37,7 +37,8 @@ export const fx = {
 
 //The singular actors.
 export const world = {
-  player: null, boss: null, bossDying: null, mjolnir: null, nextEnemyId: 0,
+  player: null, boss: null, bossDying: null, mjolnir: null, shield: null,
+  nextEnemyId: 0,
 };
 
 export const bullets = [];
@@ -140,6 +141,7 @@ export function resetGame() {
   boltArcs.length = 0;
   missiles.length = 0;
   world.mjolnir = null;
+  world.shield = null;
   world.bossDying = null;
   fx.hitStop = 0;
   fx.slowMo = 0;

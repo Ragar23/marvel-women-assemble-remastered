@@ -22,8 +22,9 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('modules load and assets resolve', true);
   check('debug handle present', await p.evaluate(() => !!window.game));
   check('title split into letters', await p.locator('.game-title .ch').count() === 16);
+  check('all five heroes on the menu', await p.locator('.hero-card').count() === 5);
 
-  for (const hero of ['wanda','cpMarvel','thor','ironman']) {
+  for (const hero of ['wanda','cpMarvel','thor','ironman','cap']) {
     if (await p.locator('#screen-gameover.is-active').count()) { await p.locator('#menu-button').click(); await p.waitForTimeout(300); }
     await p.locator(`.hero-card[data-character="${hero}"]`).click();
     await p.locator('#start-button').click();
@@ -45,9 +46,11 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     await p.waitForTimeout(400);
     const u = await p.evaluate(() => { const g = window.game;
       return { charge: Math.round(g.world.player.charge), hex: +g.world.player.hex.toFixed(1),
-               ign: +g.world.player.ignition.toFixed(1), arcs: g.boltArcs.length, miss: g.missiles.length }; });
-    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0), JSON.stringify(u));
+               ign: +g.world.player.ignition.toFixed(1), arcs: g.boltArcs.length,
+               miss: g.missiles.length, shield: g.world.shield ? 1 : 0 }; });
+    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0), JSON.stringify(u));
     if (hero === 'thor') check('thor: mjolnir in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
+    if (hero === 'cap') check('cap: throw ricochets', await p.evaluate(() => window.game.HEROES.cap.ricochet > 0));
     await p.evaluate(() => { window.game.world.player.lives = 0; });
     await p.waitForTimeout(400);
   }

@@ -44,6 +44,12 @@ export const CONFIG = {
     missileTurn: 5.5, //radians per second of steering authority
     missileLife: 3.2,
   },
+  //Captain America's ultimate: one shield chaining through a dozen targets.
+  shield: {
+    damage: 6,
+    speed: 1500,
+    maxHops: 12,
+  },
   //Thor throws Mjolnir instead of firing bolts. One hammer at a time, so
   //his rhythm is throw-and-wait rather than hold-to-spray, and each throw
   //hits far harder than a bolt did.
@@ -94,6 +100,7 @@ export const HEROES = {
   },
   thor: {
     sprite: "thor",
+    emptySprite: "thorEmpty",
     bullet: "mjolnir",
     bulletSize: [54, 48],
     damage: CONFIG_MJOLNIR_DAMAGE,
@@ -102,6 +109,23 @@ export const HEROES = {
     tint: "#7dd3fc",
     ult: "godblast",
     ultName: "GOD BLAST",
+  },
+  cap: {
+    sprite: "cap",
+    //Shown while the shield is away, so he is not still holding it
+    emptySprite: "capEmpty",
+    bullet: "shield",
+    bulletSize: [40, 40],
+    damage: 2,
+    cooldown: 0.3,
+    //His throw ricochets off the top and bottom of the screen, alternating
+    //which way it leaves his hand. A shot crosses the screen in ~1.1s, so
+    //this has to be fast enough to reach an edge before it exits right.
+    ricochet: 760,
+    tint: "#4d82d6",
+    shootRate: 0.95,
+    ult: "shieldstorm",
+    ultName: "SHIELD RICOCHET",
   },
   ironman: {
     sprite: "ironman",

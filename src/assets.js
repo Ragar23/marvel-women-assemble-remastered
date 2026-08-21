@@ -33,6 +33,10 @@ export const imageSources = {
   repulsor: "./images/repulsor.png",
   lightning: "./images/lightning.png",
   mjolnir: "./images/mjolnir.png",
+  cap: "./images/cap.png",
+  capEmpty: "./images/cap-empty.png",
+  thorEmpty: "./images/thor-empty.png",
+  shield: "./images/shield.png",
 };
 
 export const img = {};

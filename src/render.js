@@ -4,6 +4,7 @@ import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { drawBanner, drawHud } from "./hud.js";
 import { drawMjolnir } from "./mjolnir.js";
+import { drawShieldStorm } from "./shield.js";
 import { boltArcs, bullets, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroes, particles, pops, powerUps, world } from "./state.js";
 import { clamp, drawSprite, rand } from "./util.js";
 
@@ -39,6 +40,7 @@ export function draw() {
 
   drawMissiles();
   drawMjolnir();
+  drawShieldStorm();
   if (world.player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
   drawBoltArcs();
@@ -207,8 +209,13 @@ export function drawPlayer() {
   const blinking = world.player.invuln > 0 && Math.floor(fx.elapsed * 14) % 2 === 0;
   if (!blinking) {
     const r = world.player.recoil;
+    //Thor and Cap have their weapon in hand in the sprite, so while it is
+    //in flight they need the empty-handed version instead.
+    const hero = heroDef();
+    const away = world.mjolnir || world.shield;
+    const sprite = away && hero.emptySprite ? hero.emptySprite : hero.sprite;
     drawSprite(
-      img[heroDef().sprite],
+      img[sprite],
       world.player.x - r * CONFIG.anim.recoilPx,
       world.player.y,
       world.player.w,
@@ -341,6 +348,8 @@ export function drawBullet(b) {
     });
   } else if (hero.ult === "hex") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: fx.elapsed * 11 });
+  } else if (hero.ult === "shieldstorm") {
+    drawSprite(sprite, b.x, b.y, b.w, b.h, { rot: b.spin || 0 });
   } else if (hero.ult === "barrage") {
     drawSprite(sprite, b.x, b.y, b.w, b.h, { flash: 0.2 });
   } else {

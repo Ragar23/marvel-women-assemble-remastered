@@ -254,7 +254,21 @@ export function updateBossDeath(dt) {
 }
 
 export function updateBullets(dt) {
-  for (const b of bullets) b.x += CONFIG.bullet.speed * dt;
+  for (const b of bullets) {
+    b.x += CONFIG.bullet.speed * dt;
+    if (!b.vy) continue;
+    b.spin += dt * 18;
+    b.y += b.vy * dt;
+    if (b.y <= 0) {
+      b.y = 0;
+      b.vy = -b.vy;
+      burst(b.x, b.y, "#e2e8f0", 6, 160);
+    } else if (b.y + b.h >= H) {
+      b.y = H - b.h;
+      b.vy = -b.vy;
+      burst(b.x, b.y + b.h, "#e2e8f0", 6, 160);
+    }
+  }
   sweep(bullets, (b) => !b.spent && b.x < W + 60);
 
   const shotScale = enemySpeedScale();

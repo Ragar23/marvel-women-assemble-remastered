@@ -2,6 +2,7 @@ import { playSfx } from "./audio.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst, pop, screenFlash } from "./effects.js";
+import { throwShieldStorm } from "./shield.js";
 import { boltArcs, enemies, fx, heroDef, heroTint, missiles, particles, world } from "./state.js";
 import { clamp, overlaps, rand, sweep } from "./util.js";
 import { banner } from "./waves.js";
@@ -43,6 +44,8 @@ export function fireUlt() {
     screenFlash("#f0b323", 0.38);
     addShake(16);
     burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#f0b323", 50, 420);
+  } else if (kind === "shieldstorm") {
+    throwShieldStorm();
   } else if (kind === "barrage") {
     launchBarrage();
   } else {
