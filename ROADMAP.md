@@ -125,7 +125,7 @@ sits at the left edge.
 
 ## Phase 4 — Make it pleasant to work on
 
-- **Split `index.js`** (740 lines, one scope) into modules: `assets`, `input`, `player`, `enemies`, `collision`, `audio`, `ui`, `loop`.
+- ✅ **Split `index.js`** into modules under `src/`.
 - **Replace the 20+ loose `let` position variables** with entity objects in arrays.
 - **A game state machine** — `menu → playing → paused → gameOver` — instead of toggling `style.display` on eight elements in four places.
 - **Config file** for speeds, spawn rates and points, so tuning is not a code hunt.

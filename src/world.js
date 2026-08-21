@@ -1,0 +1,384 @@
+import { chargeUlt, enemySpeedScale } from "./abilities.js";
+import { playSfx } from "./audio.js";
+import { H, W } from "./canvas.js";
+import { CONFIG } from "./config.js";
+import { addShake, burst, floatText, pop, screenFlash, spawnCorpse } from "./effects.js";
+import { enemySprite } from "./render.js";
+import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroes, particles, playerHitbox, pops, powerUps, run, spawnQueue, world } from "./state.js";
+import { clamp, overlaps, rand, replaceAll, sweep } from "./util.js";
+import { spawnEnemy } from "./waves.js";
+
+export function updateSpawning(dt) {
+  while (spawnQueue.length && spawnQueue[0].at <= run.waveElapsed) {
+    spawnEnemy(spawnQueue.shift().type);
+  }
+}
+
+export function damageEnemy(enemy, amount, hitX, hitY) {
+  enemy.hp -= amount;
+  enemy.hitFlash = 0.12;
+  if (enemy.hp > 0) {
+    burst(hitX, hitY, "#ffd27f", 5, 180);
+    playSfx("hit", 0.18, rand(0.9, 1.15));
+    return false;
+  }
+  playSfx("explode", 0.22, rand(0.9, 1.2));
+
+  run.combo++;
+  run.bestCombo = Math.max(run.bestCombo, comboMultiplier());
+  run.kills++;
+  const gained = enemy.def.points * comboMultiplier();
+  run.score += gained;
+  burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ff8a3d", 22, 340);
+  floatText(enemy.x + enemy.w / 2, enemy.y, `+${gained}`, "#f0b323");
+  addShake(2.5);
+  spawnCorpse(enemy, enemySprite(enemy));
+  //Freezing everything for a few frames is the cheapest way to make a hit
+  //land. Kept short so the game never feels like it is stuttering.
+  fx.hitStop = Math.max(fx.hitStop, CONFIG.anim.hitStop);
+  chargeUlt(CONFIG.ult.chargePerKill);
+  maybeDropPowerUp(enemy);
+  return true;
+}
+
+export function maybeDropPowerUp(enemy) {
+  if (Math.random() > CONFIG.powerUp.dropChance) return;
+  const kinds = ["rapid", "shield", "blast"];
+  powerUps.push({
+    kind: kinds[Math.floor(rand(0, kinds.length))],
+    x: enemy.x + enemy.w / 2,
+    y: enemy.y + enemy.h / 2,
+    w: CONFIG.powerUp.size,
+    h: CONFIG.powerUp.size,
+    bob: rand(0, Math.PI * 2),
+  });
+}
+
+export function enemyLeaked(enemy) {
+  run.stonesHp -= enemy.def.leak;
+  run.combo = 0;
+  addShake(9);
+  screenFlash("#a855f7", 0.4);
+  //Right of the Stones bar, clear of the power-up timers stacked above it.
+  floatText(410, H - 46, `-${enemy.def.leak}`, "#c084fc");
+}
+
+export function updateEnemies(dt) {
+  const survivors = [];
+
+  for (const enemy of enemies) {
+    enemy.x -= enemy.speed * dt * enemySpeedScale();
+    enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+    enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
+    enemy.bob += dt * 3.4;
+    if (enemy.def.weave) {
+      enemy.phase += dt * 2.2;
+      enemy.y = clamp(
+        enemy.baseY + Math.sin(enemy.phase) * enemy.def.weave,
+        0,
+        H - enemy.h
+      );
+    }
+
+    //Off the left edge — the Stones take the hit
+    if (enemy.x + enemy.w < 0) {
+      enemyLeaked(enemy);
+      continue;
+    }
+
+    //Shot down?
+    let dead = false;
+    for (const bullet of bullets) {
+      if (bullet.spent || bullet.struck.has(enemy.id)) continue;
+      if (overlaps(enemy, bullet)) {
+        bullet.struck.add(enemy.id);
+        if (bullet.pierce > 0) bullet.pierce--;
+        else bullet.spent = true;
+        dead = damageEnemy(enemy, bullet.dmg, bullet.x, bullet.y + bullet.h / 2);
+        break;
+      }
+    }
+    if (dead) continue;
+
+    //Swept away by the assembled women
+    if (heroes.some((h) => overlaps(enemy, h))) {
+      damageEnemy(enemy, 999, enemy.x, enemy.y);
+      continue;
+    }
+
+    //Reached the player
+    if (overlaps(enemy, playerHitbox())) {
+      hitPlayer();
+      burst(enemy.x, enemy.y, "#ff4d4d", 18, 300);
+      continue;
+    }
+
+    survivors.push(enemy);
+  }
+
+  replaceAll(enemies, survivors);
+}
+
+export function updateBoss(dt) {
+  if (!world.boss) return;
+  world.boss.hitFlash = Math.max(0, world.boss.hitFlash - dt);
+
+  if (world.boss.entering) {
+    world.boss.x -= 240 * dt;
+    if (world.boss.x <= W - world.boss.w - 70) {
+      world.boss.x = W - world.boss.w - 70;
+      world.boss.entering = false;
+    }
+  } else {
+    world.boss.phase += dt;
+    world.boss.y = H / 2 - world.boss.h / 2 + Math.sin(world.boss.phase * 0.9) * (H / 2 - world.boss.h / 2 - 20);
+
+    world.boss.fireTimer -= dt;
+    //The last 0.6s before a shot is a visible wind-up: he swells, the aura
+    //tightens and motes converge on him. It makes the fight readable.
+    const WINDUP = 0.6;
+    world.boss.windup = world.boss.fireTimer < WINDUP ? 1 - world.boss.fireTimer / WINDUP : 0;
+    if (world.boss.windup > 0 && Math.random() < 0.5) {
+      const a = rand(0, Math.PI * 2);
+      const r = world.boss.w * 0.9;
+      particles.push({
+        x: world.boss.x + world.boss.w / 2 + Math.cos(a) * r,
+        y: world.boss.y + world.boss.h / 2 + Math.sin(a) * r,
+        vx: -Math.cos(a) * 260,
+        vy: -Math.sin(a) * 260,
+        life: 0.32,
+        maxLife: 0.32,
+        size: rand(2, 4),
+        color: "#c084fc",
+      });
+    }
+
+    if (world.boss.fireTimer <= 0) {
+      world.boss.fireTimer = clamp(1.7 - run.wave * 0.05, 0.7, 1.7);
+      world.boss.windup = 0;
+      world.boss.lunge = 1;
+      const cy = world.boss.y + world.boss.h / 2;
+      const targetY = world.player.y + world.player.h / 2;
+      const dy = clamp((targetY - cy) * 1.2, -260, 260);
+      enemyShots.push({
+        x: world.boss.x,
+        y: cy - 14,
+        w: 30,
+        h: 28,
+        vx: -680,
+        vy: dy,
+      });
+      burst(world.boss.x, cy, "#c084fc", 14, 280);
+      addShake(5);
+    }
+    world.boss.lunge = Math.max(0, world.boss.lunge - dt * 4);
+    world.boss.knock = Math.max(0, world.boss.knock - dt * 6);
+
+    world.boss.spawnTimer -= dt;
+    if (world.boss.spawnTimer <= 0) {
+      world.boss.spawnTimer = 2.4;
+      spawnEnemy(Math.random() < 0.5 ? "outrider" : "ultron");
+    }
+  }
+
+  for (const bullet of bullets) {
+    if (bullet.spent) continue;
+    if (overlaps(world.boss, bullet)) {
+      bullet.spent = true;
+      damageBoss(bullet.dmg, bullet.x, bullet.y + bullet.h / 2);
+      if (!world.boss) return;
+    }
+  }
+
+  if (overlaps(world.boss, playerHitbox())) hitPlayer();
+}
+
+export function damageBoss(amount, hitX, hitY) {
+  if (!world.boss) return;
+  world.boss.hp -= amount;
+  world.boss.hitFlash = 0.1;
+  world.boss.knock = 1; //visibly shoved back by the hit
+  chargeUlt(CONFIG.ult.chargePerBossHit);
+  burst(hitX, hitY, "#ffd27f", 6, 200);
+  if (world.boss.hp > 0) return;
+
+  const gained = 1000 * run.wave;
+  run.score += gained;
+  run.kills++;
+  floatText(world.boss.x + 40, world.boss.y + world.boss.h / 2, `+${gained}`, "#f0b323");
+  addShake(24);
+  screenFlash("#ffffff", 0.45);
+  playSfx("explode", 0.6, 0.7);
+  //He does not vanish: he comes apart in slow motion over a second and a half
+  world.bossDying = {
+    x: world.boss.x,
+    y: world.boss.y,
+    w: world.boss.w,
+    h: world.boss.h,
+    t: 0,
+    dur: 1.6,
+    nextBurst: 0,
+    spin: rand(-0.7, 0.7),
+  };
+  fx.slowMo = CONFIG.anim.bossSlowMo;
+  fx.hitStop = Math.max(fx.hitStop, 0.12);
+  world.boss = null;
+}
+
+export function updateBossDeath(dt) {
+  if (!world.bossDying) return;
+  world.bossDying.t += dt;
+  world.bossDying.nextBurst -= dt;
+  if (world.bossDying.nextBurst <= 0) {
+    world.bossDying.nextBurst = 0.13;
+    burst(
+      world.bossDying.x + rand(20, world.bossDying.w - 20),
+      world.bossDying.y + rand(20, world.bossDying.h - 20),
+      Math.random() < 0.5 ? "#c084fc" : "#ffd27f",
+      26,
+      420
+    );
+    addShake(6);
+  }
+  if (world.bossDying.t >= world.bossDying.dur) {
+    burst(
+      world.bossDying.x + world.bossDying.w / 2,
+      world.bossDying.y + world.bossDying.h / 2,
+      "#ffffff",
+      70,
+      620
+    );
+    pop(world.bossDying.x + world.bossDying.w / 2, world.bossDying.y + world.bossDying.h / 2, "#c084fc", 420);
+    world.bossDying = null;
+  }
+}
+
+export function updateBullets(dt) {
+  for (const b of bullets) b.x += CONFIG.bullet.speed * dt;
+  sweep(bullets, (b) => !b.spent && b.x < W + 60);
+
+  const shotScale = enemySpeedScale();
+  for (const s of enemyShots) {
+    s.x += s.vx * dt * shotScale;
+    s.y += s.vy * dt * shotScale;
+    if (overlaps(s, playerHitbox())) {
+      s.spent = true;
+      hitPlayer();
+    }
+  }
+  sweep(enemyShots, 
+    (s) => !s.spent && s.x + s.w > -40 && s.y < H + 60 && s.y + s.h > -60
+  );
+}
+
+export function updatePowerUps(dt) {
+  for (const p of powerUps) {
+    p.x -= CONFIG.powerUp.driftSpeed * dt;
+    p.bob += dt * 3;
+    if (overlaps(p, world.player)) {
+      p.taken = true;
+      const colors = { rapid: "#f0b323", shield: "#38bdf8", blast: "#ff3b3f" };
+      pop(p.x + p.w / 2, p.y + p.h / 2, colors[p.kind], 90);
+      applyPowerUp(p.kind);
+    }
+  }
+  sweep(powerUps, (p) => !p.taken && p.x + p.w > 0);
+}
+
+export function applyPowerUp(kind) {
+  playSfx("pickup", 0.35);
+  if (kind === "rapid") {
+    world.player.rapid = CONFIG.powerUp.rapidDuration;
+    floatText(world.player.x, world.player.y - 10, "RAPID FIRE", "#f0b323");
+  } else if (kind === "shield") {
+    world.player.shield = CONFIG.powerUp.shieldDuration;
+    floatText(world.player.x, world.player.y - 10, "SHIELD", "#38bdf8");
+  } else {
+    floatText(world.player.x, world.player.y - 10, "BLAST", "#ff3b3f");
+    screenFlash("#ffffff", 0.4);
+    addShake(16);
+    for (const enemy of [...enemies]) {
+      damageEnemy(enemy, 999, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+    }
+    enemies.length = 0;
+  }
+  burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#ffffff", 20, 300);
+}
+
+export function updateHeroes(dt) {
+  for (const h of heroes) h.x += h.speed * dt;
+  sweep(heroes, (h) => h.x < W + 120);
+}
+
+export function hitPlayer() {
+  if (world.player.invuln > 0 || world.player.shield > 0) return;
+  world.player.lives--;
+  world.player.invuln = CONFIG.player.invulnAfterHit;
+  run.combo = 0;
+  playSfx("hurt", 0.45);
+  addShake(18);
+  screenFlash("#ff2b2b", 0.45);
+  burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#ff4d4d", 34, 420);
+}
+
+export function updateDressing(dt) {
+  fx.grootTimer += dt;
+  if (fx.grootTimer >= 0.45) {
+    fx.grootStanding = !fx.grootStanding;
+    fx.grootTimer = 0;
+  }
+  fx.chitTimer += dt;
+  if (fx.chitTimer >= 1 / 7) {
+    fx.chitFrame = (fx.chitFrame + 1) % 3;
+    fx.chitTimer = 0;
+  }
+  for (const star of fx.stars) {
+    star.x -= star.speed * dt;
+    if (star.x < -4) {
+      star.x = W + 4;
+      star.y = rand(0, H);
+    }
+  }
+}
+
+export function updateEffects(dt) {
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 220 * dt;
+    p.life -= dt;
+  }
+  sweep(particles, (p) => p.life > 0);
+
+  for (const t of floatTexts) {
+    t.y -= 46 * dt;
+    t.life -= dt;
+  }
+  sweep(floatTexts, (t) => t.life > 0);
+
+  for (const c of corpses) {
+    c.t += dt;
+    c.x += c.driftX * dt;
+    c.y += c.driftY * dt;
+  }
+  sweep(corpses, (c) => c.t < c.dur);
+
+  for (const o of pops) o.t += dt;
+  sweep(pops, (o) => o.t < o.dur);
+
+  for (const a of boltArcs) a.t += dt;
+  sweep(boltArcs, (a) => a.t < a.dur);
+
+  fx.shake = Math.max(0, fx.shake - 60 * dt);
+  if (fx.flash) {
+    fx.flash.alpha -= dt * 3.4;
+    if (fx.flash.alpha <= 0) fx.flash = null;
+  }
+  if (fx.waveBanner) {
+    fx.waveBanner.life -= dt;
+    if (fx.waveBanner.life <= 0) fx.waveBanner = null;
+  }
+}
+
+//=====================================================================//
+//  DRAW

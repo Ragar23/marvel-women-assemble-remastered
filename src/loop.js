@@ -1,0 +1,86 @@
+import { audio, playMusic } from "./audio.js";
+import { countUp } from "./boot.js";
+import { CONFIG } from "./config.js";
+import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave } from "./dom.js";
+import { draw } from "./render.js";
+import { update } from "./sim.js";
+import { fx, resetGame, run, sess } from "./state.js";
+
+//=====================================================================//
+export function frame(now) {
+  if (sess.state !== "playing") return;
+  const realDt = Math.min((now - sess.lastFrameTime) / 1000, 0.05);
+  sess.lastFrameTime = now;
+
+  //Hit-stop: hold the world still for a few frames, but keep drawing so the
+  //freeze reads as impact rather than a dropped frame.
+  if (fx.hitStop > 0) {
+    fx.hitStop -= realDt;
+    draw();
+    sess.animationId = requestAnimationFrame(frame);
+    return;
+  }
+
+  //Slow motion for the boss death, easing back to full speed afterwards.
+  if (fx.slowMo > 0) {
+    fx.slowMo -= realDt;
+    fx.timeScale = CONFIG.anim.slowMoScale;
+  } else {
+    fx.timeScale = Math.min(1, fx.timeScale + realDt * 1.8);
+  }
+  const dt = realDt * fx.timeScale;
+
+  update(dt);
+  //update() can end the run; don't draw a frame of a dead game
+  if (sess.state === "playing") {
+    draw();
+    sess.animationId = requestAnimationFrame(frame);
+  }
+}
+
+export function startRun() {
+  resetGame();
+  showScreen("game");
+  sess.state = "playing";
+  sess.lastFrameTime = performance.now();
+  sess.animationId = requestAnimationFrame(frame);
+  playMusic();
+}
+
+export function togglePause() {
+  if (sess.state === "playing") {
+    sess.state = "paused";
+    if (sess.animationId !== null) cancelAnimationFrame(sess.animationId);
+    sess.animationId = null;
+    pauseOverlay.classList.add("is-visible");
+    audio.pause();
+  } else if (sess.state === "paused") {
+    sess.state = "playing";
+    pauseOverlay.classList.remove("is-visible");
+    sess.lastFrameTime = performance.now();
+    sess.animationId = requestAnimationFrame(frame);
+    playMusic();
+  }
+}
+
+export function endGame() {
+  sess.state = "gameover";
+  if (sess.animationId !== null) cancelAnimationFrame(sess.animationId);
+  sess.animationId = null;
+  pauseOverlay.classList.remove("is-visible");
+
+  gameOverTitle.innerText =
+    run.stonesHp <= 0
+      ? "THEY TOOK THE STONES"
+      : "YOU SHOULD HAVE GONE FOR THE HEAD";
+  countUp(statScore, run.score);
+  countUp(statWave, run.wave, 0.6);
+  countUp(statKills, run.kills, 0.75);
+  countUp(statCombo, run.bestCombo, 0.6, "x");
+
+  showScreen("gameover");
+  audio.pause();
+}
+
+//=====================================================================//
+//  AUDIO

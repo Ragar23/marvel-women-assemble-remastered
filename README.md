@@ -79,9 +79,32 @@ a 60Hz laptop and a 120Hz display.
 | `assets/` | Music, sound effects and the `Marvel.ttf` font |
 
 Everything runs off a single `requestAnimationFrame` loop driven by delta time, with
-a `state` machine (`menu` / `playing` / `paused` / `gameover`) deciding what is on
-screen. Splitting `index.js` into modules is the main outstanding cleanup — see
-Phase 4 of the roadmap.
+a state machine (`menu` / `playing` / `paused` / `gameover`) deciding what is on
+screen.
+
+> Because the game is ES modules, it must be served over HTTP — opening
+> `index.html` from the filesystem will not work.
+
+## Regenerating art and sound
+
+The Iron Man and Mjolnir sprites and all nine sound effects are generated, not
+hand-authored, so they can be tweaked and rebuilt:
+
+```bash
+python3 tools/make_ironman.py     # needs Pillow
+python3 tools/make_mjolnir.py
+python3 tools/make_sounds.py      # stdlib only
+```
+
+## Testing
+
+`tools/smoke.js` drives the real game in a headless browser and checks that each
+hero kills, each ultimate fires, the boss lives and dies, and the screens flow:
+
+```bash
+python3 -m http.server 8899 &
+node tools/smoke.js
+```
 
 ## What is next
 
