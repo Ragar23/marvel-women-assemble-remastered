@@ -10,7 +10,7 @@ import { punch, throwShield, updatePunches, updateShield, updateWorthy } from ".
 import { bullets, enemies, fx, heroDef, heroTint, run, world } from "./state.js";
 import { clamp, overlaps, sweep } from "./util.js";
 import { startWave, waveIsClear } from "./waves.js";
-import { damageEnemy, updateBoss, updateBossDeath, updateBullets, updateDressing, updateEffects, updateEnemies, updateHeroes, updatePowerUps, updateSpawning } from "./world.js";
+import { addScore, damageEnemy, updateBoss, updateBossDeath, updateBullets, updateDressing, updateEffects, updateEnemies, updateHeroes, updatePowerUps, updateSpawning } from "./world.js";
 
 //=====================================================================//
 export function update(dt) {
@@ -48,7 +48,7 @@ export function update(dt) {
     run.betweenWaves = true;
     run.betweenTimer = 2.2;
     const bonus = 100 * run.wave;
-    run.score += bonus;
+    addScore(bonus);
     playSfx("wave", 0.35);
     floatText(W / 2 - 60, H / 2, `WAVE CLEAR +${bonus}`, "#4ade80");
   }

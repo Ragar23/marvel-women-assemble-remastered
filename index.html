@@ -20,12 +20,24 @@
   </head>
 
   <body>
+    <!-- The Marvel Studios card, the way the film opens. It covers the menu
+         while the sprites load and fades once they are in, so it costs no
+         time that was not already being spent; a click or a key skips it. -->
+    <div id="studios-splash" class="splash">
+      <img src="images/dd-studios.jpg" alt="Marvel Studios" />
+    </div>
+
     <!-- ============ MENU ============ -->
     <section id="screen-menu" class="screen is-active">
       <div class="menu-inner">
         <header class="title-block">
-          <p class="studios-word">MARVEL STUDIOS</p>
-          <h1 class="game-title">DOOMSDAY</h1>
+          <h1 class="game-title">
+            <img
+              class="title-logo"
+              src="images/dd-title.png"
+              alt="Marvel Studios — Avengers: Doomsday"
+            />
+          </h1>
           <p class="tagline">
             Doomsday is coming. The witches are coming.
           </p>
@@ -71,8 +83,9 @@
           <section class="panel">
             <h2>HOW TO PLAY</h2>
             <ul class="rules">
-              <li><b>Protect the Stones.</b> Anything that reaches the left edge damages them.</li>
+              <li><b>Don't let them get pass you.</b> Anything that reaches the left it's close to the multiverse destruction.</li>
               <li><b>You have 3 lives.</b> A hit costs one, with a moment of invulnerability after.</li>
+              <li><b>Earn more.</b> Every 5,000 points is an extra life, up to five, and the odd drop is one outright.</li>
               <li><b>Chain kills</b> without letting anything through to build your multiplier.</li>
               <li><b>Grab the drops</b> for rapid fire, a shield, or a screen-clearing blast.</li>
               <li><b>Watch for the Latverian Witches.</b> Doom's coven, and each one fights its own way.</li>

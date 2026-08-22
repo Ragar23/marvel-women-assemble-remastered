@@ -5,6 +5,7 @@ import { CONFIG } from "./config.js";
 import { drawBanner, drawHud } from "./hud.js";
 import { drawMjolnir } from "./mjolnir.js";
 import { drawPunches, drawShield } from "./shield.js";
+import { POWERUP_COLORS } from "./world.js";
 import { boltArcs, bullets, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, particles, pops, powerUps, world } from "./state.js";
 import { clamp, drawSprite, rand } from "./util.js";
 
@@ -215,8 +216,11 @@ export function drawEnemyShot(s) {
 export function drawPowerUp(p) {
   const cx = p.x + p.w / 2;
   const cy = p.y + p.h / 2 + Math.sin(p.bob) * 5;
-  const colors = { rapid: "#f0b323", shield: "#38bdf8", blast: "#ff3b3f" };
-  const letters = { rapid: "R", shield: "S", blast: "B" };
+  const colors = POWERUP_COLORS;
+  const letters = { rapid: "R", shield: "S", blast: "B", life: "1UP" };
+  //"1UP" is three glyphs where the rest are one, so it needs its own size
+  //or it runs straight out of the disc.
+  const label = letters[p.kind];
 
   ctx.save();
   ctx.shadowColor = colors[p.kind];
@@ -231,10 +235,10 @@ export function drawPowerUp(p) {
   ctx.restore();
 
   ctx.fillStyle = colors[p.kind];
-  ctx.font = "28px Marvel";
+  ctx.font = `${label.length > 1 ? 20 : 28}px Marvel`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(letters[p.kind], cx, cy + 1);
+  ctx.fillText(label, cx, cy + 1);
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
 }

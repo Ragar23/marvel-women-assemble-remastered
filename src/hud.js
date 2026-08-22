@@ -10,13 +10,14 @@ export function drawHud() {
   ctx.fillStyle = "rgba(5,6,10,.55)";
   ctx.fillRect(0, 0, W, 64);
 
-  //Lives, as little hero portraits
+  //Lives, as little hero portraits, with the next one filling in beneath
   const icon = img[heroDef().sprite];
   const iconH = 34;
   const iconW = (icon.width / icon.height) * iconH;
   for (let i = 0; i < world.player.lives; i++) {
-    ctx.drawImage(icon, 20 + i * (iconW + 8), 14, iconW, iconH);
+    ctx.drawImage(icon, 20 + i * (iconW + 8), 10, iconW, iconH);
   }
+  drawNextLife(Math.max(120, world.player.lives * (iconW + 8) - 8));
 
   //Score and combo
   ctx.font = "36px Marvel";
@@ -38,12 +39,31 @@ export function drawHud() {
   ctx.textAlign = "left";
   ctx.font = "32px Marvel";
   ctx.fillStyle = "#ff3b3f";
-  ctx.fillText(`WAVE ${run.wave}`, 20 + world.player.lives * (iconW + 8) + 24, 42);
+  ctx.fillText(`WAVE ${run.wave}`, 20 + world.player.lives * (iconW + 8) + 24, 40);
 
   drawStonesBar();
   drawUltMeter();
   if (world.boss) drawBossBar();
   drawActivePowerUps();
+}
+
+//A sliver under the lives, filling toward the next one. The milestone is
+//worth seeing coming — a life that simply appears reads as luck, where a bar
+//two thirds along is a reason to keep the combo up. It goes away at the cap,
+//where there is nothing left to fill toward.
+export function drawNextLife(barW) {
+  if (world.player.lives >= CONFIG.player.maxLives) return;
+  const x = 20;
+  const y = 50;
+  const pct = clamp(
+    1 - (run.nextLife - run.score) / CONFIG.player.extraLifeEvery,
+    0,
+    1
+  );
+  ctx.fillStyle = "rgba(255,255,255,.14)";
+  ctx.fillRect(x, y, barW, 4);
+  ctx.fillStyle = "#4ade80";
+  ctx.fillRect(x, y, barW * pct, 4);
 }
 
 export function drawUltMeter() {

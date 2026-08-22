@@ -58,6 +58,13 @@ mostly works too, but a local server is more reliable for the audio and font fil
     sets him alight for fifteen seconds without the key held: everything on
     screen burns at once, and anything that touches him afterwards burns too.
 
+- **Lives you earn back.** Three is what you start with and nowhere near
+  enough to reach wave six on, so every 5,000 points is another one, up to
+  five, and a rare **1UP** drop is one outright. A sliver under the life
+  icons fills toward the next, so the milestone is something you can see
+  coming rather than a surprise. A boss pays 1,000 a wave, which means
+  clearing one is usually a life by itself.
+
 - **Sentinels** replace the space dogs — slower, heavier, and there are a lot
   of them, in two speeds.
 - **The Latverian Witches** arrive one at a time, named, with a health bar from
@@ -107,6 +114,7 @@ Most of the art and all nine sound effects are generated, not hand-authored,
 so they can be tweaked and rebuilt:
 
 ```bash
+python3 tools/make_menu_art.py    # the menu art, from the stills in images/src/
 python3 tools/make_hires.py       # Thor and the Human Torch — needs Pillow
 python3 tools/tint_shuri.py       # repaints the panther suit in her violet
 python3 tools/make_doomsday.py    # the rest of the Doomsday cast
@@ -114,6 +122,12 @@ python3 tools/make_ironman.py
 python3 tools/make_mjolnir.py
 python3 tools/make_sounds.py      # stdlib only
 ```
+
+`make_menu_art.py` works from the teaser frames kept in `images/src/`: it
+crops the countdown burned into the backdrop still so the page's live clock
+is the only one on screen, feathers the edges of the title lockup so it sits
+in the page rather than on it, and brings six megabytes of PNG down to four
+hundred kilobytes. Edit the originals under `src/` and re-run it.
 
 `make_hires.py` draws on a 27x34 logical grid and upscales it, which is the
 same density as the hand-drawn art it stands next to — the 104x96 builder in

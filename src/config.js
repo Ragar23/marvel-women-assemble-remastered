@@ -10,6 +10,12 @@ export const CONFIG = {
     height: 96,
     invulnAfterHit: 1.6,
     lives: 3,
+    //Three is enough to learn on and nowhere near enough to reach wave six
+    //with, so they are earned back rather than being all you ever get: a
+    //milestone every so many points, and the occasional drop outright. The
+    //cap stops a good run from banking a dozen and coasting.
+    maxLives: 5,
+    extraLifeEvery: 5000,
     margin: 8,
     //Damage is taken on a box smaller than the sprite. Action poses carry
     //effects — a repulsor blast, thruster flames — inside their bounds, and
@@ -22,6 +28,15 @@ export const CONFIG = {
   combo: { killsPerStep: 6, max: 5 },
   powerUp: {
     dropChance: 0.14,
+    //Weighted rather than picked evenly: a fourth kind on equal footing
+    //would make an extra life one drop in four, and it is meant to be the
+    //one you change course to reach.
+    kinds: [
+      ["rapid", 30],
+      ["shield", 30],
+      ["blast", 26],
+      ["life", 8],
+    ],
     driftSpeed: 170,
     rapidDuration: 8,
     rapidFactor: 0.35,

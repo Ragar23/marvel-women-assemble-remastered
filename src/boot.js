@@ -8,20 +8,23 @@ import { throwMjolnir } from "./mjolnir.js";
 import { becomeWorthy, punch, throwShield } from "./shield.js";
 import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, missiles, particles, playerHitbox, pops, powerUps, punches, resetGame, run, sess, spawnQueue, world } from "./state.js";
 import { bossForWave, startWave, summonBoss } from "./waves.js";
-import { damageBoss, damageEnemy } from "./world.js";
+import { addScore, awardLife, damageBoss, damageEnemy, maybeDropPowerUp } from "./world.js";
 
-export function splitTitle() {
-  const title = document.querySelector(".game-title");
-  if (!title) return;
-  const text = title.textContent;
-  title.textContent = "";
-  [...text].forEach((character, i) => {
-    const span = document.createElement("span");
-    span.className = "ch";
-    span.style.setProperty("--i", i);
-    span.textContent = character;
-    title.appendChild(span);
-  });
+//The Marvel Studios card holds while the sprites load. It is dismissed
+//either by the load finishing or by the player, whichever comes first —
+//but never before MIN_SPLASH, or a warm cache turns the title card into a
+//single flickered frame.
+const MIN_SPLASH = 1500;
+
+export function dismissSplash() {
+  const splash = document.getElementById("studios-splash");
+  if (!splash || splash.classList.contains("is-done")) return;
+  splash.classList.add("is-done");
+}
+
+export function holdSplash(shownAt) {
+  const waited = performance.now() - shownAt;
+  setTimeout(dismissSplash, Math.max(0, MIN_SPLASH - waited));
 }
 
 //Numbers that tick up read as earned; numbers that appear read as given.
@@ -75,7 +78,12 @@ function updateCountdown() {
 window.addEventListener("load", () => {
   updateCountdown();
   setInterval(updateCountdown, 1000);
-  splitTitle();
+
+  const shownAt = performance.now();
+  const splash = document.getElementById("studios-splash");
+  if (splash) splash.addEventListener("click", dismissSplash);
+  document.addEventListener("keydown", dismissSplash, { once: true });
+
   const bar = document.querySelector("#loading-bar span");
   loadImages((progress) => {
     if (bar) bar.style.width = `${Math.round(progress * 100)}%`;
@@ -84,6 +92,7 @@ window.addEventListener("load", () => {
     startBtn.innerText = "START";
     document.getElementById("loading-bar").classList.add("is-done");
     document.body.dataset.assetsReady = "true";
+    holdSplash(shownAt);
   });
 });
 
@@ -97,6 +106,7 @@ window.game = {
   img, sfx, heldKeys,
   heroDef, heroTint, playerHitbox, comboMultiplier,
   fireUlt, startWave, damageBoss, damageEnemy, throwMjolnir, resetGame,
+  addScore, awardLife, maybeDropPowerUp,
   bossForWave, summonBoss, throwShield, becomeWorthy, punch, punches,
   BOSSES, ELITE_SCHEDULE,
 };

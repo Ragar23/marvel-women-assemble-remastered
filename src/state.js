@@ -25,6 +25,8 @@ export const sess = {
 export const run = {
   score: 0, kills: 0, combo: 0, bestCombo: 1, wave: 0, stonesHp: 0,
   waveElapsed: 0, betweenWaves: false, betweenTimer: 0,
+  //The score the next extra life is waiting at, walked forward as they land
+  nextLife: 0,
 };
 
 //Presentation state: shake, flashes, timers, the animated set dressing.
@@ -166,6 +168,7 @@ export function resetGame() {
   fx.timeScale = 1;
 
   run.score = 0;
+  run.nextLife = CONFIG.player.extraLifeEvery;
   run.kills = 0;
   run.combo = 0;
   run.bestCombo = 1;

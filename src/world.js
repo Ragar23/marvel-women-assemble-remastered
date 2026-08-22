@@ -42,7 +42,7 @@ export function damageEnemy(enemy, amount, hitX, hitY) {
   run.bestCombo = Math.max(run.bestCombo, comboMultiplier());
   run.kills++;
   const gained = enemy.def.points * comboMultiplier();
-  run.score += gained;
+  addScore(gained);
   burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ff8a3d", 22, 340);
   floatText(enemy.x + enemy.w / 2, enemy.y, `+${gained}`, "#f0b323");
   addShake(2.5);
@@ -55,11 +55,45 @@ export function damageEnemy(enemy, amount, hitX, hitY) {
   return true;
 }
 
+//Every point in the game goes through here, so the milestone cannot be
+//missed by a route that forgot to check it. Crossing two thresholds at once
+//— a boss at a high wave pays out five figures — hands back two lives.
+export function addScore(amount) {
+  run.score += amount;
+  while (run.score >= run.nextLife) {
+    run.nextLife += CONFIG.player.extraLifeEvery;
+    awardLife();
+  }
+}
+
+export function awardLife() {
+  //At the cap it converts rather than evaporating, so the milestone is never
+  //a reward you watch go past.
+  if (world.player.lives >= CONFIG.player.maxLives) {
+    run.score += 500;
+    floatText(world.player.x, world.player.y - 10, "+500", "#f0b323");
+    return;
+  }
+  world.player.lives++;
+  playSfx("pickup", 0.5, 1.6);
+  pop(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#4ade80", 120);
+  burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#4ade80", 26, 380);
+  floatText(world.player.x, world.player.y - 10, "EXTRA LIFE", "#4ade80");
+  addShake(6);
+}
+
 export function maybeDropPowerUp(enemy) {
   if (Math.random() > CONFIG.powerUp.dropChance) return;
-  const kinds = ["rapid", "shield", "blast"];
+  //A life is worth nothing at the cap, so it is taken out of the draw
+  //rather than dropped and wasted.
+  const kinds = CONFIG.powerUp.kinds.filter(
+    ([kind]) => kind !== "life" || world.player.lives < CONFIG.player.maxLives
+  );
+  const total = kinds.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = rand(0, total);
+  const kind = (kinds.find(([, weight]) => (roll -= weight) < 0) || kinds[0])[0];
   powerUps.push({
-    kind: kinds[Math.floor(rand(0, kinds.length))],
+    kind,
     x: enemy.x + enemy.w / 2,
     y: enemy.y + enemy.h / 2,
     w: CONFIG.powerUp.size,
@@ -284,7 +318,7 @@ export function damageBoss(amount, hitX, hitY) {
   if (world.boss.hp > 0) return;
 
   const gained = 1000 * run.wave;
-  run.score += gained;
+  addScore(gained);
   run.kills++;
   floatText(world.boss.x + 40, world.boss.y + world.boss.h / 2, `+${gained}`, "#f0b323");
   addShake(24);
@@ -378,7 +412,7 @@ export function updatePowerUps(dt) {
     p.bob += dt * 3;
     if (overlaps(p, world.player)) {
       p.taken = true;
-      const colors = { rapid: "#f0b323", shield: "#38bdf8", blast: "#ff3b3f" };
+      const colors = POWERUP_COLORS;
       pop(p.x + p.w / 2, p.y + p.h / 2, colors[p.kind], 90);
       applyPowerUp(p.kind);
     }
@@ -386,8 +420,21 @@ export function updatePowerUps(dt) {
   sweep(powerUps, (p) => !p.taken && p.x + p.w > 0);
 }
 
+//Shared with the drawing code, so a new kind cannot end up drawn in one
+//colour and collected in another.
+export const POWERUP_COLORS = {
+  rapid: "#f0b323",
+  shield: "#38bdf8",
+  blast: "#ff3b3f",
+  life: "#4ade80",
+};
+
 export function applyPowerUp(kind) {
   playSfx("pickup", 0.35);
+  if (kind === "life") {
+    awardLife();
+    return;
+  }
   if (kind === "rapid") {
     world.player.rapid = CONFIG.powerUp.rapidDuration;
     floatText(world.player.x, world.player.y - 10, "RAPID FIRE", "#f0b323");

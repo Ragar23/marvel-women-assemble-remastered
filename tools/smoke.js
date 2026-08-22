@@ -21,7 +21,16 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.waitForSelector('body[data-assets-ready="true"]', { timeout: 20000 });
   check('modules load and assets resolve', true);
   check('debug handle present', await p.evaluate(() => !!window.game));
-  check('title split into letters', await p.locator('.game-title .ch').count() === 8);
+  check('the studios card is up while loading', await p.locator('#studios-splash:not(.is-done)').count() === 1);
+  // It covers the menu, so nothing below can be clicked until it clears.
+  // Assets being ready is not the same moment: the card holds a minimum
+  // beat past that so a warm cache does not flicker it.
+  await p.waitForSelector('#studios-splash.is-done', { timeout: 5000 });
+  check('the studios card clears itself', true);
+  check('title lockup loaded', await p.evaluate(() => {
+    const el = document.querySelector('.title-logo');
+    return !!el && el.complete && el.naturalWidth > 0;
+  }));
   check('countdown is ticking', await p.evaluate(() => document.querySelector('#countdown [data-unit="seconds"]').textContent !== '00'));
   check('all four heroes on the menu', await p.locator('.hero-card').count() === 4);
 
@@ -95,6 +104,35 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
         await p.evaluate(() => document.getElementById('stat-score').innerText + ' pts'));
   await p.locator('#retry-button').click(); await p.waitForTimeout(500);
   check('retry resets', await p.evaluate(() => window.game.run.wave === 1 && window.game.run.score === 0 && window.game.world.player.lives === 3));
+
+  // lives are earned back
+  const lives = await p.evaluate(() => {
+    const g = window.game;
+    const step = g.CONFIG.player.extraLifeEvery;
+    const out = { start: g.world.player.lives, step };
+    g.addScore(step - 1);
+    out.justUnder = g.world.player.lives;
+    g.addScore(1);
+    out.onCrossing = g.world.player.lives;
+    //Straight to the cap, and past it
+    g.addScore(step * 6);
+    out.capped = g.world.player.lives;
+    out.max = g.CONFIG.player.maxLives;
+    //A 1UP is off the table once there is nothing to give
+    const kinds = new Set();
+    for (let i = 0; i < 3000; i++) {
+      g.powerUps.length = 0;
+      g.maybeDropPowerUp({ x: 0, y: 0, w: 10, h: 10, def: { points: 1 } });
+      if (g.powerUps.length) kinds.add(g.powerUps[0].kind);
+    }
+    out.kindsAtCap = [...kinds];
+    g.powerUps.length = 0;
+    return out;
+  });
+  check('a milestone one point short awards nothing', lives.justUnder === lives.start, JSON.stringify(lives));
+  check('crossing a milestone awards a life', lives.onCrossing === lives.start + 1);
+  check('lives stop at the cap', lives.capped === lives.max);
+  check('no 1UP drops at the cap', !lives.kindsAtCap.includes('life'), lives.kindsAtCap.join(','));
 
   console.log('\nERRORS:', errs.length ? errs.join('\n  ') : 'none');
   console.log(fail.length ? `\n${fail.length} CHECK(S) FAILED` : '\nALL CHECKS PASSED');
