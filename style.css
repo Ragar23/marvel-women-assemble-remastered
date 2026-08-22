@@ -491,6 +491,11 @@ body.is-touch[data-screen="game"] {
 body.is-touch #screen-game.is-active {
   position: fixed;
   inset: 0;
+  /* No slide-in. .screen.is-active fades in from translateY(12px), and a
+     transform on a fixed element moves it — so for the length of that
+     animation the game screen sat 12px down the page with its last 12px off
+     the bottom. A full-screen game does not want the flourish anyway. */
+  animation: none;
   height: auto;
   min-height: 0;
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
@@ -571,10 +576,6 @@ body.is-touch[data-screen="game"] .mute {
 
 /* ---- landscape: pad one side, actions the other, picture between ---- */
 @media (orientation: landscape) {
-  body.is-touch {
-    /* How much of the width each column of controls is allowed */
-    --deck: min(22vw, 148px);
-  }
 
   /* The deck stops being a box of its own and hands its two children
      straight to the shell, so they can sit either side of the picture
@@ -591,23 +592,36 @@ body.is-touch[data-screen="game"] .mute {
     order: 1;
   }
 
+  /* Sized by the screen rather than by a number picked in advance.
+     The picture asks for whatever width it needs to be full height, the two
+     decks share what is left, and if that leaves them under a thumb's width
+     the picture gives ground until it does not — so a tall phone, a wide
+     one and a tablet each end up with the largest picture their own screen
+     can carry and controls that are still worth pressing. */
   body.is-touch .touch-pad,
   body.is-touch .touch-actions {
-    width: var(--deck);
-    flex: none;
-    margin: 0 1.2vw;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 104px;
+    max-width: 220px;
+    margin: 0 1vw;
   }
 
   body.is-touch #screen-game.is-active .stage {
-    /* Whichever runs out first — the width left between the two decks, or
-       the height — decides, so the HUD along the bottom is never cropped.
-       max-height is the backstop: if the viewport unit in the calc ever
-       reads high, the picture is still clipped to what it is sitting in. */
-    width: min(
-      calc(100vw - 2 * var(--deck) - 5vw),
-      calc(100dvh * 1364 / 768)
-    );
-    max-height: 100%;
+    /* aspect-ratio makes height the driver: it takes exactly the width it
+       needs to fill the height available, and flex-shrink takes that width
+       back if the decks cannot fit beside it. */
+    flex: 0 1 auto;
+    height: 100%;
+    width: auto;
+    aspect-ratio: 1364 / 768;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  body.is-touch #screen-game.is-active .stage canvas {
+    width: 100%;
+    height: 100%;
   }
 }
 
@@ -742,17 +756,36 @@ body.is-touch[data-screen="game"] .mute {
   box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.2);
 }
 
-/* Each device is told the way back in that it actually has */
-.overlay-touch {
-  display: none;
+/* Real buttons, so the overlay works the same whether you got here with a
+   key or a thumb, and so there is somewhere to press to leave. */
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+  margin: 1rem 0 0.4rem;
 }
 
+/* The keyboard hint is noise on a device with no keyboard */
 body.is-touch .overlay-keys {
   display: none;
 }
 
-body.is-touch .overlay-touch {
-  display: block;
+/* A paused run on a phone is still a phone-shaped screen */
+@media (max-height: 500px) {
+  .overlay-actions {
+    margin: 0.6rem 0 0.2rem;
+    gap: 0.6rem;
+  }
+
+  .overlay-actions .btn {
+    padding: 0.45rem 1.2rem;
+    font-size: 0.85rem;
+  }
+
+  .overlay-title {
+    font-size: clamp(1.4rem, 5vw, 2.4rem);
+  }
 }
 
 /* Long-press on a control should not raise iOS's copy/look-up callout, and

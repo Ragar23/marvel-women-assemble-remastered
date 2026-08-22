@@ -137,7 +137,8 @@
               <li><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd><span>Move</span></li>
               <li><kbd>S</kbd><span>Attack &mdash; hold to keep going</span></li>
               <li><kbd>Space</kbd><span>Ultimate &mdash; once the meter is full</span></li>
-              <li><kbd>Esc</kbd><span>Pause</span></li>
+              <li><kbd>Esc</kbd><span>Pause &mdash; and the way back to this menu</span></li>
+              <li><kbd>Q</kbd><span>Quit to the menu</span></li>
               <li><kbd>M</kbd><span>Mute</span></li>
               <li><kbd>W</kbd><span>&hellip;the line-up arrives</span></li>
               <li><kbd>Touch</kbd><span>Pad to fly &mdash; FIRE, ULT and pause beside it</span></li>
@@ -158,12 +159,17 @@
       <div class="game-shell">
         <div class="stage">
           <canvas id="myCanvas" width="1364" height="768"></canvas>
+          <!-- Pausing is also the way out: there is no other route back to
+               the menu once a run has started, and a phone has no Esc. -->
           <div id="pause-overlay" class="overlay">
             <p class="overlay-title">PAUSED</p>
-            <!-- A phone has no Esc, and the button beside the screen is the
-                 only way back in — so each device is told its own way. -->
-            <p class="overlay-sub overlay-keys">Press <kbd>Esc</kbd> to resume</p>
-            <p class="overlay-sub overlay-touch">Tap <b>&#9654;</b> to resume</p>
+            <div class="overlay-actions">
+              <button id="resume-button" class="btn btn-primary">RESUME</button>
+              <button id="quit-button" class="btn btn-ghost">MAIN MENU</button>
+            </div>
+            <p class="overlay-sub overlay-keys">
+              <kbd>Esc</kbd> to resume &middot; <kbd>Q</kbd> to quit
+            </p>
           </div>
         </div>
 

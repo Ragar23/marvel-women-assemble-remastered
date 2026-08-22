@@ -117,6 +117,22 @@ function leaveFullscreen() {
   }
 }
 
+//The way out of a run. There was no route back to the menu once one had
+//started — on a phone especially, where there is no key to press — so
+//pausing offers it, which is where anyone would look.
+export function quitToMenu() {
+  if (sess.state !== "playing" && sess.state !== "paused") return;
+  if (sess.animationId !== null) cancelAnimationFrame(sess.animationId);
+  sess.animationId = null;
+  sess.state = "menu";
+  releaseAllInput();
+  pauseOverlay.classList.remove("is-visible");
+  markPauseButton(false);
+  showScreen("menu");
+  leaveFullscreen();
+  audio.pause();
+}
+
 export function endGame() {
   //The screen is about to change out from under whatever is being pressed,
   //which is exactly when a held key would otherwise survive into the next

@@ -398,6 +398,58 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('pinching still works on the menu', zoom.menuPinchAllowed, JSON.stringify(zoom));
   check('but two thumbs on the controls cannot zoom the game', zoom.playPinchRefused);
   check('and the played screen is pinned to the viewport', zoom.screenPinned);
+
+  // sound must not cost a frame, and a run must have a way out
+  const perf = await p.evaluate(async () => {
+    const g = window.game;
+    const audio = await import('./src/audio.js');
+    const out = {};
+    //the context only exists after a gesture, which the clicks above provided
+    out.decoded = Object.keys(audio.sfx).length;
+    out.areBuffers = Object.values(audio.sfx).every(b => b instanceof AudioBuffer);
+    out.mediaElements = document.querySelectorAll('audio').length;
+    const t = performance.now();
+    for (let i = 0; i < 400; i++) audio.playSfx('shoot', 0.16, 1);
+    out.cost400 = +(performance.now() - t).toFixed(1);
+    //a busy frame with everything firing
+    g.sess.chosenHero = 'torch'; g.resetGame(); g.sess.state = 'playing';
+    g.heldKeys.add('KeyS');
+    for (let i = 0; i < 20; i++) { g.update(0.05); g.draw(); }
+    const t0 = performance.now();
+    for (let i = 0; i < 150; i++) { g.update(0.05); g.draw(); }
+    out.perFrame = +((performance.now() - t0) / 150).toFixed(2);
+    g.heldKeys.delete('KeyS');
+    return out;
+  });
+  check('every effect decodes into a buffer', perf.decoded >= 9 && perf.areBuffers, JSON.stringify(perf));
+  check('no media element is cloned per shot', perf.mediaElements <= 2, `${perf.mediaElements} in the document`);
+  check('400 shot requests cost almost nothing', perf.cost400 < 120, `${perf.cost400}ms`);
+  check('and a frame with the sound on fits a 60Hz budget', perf.perFrame < 16.7, `${perf.perFrame}ms`);
+
+  const quit = await p.evaluate(async () => {
+    const g = window.game;
+    if (g.sess.state !== 'playing') document.getElementById('start-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    const out = {};
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+    await new Promise(r => setTimeout(r, 100));
+    out.paused = g.sess.state === 'paused';
+    out.offersMenu = getComputedStyle(document.getElementById('quit-button')).display !== 'none';
+    document.getElementById('resume-button').click();
+    await new Promise(r => setTimeout(r, 100));
+    out.resumed = g.sess.state === 'playing';
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+    await new Promise(r => setTimeout(r, 100));
+    document.getElementById('quit-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    out.quit = g.sess.state === 'menu' &&
+      getComputedStyle(document.getElementById('screen-menu')).display !== 'none';
+    out.nothingHeld = g.heldKeys.size === 0;
+    return out;
+  });
+  check('pausing offers a way back to the menu', quit.paused && quit.offersMenu, JSON.stringify(quit));
+  check('RESUME returns to the run', quit.resumed);
+  check('MAIN MENU leaves it, holding nothing', quit.quit && quit.nothingHeld);
   check('the picture fits the screen and the page cannot scroll', tch.fits && tch.locked);
 
   // the coven stop and fight rather than walking off the edge

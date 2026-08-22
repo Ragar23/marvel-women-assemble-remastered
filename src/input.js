@@ -1,7 +1,7 @@
 import { fireUlt } from "./abilities.js";
 import { assembleTheWomen } from "./assemble.js";
 import { toggleMute } from "./audio.js";
-import { togglePause } from "./loop.js";
+import { quitToMenu, togglePause } from "./loop.js";
 import { sess } from "./state.js";
 
 //=====================================================================//
@@ -94,6 +94,11 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.code === "KeyW" && sess.state === "playing") assembleTheWomen();
+
+  //Quit to the menu, from either side of a pause
+  if (event.code === "KeyQ" && (sess.state === "playing" || sess.state === "paused")) {
+    quitToMenu();
+  }
 });
 
 document.addEventListener("keyup", (event) => heldKeys.delete(event.code));

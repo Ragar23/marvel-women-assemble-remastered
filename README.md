@@ -70,6 +70,11 @@ mostly works too, but a local server is more reliable for the audio and font fil
   harder *because* you are losing. The one way to give ground back is to take
   a whole wave without letting anything through, which pushes it away again.
 
+- **Pausing is the way out.** `Esc` — or the button beside the screen —
+  offers RESUME and MAIN MENU, because once a run had started there was no
+  route back to the menu at all, and a phone has no key to press. `Q` quits
+  outright.
+
 - **Lives you earn back.** Three is what you start with and nowhere near
   enough to reach wave six on, so every 5,000 points is another one, up to
   five, and a rare **1UP** drop is one outright. A sliver under the life
@@ -104,6 +109,13 @@ mostly works too, but a local server is more reliable for the audio and font fil
   centre the thumb is, so diagonals are free and sliding between arrows never
   drops the input. The picture is sized around whatever the deck leaves, so
   nothing is ever cropped, and the page is locked against scrolling.
+
+  The picture is sized from the screen it is on rather than from a number
+  picked in advance: it asks for whatever width it needs to fill the height,
+  the two decks share what is left, and if that leaves them narrower than a
+  thumb the picture gives ground until it does not. A tall phone, a wide one
+  and a tablet each end up with the largest picture their own screen can
+  carry.
 
   Playing needs two thumbs, which is precisely what a browser reads as a
   pinch — so while a run is on screen the game refuses the zoom gestures
