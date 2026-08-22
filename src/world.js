@@ -173,6 +173,12 @@ export function updateEnemies(dt) {
 
   for (const enemy of enemies) {
     enemy.x -= enemy.speed * dt * enemySpeedScale();
+    //The coven hold a line rather than crossing it. Named, health-barred and
+    //walking off the left edge, the cheapest answer to a witch was to stand
+    //aside and pay the leak; now the only way past one is through it.
+    if (enemy.def.holdAt !== undefined) {
+      enemy.x = Math.max(enemy.x, W * enemy.def.holdAt);
+    }
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
     enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
     enemy.bob += dt * 3.4;
@@ -547,6 +553,8 @@ export function updateDressing(dt) {
 }
 
 export function updateEffects(dt) {
+  fx.storm = Math.max(0, fx.storm - dt);
+
   for (const p of particles) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;

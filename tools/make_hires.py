@@ -36,6 +36,11 @@ PALETTE = {
     #---- Human Torch, alight
     "F": (255, 104, 22),   "f": (255, 158, 44),
     "Y": (255, 212, 88),   "X": (255, 246, 204),
+    #---- Sentinel: weathered plate, and the optics that light it
+    "M": (98, 97, 91),     "m": (66, 67, 64),     "D": (38, 40, 41),
+    "L": (138, 137, 127),  "P": (178, 176, 164),
+    "R": (118, 92, 58),    "r": (78, 60, 36),
+    "V": (52, 255, 118),   "v": (22, 132, 58),    "Q": (208, 255, 220),
 }
 
 
@@ -164,7 +169,7 @@ def thor_body():
     return g
 
 
-def thor_axe(g):
+def thor_axe(g, hand=True):
     """Stormbreaker: haft through the middle, the broad blade flaring off
     one side of it and the short back-spike off the other."""
     for r in range(3, 22):
@@ -186,16 +191,48 @@ def thor_axe(g):
     #the collar that binds the head to the haft
     for r in range(6, 10):
         put(g, r, 19, "G" + "S" * 2 + "G")
-    #and the fist closing over it, drawn last so it sits in front
-    put(g, 14, 19, "KKKK")
-    put(g, 15, 19, "kKKk")
+    #and the fist closing over it, drawn last so it sits in front. The menu
+    #icons take the weapon on its own, so they ask for it without.
+    if hand:
+        put(g, 14, 19, "KKKK")
+        put(g, 15, 19, "kKKk")
     return g
 
 
+def thor_hammer(g, hand=True):
+    """Mjolnir: a squared block of a head sitting just above his fist, on a
+    haft short enough to read as a hammer rather than a pole-arm."""
+    put(g, 8, 19, "ttSStt")
+    put(g, 9, 18, "tSSSSSSt")
+    put(g, 10, 18, "tSssssSt")
+    put(g, 11, 18, "tSssssSt")
+    put(g, 12, 18, "tSSSSSSt")
+    put(g, 13, 19, "ttSStt")
+    for r in range(14, 20):
+        put(g, r, 21, "gg")
+    put(g, 20, 21, "GG")
+    #The fist closes over the haft, so redraw it on top
+    if hand:
+        put(g, 14, 19, "KKKK")
+        put(g, 15, 19, "kKKk")
+    return g
+
+
+#All three share a crop box: the game draws whichever is showing at the
+#player's own width and height, so a set with different aspect ratios would
+#visibly stretch on the swap between them.
 save_set([
     ("dd-thor", thor_axe(thor_body())),
+    ("dd-thor-mjolnir", thor_hammer(thor_body())),
     ("dd-thor-empty", thor_body()),
 ])
+
+#The menu picker needs the two weapons on their own. Cut from the same
+#drawing rather than drawn again, so the icon on the button is the thing
+#that ends up in his hand. Each is cropped to itself, not to a shared box:
+#nothing swaps between them mid-frame.
+save_set([("dd-icon-stormbreaker", thor_axe(grid(), hand=False))])
+save_set([("dd-icon-mjolnir", thor_hammer(grid(), hand=False))])
 
 
 #=====================================================================#
@@ -334,3 +371,61 @@ save_set([
     ("dd-torch-flame3", torch_flame(2)),
 ])
 print("hi-res art regenerated")
+
+
+#=====================================================================#
+#  SENTINEL
+#
+#  The teaser's Sentinel is not the purple toy the 104x96 builder made: it
+#  is a slab of weathered plate with two optics burning green out of the
+#  dark, and the green is the only colour on it. Front-on, because it comes
+#  at you rather than past you.
+#=====================================================================#
+SENTINEL_W, SENTINEL_H = 28, 30
+
+
+def sentinel():
+    global GW, GH
+    GW, GH = SENTINEL_W, SENTINEL_H
+    g = grid()
+
+    #---- helmet: a heavy brow with the optics burning out from under it
+    put(g, 1, 11, "MMMMMMM")
+    put(g, 2, 10, "MLLLLLLLM")
+    put(g, 3, 10, "MLPPPPPLM")
+    put(g, 4, 10, "MLLmmmLLM")
+    put(g, 5, 9, "DMmmmmmmmMD")
+    put(g, 6, 9, "DmvVVmVVvmD")
+    put(g, 7, 9, "DmvQVmVQvmD")
+    put(g, 8, 10, "MmDDDDDmM")
+    put(g, 9, 11, "MDDDDDM")
+    put(g, 10, 12, "mMMMm")
+
+    #---- slab shoulders sitting proud of the chest, then arms straight
+    #down beside it. Two empty columns between arm and torso read as a gap
+    #and the arms float off like wings; one reads as a seam, which is what
+    #the outline pass is for.
+    put(g, 11, 4, "LMMMm");  put(g, 11, 9, "MMMMMMMMMMM"); put(g, 11, 20, "mMMML")
+    put(g, 12, 4, "MLMMm");  put(g, 12, 9, "MLLLLLLLLLM"); put(g, 12, 20, "mMMLM")
+    put(g, 13, 4, "MMMMm");  put(g, 13, 9, "MmRRRRRRRmM"); put(g, 13, 20, "mMMMM")
+    put(g, 14, 5, "MMM");    put(g, 14, 9, "MmRrrrrrRmM"); put(g, 14, 21, "MMM")
+    #a vent across the chest, and the only other place the green gets out
+    put(g, 15, 5, "MMm");    put(g, 15, 9, "MmRrVVVrRmM"); put(g, 15, 21, "mMM")
+    put(g, 16, 5, "MMm");    put(g, 16, 9, "MmRrrrrrRmM"); put(g, 16, 21, "mMM")
+    put(g, 17, 5, "MMm");    put(g, 17, 9, "MmRRRRRRRmM"); put(g, 17, 21, "mMM")
+    put(g, 18, 5, "mMm");    put(g, 18, 9, "MLLLLLLLLLM"); put(g, 18, 21, "mMm")
+    put(g, 19, 5, "mMm");    put(g, 19, 9, "MmmMMMMMmmM"); put(g, 19, 21, "mMm")
+    put(g, 20, 4, "DMMD");   put(g, 20, 9, "MDDDDDDDDDM"); put(g, 20, 20, "DMMD")
+    put(g, 21, 4, "DMMD");   put(g, 21, 9, "mMMMMMMMMMm"); put(g, 21, 20, "DMMD")
+    put(g, 22, 9, "mmMMMMMMMmm")
+
+    #---- legs
+    put(g, 23, 10, "DDD"); put(g, 23, 16, "DDD")
+    for r in (24, 25, 26, 27):
+        put(g, r, 10, "MMM"); put(g, r, 16, "MMM")
+    put(g, 28, 9, "DMMM"); put(g, 28, 16, "MMMD")
+    put(g, 29, 9, "DDDD"); put(g, 29, 16, "DDDD")
+    return g
+
+
+save_set([("dd-sentinel", sentinel())])

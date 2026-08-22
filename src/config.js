@@ -77,7 +77,11 @@ export const CONFIG = {
     //anything that closes while it does.
     pantherDuration: 5,
     pantherContactDamage: 999,
-    godBlastDamage: 7, //Thor: damage to everything on screen
+    //Thor: the God Blast no longer chips at the wave, it ends it. The sky
+    //goes black and every enemy on screen takes a strike out of it.
+    godBlastDamage: 999,
+    stormDuration: 1.5, //how long the dark holds before the light comes back
+    stormBossDamage: 40,
     //Iron Man: a swarm that arcs out, then hunts
     missileCount: 18,
     missileDamage: 3,
@@ -123,6 +127,16 @@ export const CONFIG = {
     forkRange: 260,
     forkDamage: 2,
   },
+  //Stormbreaker never leaves his hand. Holding S earths a bolt through the
+  //axe into whatever is nearest and jumps it on to the next thing along, so
+  //his rhythm is a steady crackle rather than throw-and-wait.
+  storm: {
+    damage: 3,
+    cooldown: 0.45,
+    chain: 3, //how many it forks to in one strike
+    range: 620, //and how far the fork will reach for the next one
+    arcTime: 0.26, //how long each bolt stays drawn
+  },
   //Thor throws Mjolnir instead of firing bolts. One hammer at a time, so
   //his rhythm is throw-and-wait rather than hold-to-spray, and each throw
   //hits far harder than a bolt did.
@@ -156,10 +170,31 @@ export const HEROES = {
     bulletSize: [60, 48],
     damage: CONFIG_MJOLNIR_DAMAGE,
     cooldown: 0.12,
-    throwsMjolnir: true, //Stormbreaker uses the same throw-and-return
     tint: "#7dd3fc",
     ult: "godblast",
     ultName: "GOD BLAST",
+    //He is the only one who picks his weapon before the run, and the two
+    //play differently rather than trading numbers: the axe never leaves his
+    //hand and throws chained lightning off it, the hammer leaves and has to
+    //come back before he can throw again. heroDef() folds the chosen one
+    //over the base, so everything below can be overridden per weapon.
+    weapons: {
+      stormbreaker: {
+        name: "STORMBREAKER",
+        blurb: "Chained thunder",
+        icon: "images/dd-stormbreaker.png",
+        channelsStorm: true,
+      },
+      mjolnir: {
+        name: "MJOLNIR",
+        blurb: "Thrown, and it comes back",
+        icon: "images/mjolnir.png",
+        sprite: "ddThorMjolnir",
+        bullet: "mjolnir",
+        bulletSize: [54, 48],
+        throwsMjolnir: true,
+      },
+    },
   },
   cyclops: {
     sprite: "ddCyclops",
@@ -222,20 +257,26 @@ export const ENEMY_TYPES = {
   //Doom's coven. Marvel has confirmed the Latverian Witches but not their
   //powers, so these are three distinct ideas built from the premise: a
   //hooded order serving Doom, blending Latverian sorcery.
+  //`holdAt` is a fraction of the screen width the coven will not walk past.
+  //They used to stroll off the left edge like everything else, which meant
+  //the cheapest answer to a named elite with a health bar was to let it go.
+  //They stop and fight now, so the only way past them is through.
   witchHex: {
     sprite: "ddWitchHex", speed: 250, height: 96, hp: 12, points: 190, leak: 16,
     elite: true, name: "THE HEXWEAVER", tint: "#8cff96",
-    behaviour: "spear", spearGap: 1.5, weave: 70,
+    behaviour: "spear", spearGap: 1.5, weave: 70, holdAt: 0.62,
   },
   witchVeil: {
     sprite: "ddWitchVeil", speed: 300, height: 96, hp: 10, points: 170, leak: 14,
     elite: true, name: "THE VEILED", tint: "#cea0ff",
-    behaviour: "blink", blinkGap: 1.4, blinkDist: 160,
+    //She blinks toward you, so she is allowed much further in than the
+    //other two before the floor stops her.
+    behaviour: "blink", blinkGap: 1.4, blinkDist: 160, holdAt: 0.34,
   },
   witchWard: {
     sprite: "ddWitchWard", speed: 175, height: 96, hp: 20, points: 240, leak: 22,
     elite: true, name: "THE WARDEN", tint: "#96dcff",
-    behaviour: "armour", armour: 0.34, armourHp: 9,
+    behaviour: "armour", armour: 0.34, armourHp: 9, holdAt: 0.5,
   },
 };
 
@@ -245,8 +286,11 @@ export const BOSSES = {
     name: "SENTINEL PRIME",
     size: 230,
     hp: (wave) => 34 + wave * 6,
-    tint: "#c084fc",
-    shotColor: "#d0a0ff",
+    //Green, now that the rank and file are steel with green optics rather
+    //than purple. Acid rather than Doom's emerald, so the two bosses do not
+    //read as the same fight.
+    tint: "#a3e635",
+    shotColor: "#d9f99d",
     shots: 3,
     spread: 150,
     fireGap: 1.5,

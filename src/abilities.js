@@ -205,40 +205,120 @@ export function drawMissiles() {
   ctx.globalAlpha = 1;
 }
 
+//Where Stormbreaker sits in his hand, which is where a bolt earthed through
+//it has to start. Measured off the sprite: the axe is up and out on his
+//left, so the arc leaves from above his shoulder rather than his chest.
+export function weaponPoint() {
+  return {
+    x: world.player.x + world.player.w * 0.78,
+    y: world.player.y + world.player.h * 0.34,
+  };
+}
+
+//Stormbreaker's attack. One bolt earths through the axe into whatever is
+//nearest, then jumps from that to the next thing along — so a line of
+//sentinels goes down together and a straggler on its own does not.
+export function stormStrike() {
+  const cfg = CONFIG.storm;
+  world.player.cooldown = cfg.cooldown;
+  world.player.recoil = 1;
+  playSfx("thunder", 0.28, 1.35);
+  addShake(3);
+
+  const struck = [];
+  let from = weaponPoint();
+  const pool = world.boss ? [...enemies, world.boss] : [...enemies];
+
+  for (let i = 0; i < cfg.chain; i++) {
+    let best = null;
+    let bestDist = cfg.range * cfg.range;
+    for (const c of pool) {
+      if (struck.includes(c)) continue;
+      const dx = c.x + c.w / 2 - from.x;
+      const dy = c.y + c.h / 2 - from.y;
+      //Only forward: a bolt that turns back past his shoulder looks wrong
+      //and would let him farm things he has already walked away from.
+      if (dx < -40) continue;
+      const d = dx * dx + dy * dy;
+      if (d < bestDist) { bestDist = d; best = c; }
+    }
+    if (!best) break;
+    const to = { x: best.x + best.w / 2, y: best.y + best.h / 2 };
+    boltArcs.push({
+      //Only the first link is tethered to the axe; the rest hang off the
+      //body they jumped from, and those do not move once drawn.
+      fromWeapon: i === 0,
+      from,
+      to,
+      t: 0,
+      dur: cfg.arcTime,
+      bold: true,
+    });
+    burst(to.x, to.y, "#e0f2fe", 12, 260);
+    if (best === world.boss) damageBoss(cfg.damage, to.x, to.y);
+    else damageEnemy(best, cfg.damage, to.x, to.y);
+    struck.push(best);
+    from = to;
+  }
+  sweep(enemies, (e) => e.hp > 0);
+
+  //Nothing in reach still earths, straight down the lane, so holding S
+  //always reads as doing something.
+  if (!struck.length) {
+    boltArcs.push({
+      fromWeapon: true,
+      from: weaponPoint(),
+      to: { x: W, y: world.player.y + world.player.h * 0.34 },
+      t: 0,
+      dur: cfg.arcTime,
+      bold: true,
+    });
+  }
+}
+
+//The God Blast. It used to chip seven off everything on screen; now the sky
+//goes out and every one of them takes a strike out of the dark.
 export function godBlast() {
-  screenFlash("#ffffff", 0.5);
+  screenFlash("#ffffff", 0.65);
   addShake(26);
-  fx.slowMo = 0.5;
-  const from = { x: world.player.x + world.player.w, y: world.player.y + world.player.h / 2 };
+  fx.slowMo = 0.6;
+  fx.storm = CONFIG.ult.stormDuration;
   boltArcs.length = 0;
   missiles.length = 0;
   world.mjolnir = null;
 
   for (const enemy of [...enemies]) {
+    const cx = enemy.x + enemy.w / 2;
+    const cy = enemy.y + enemy.h / 2;
+    //Down out of the sky rather than out from him, and each one staggered a
+    //little so the wave is struck in a ragged sweep instead of all at once.
     boltArcs.push({
-      from,
-      to: { x: enemy.x + enemy.w / 2, y: enemy.y + enemy.h / 2 },
-      t: 0,
-      dur: 0.45,
+      from: { x: cx + rand(-50, 50), y: -60 },
+      to: { x: cx, y: cy },
+      t: -rand(0, 0.28),
+      dur: 0.75,
+      bold: true,
     });
-    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#7dd3fc", 18, 320);
-    damageEnemy(
-      enemy,
-      CONFIG.ult.godBlastDamage,
-      enemy.x + enemy.w / 2,
-      enemy.y + enemy.h / 2
-    );
+    burst(cx, cy, "#7dd3fc", 24, 380);
+    pop(cx, cy, "#e0f2fe", 70);
+    damageEnemy(enemy, CONFIG.ult.godBlastDamage, cx, cy);
   }
-  sweep(enemies, (e) => e.hp > 0);
+  enemies.length = 0;
 
   if (world.boss) {
-    boltArcs.push({
-      from,
-      to: { x: world.boss.x + world.boss.w / 2, y: world.boss.y + world.boss.h / 2 },
-      t: 0,
-      dur: 0.45,
-    });
-    damageBoss(CONFIG.ult.godBlastDamage * 5, world.boss.x, world.boss.y + world.boss.h / 2);
+    const bx = world.boss.x + world.boss.w / 2;
+    const by = world.boss.y + world.boss.h / 2;
+    //Three at once on the boss: he does not die to it, he is pinned by it
+    for (let i = 0; i < 3; i++) {
+      boltArcs.push({
+        from: { x: bx + rand(-90, 90), y: -60 },
+        to: { x: bx + rand(-30, 30), y: by },
+        t: -i * 0.12,
+        dur: 0.8,
+        bold: true,
+      });
+    }
+    damageBoss(CONFIG.ult.stormBossDamage, bx, by);
   }
 }
 

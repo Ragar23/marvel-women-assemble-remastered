@@ -41,9 +41,13 @@ mostly works too, but a local server is more reliable for the audio and font fil
 
 - **Four heroes that play differently**, each with an ultimate charged by kills
   and spent with `Space`:
-  - **Thor** — throws **Stormbreaker**, which seeks its own targets, strikes
-    several and returns to his hand; he cannot throw again until he catches it.
-    **God Blast** arcs lightning to every enemy on screen.
+  - **Thor** — and he is the only one who picks a weapon before the run.
+    **Stormbreaker** never leaves his hand: holding `S` earths a bolt through
+    the axe into whatever is nearest and jumps it along to the next two, so a
+    line of Sentinels goes down together. **Mjolnir** is thrown instead —
+    it seeks its own targets, strikes several and comes back, and he cannot
+    throw again until he catches it. **God Blast** is the same either way:
+    the sky goes out and a strike comes down on every enemy on screen.
   - **Cyclops** — a long optic blast from the visor that pierces everything in
     its path. **Optic Overload** is that same beam with the visor off: the
     same red, wider than he is tall, held open across the screen for three
@@ -66,9 +70,14 @@ mostly works too, but a local server is more reliable for the audio and font fil
   clearing one is usually a life by itself.
 
 - **Sentinels** replace the space dogs — slower, heavier, and there are a lot
-  of them, in two speeds.
+  of them, in two speeds. Weathered plate with two green optics burning out of
+  it, the way the teaser has them, and the Prime at wave five is the same
+  thing four times the size.
 - **The Latverian Witches** arrive one at a time, named, with a health bar from
-  the moment they appear. Marvel confirmed the coven at SDCC but has not
+  the moment they appear, and they do not walk past you. Each holds a line
+  partway across the screen and fights from it until it is put down, so the
+  cheapest answer to a named elite is no longer to stand aside and pay the
+  leak. Marvel confirmed the coven at SDCC but has not
   detailed their powers, so these are three distinct ideas built from the
   premise, named by coven title rather than invented as canon: **The Hexweaver**
   throws hexbolts from range, **The Veiled** blinks toward you, and **The

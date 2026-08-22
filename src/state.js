@@ -19,6 +19,8 @@ export const sess = {
   animationId: null,
   lastFrameTime: 0,
   chosenHero: "thor",
+  //Only Thor has a choice to make; the field is harmless for everyone else.
+  weapon: "stormbreaker",
 };
 
 //Everything the scoreboard cares about; cleared on every new run.
@@ -33,6 +35,8 @@ export const run = {
 export const fx = {
   shake: 0, flash: null, elapsed: 0, waveBanner: null,
   hitStop: 0, slowMo: 0, timeScale: 1,
+  //Thor's God Blast puts the lights out for this many seconds
+  storm: 0,
   grootTimer: 0, grootStanding: true, chitFrame: 0, chitTimer: 0,
   cameo: null, cameoTimer: 0,
   stars: [],
@@ -72,8 +76,22 @@ export function playerHitbox() {
   };
 }
 
+//The merged definition is cached rather than rebuilt: heroDef() is called
+//several times a frame by the drawing code, and a fresh object each time is
+//garbage for nothing. The key changes only when the pick does.
+let mergedDef = { key: null, def: null };
+
 export function heroDef() {
-  return HEROES[sess.chosenHero];
+  const base = HEROES[sess.chosenHero];
+  if (!base.weapons) return base;
+  const key = `${sess.chosenHero}:${sess.weapon}`;
+  if (mergedDef.key !== key) {
+    //An unknown weapon falls back to the first one the hero lists, so a
+    //stale pick cannot leave the run with no weapon at all.
+    const weapon = base.weapons[sess.weapon] || Object.values(base.weapons)[0];
+    mergedDef = { key, def: { ...base, ...weapon } };
+  }
+  return mergedDef.def;
 }
 
 //Never hand canvas an undefined colour: assigning one to fillStyle is a
@@ -165,6 +183,7 @@ export function resetGame() {
   world.bossDying = null;
   fx.hitStop = 0;
   fx.slowMo = 0;
+  fx.storm = 0;
   fx.timeScale = 1;
 
   run.score = 0;

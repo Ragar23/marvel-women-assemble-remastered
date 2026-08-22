@@ -1,5 +1,6 @@
-import { heroCards, menuBtn, muteBtn, retryBtn, showScreen, startBtn } from "./dom.js";
+import { heroCards, menuBtn, muteBtn, retryBtn, showScreen, startBtn, weaponCards, weaponChoice } from "./dom.js";
 import { startRun } from "./loop.js";
+import { HEROES } from "./config.js";
 import { sess } from "./state.js";
 import { clamp } from "./util.js";
 
@@ -87,14 +88,34 @@ export function toggleMute() {
 //=====================================================================//
 //  BOOT
 //=====================================================================//
+//The weapon panel belongs to whoever has more than one; today that is Thor
+//alone, but it is driven off the hero definition rather than his name.
+function syncWeaponChoice() {
+  if (!weaponChoice) return;
+  weaponChoice.classList.toggle("is-open", !!HEROES[sess.chosenHero].weapons);
+}
+
 heroCards.forEach((card) => {
   card.addEventListener("click", () => {
     heroCards.forEach((c) => c.classList.remove("is-selected"));
     card.classList.add("is-selected");
     sess.chosenHero = card.dataset.character;
+    syncWeaponChoice();
     playSfx("select", 0.3);
   });
 });
+
+weaponCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    weaponCards.forEach((c) => c.classList.remove("is-selected"));
+    card.classList.add("is-selected");
+    sess.weapon = card.dataset.weapon;
+    playSfx("select", 0.3);
+  });
+});
+
+//Thor is selected when the menu opens, so the panel starts open with him.
+syncWeaponChoice();
 
 startBtn.addEventListener("click", startRun);
 retryBtn.addEventListener("click", startRun);

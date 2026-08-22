@@ -34,23 +34,42 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('countdown is ticking', await p.evaluate(() => document.querySelector('#countdown [data-unit="seconds"]').textContent !== '00'));
   check('all four heroes on the menu', await p.locator('.hero-card').count() === 4);
 
-  for (const hero of ['thor','cyclops','shuri','torch']) {
+  // Thor is the only one carrying a choice, so his panel opens and the
+  // others close it again.
+  check('the weapon panel opens for thor', await p.locator('#weapon-choice.is-open').count() === 1);
+  await p.locator('.hero-card[data-character="cyclops"]').click();
+  check('and closes for everyone else', await p.locator('#weapon-choice.is-open').count() === 0);
+  await p.locator('.hero-card[data-character="thor"]').click();
+
+  for (const hero of ['thor','thor-mjolnir','cyclops','shuri','torch']) {
     if (await p.locator('#screen-gameover.is-active').count()) { await p.locator('#menu-button').click(); await p.waitForTimeout(300); }
-    await p.locator(`.hero-card[data-character="${hero}"]`).click();
+    //Thor is run twice, once on each weapon, because they are different code
+    //paths: the axe never leaves his hand and the hammer does.
+    const [character, weapon] = hero.split('-');
+    await p.locator(`.hero-card[data-character="${character}"]`).click();
+    if (character === 'thor') await p.locator(`.weapon-card[data-weapon="${weapon || 'stormbreaker'}"]`).click();
     await p.locator('#start-button').click();
     await p.waitForTimeout(300);
     // aim and fire for 5s
     const r = await p.evaluate(() => new Promise(res => {
       const g = window.game; g.heldKeys.add('KeyS');
+      //Bolts live for a quarter of a second, so catching them means watching
+      //across the whole run rather than sampling once it is over.
+      window.__sawArcs = false;
       const t0 = performance.now();
       (function poll() {
         const t = g.enemies.filter(e => e.x > g.world.player.x).sort((a,b)=>a.x-b.x)[0];
         if (t) g.world.player.y = Math.max(0, Math.min(768 - g.world.player.h, t.y + t.h/2 - g.world.player.h/2));
+        if (g.boltArcs.length) window.__sawArcs = true;
         if (performance.now() - t0 < 5000) requestAnimationFrame(poll);
         else { g.heldKeys.delete('KeyS'); res({ kills: g.run.kills, score: g.run.score, charge: Math.round(g.world.player.charge) }); }
       })();
     }));
     check(`${hero}: kills enemies`, r.kills > 0, JSON.stringify(r));
+    if (hero === 'thor') {
+      check('stormbreaker never leaves his hand', await p.evaluate(() => window.game.world.mjolnir === null));
+      check('stormbreaker earths a bolt', await p.evaluate(() => window.game.__sawArcs === true));
+    }
     // ultimate
     const MAXC = await p.evaluate(() => {
       const g = window.game;
@@ -65,11 +84,16 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
                ign: +g.world.player.ignition.toFixed(1), arcs: g.boltArcs.length,
                miss: g.missiles.length, shield: g.world.shield ? 1 : 0,
                worthy: +g.world.player.worthy.toFixed(1),
+               ult_storm: +g.fx.storm.toFixed(2),
+               enemiesLeft: g.enemies.length,
                //A one-shot screen clear leaves no lasting state, so the
                //only evidence is the enemies it removed.
                cleared: (window.__before || 0) > 0 && g.enemies.length === 0 }; });
-    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0 || u.cleared), JSON.stringify(u));
-    if (hero === 'thor') check('thor: stormbreaker in flight', await p.evaluate(() => window.game.world.mjolnir !== null || window.game.run.kills > 0));
+    check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.ult_storm > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0 || u.cleared), JSON.stringify(u));
+    if (character === 'thor') {
+      check(`${hero}: the god blast puts the lights out`, u.ult_storm > 0, JSON.stringify(u));
+      check(`${hero}: and leaves nothing standing`, u.cleared || u.enemiesLeft === 0, JSON.stringify(u));
+    }
     await p.evaluate(() => { window.game.world.player.lives = 0; });
     await p.waitForTimeout(400);
   }
@@ -104,6 +128,23 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
         await p.evaluate(() => document.getElementById('stat-score').innerText + ' pts'));
   await p.locator('#retry-button').click(); await p.waitForTimeout(500);
   check('retry resets', await p.evaluate(() => window.game.run.wave === 1 && window.game.run.score === 0 && window.game.world.player.lives === 3));
+
+  // the coven stop and fight rather than walking off the edge
+  const coven = await p.evaluate(async () => {
+    const g = window.game;
+    const out = {};
+    for (const [name, def] of Object.entries(g.ENEMY_TYPES)) {
+      if (!def.elite) continue;
+      g.enemies.length = 0; g.spawnQueue.length = 0; g.world.boss = null;
+      g.startWave(1); g.enemies.length = 0; g.spawnQueue.length = 0;
+      g.summonBoss ? null : null;
+      out[name] = { holdAt: def.holdAt };
+    }
+    return out;
+  });
+  check('every witch is given a line to hold',
+        Object.values(coven).length === 3 && Object.values(coven).every(c => typeof c.holdAt === 'number'),
+        JSON.stringify(coven));
 
   // lives are earned back
   const lives = await p.evaluate(() => {

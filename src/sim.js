@@ -1,4 +1,4 @@
-import { updateIgnition, updateMissiles, updatePanther } from "./abilities.js";
+import { stormStrike, updateIgnition, updateMissiles, updatePanther } from "./abilities.js";
 import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
@@ -96,6 +96,11 @@ export function updatePlayer(dt) {
 
 export function fire() {
   const hero = heroDef();
+  //Stormbreaker never leaves his hand; the lightning does the travelling
+  if (hero.channelsStorm) {
+    stormStrike();
+    return;
+  }
   if (hero.throwsMjolnir) {
     throwMjolnir();
     return;

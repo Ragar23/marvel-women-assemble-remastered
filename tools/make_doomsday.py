@@ -132,32 +132,10 @@ witch((48, 78, 54), (140, 255, 150), "dd-witch-hex")
 witch((40, 58, 66), (150, 220, 255), "dd-witch-ward")
 witch((60, 48, 74), (206, 160, 255), "dd-witch-veil")
 
-# ---------------------------------------------------------------- Sentinel
-def sentinel():
-    im = Image.new("RGBA", (86, 100), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    body = (128, 66, 164); lit = (172, 112, 204); dark = (82, 38, 112)
-    trim = (206, 186, 104); glass = (255, 246, 190)
-    d.polygon([(20, 30), (66, 30), (74, 78), (12, 78)], fill=body)      # torso
-    d.polygon([(20, 30), (40, 30), (36, 78), (12, 78)], fill=lit)
-    d.polygon([(58, 30), (66, 30), (74, 78), (64, 78)], fill=dark)
-    d.rectangle([(32, 44), (54, 56)], fill=trim)                        # chest plate
-    d.rectangle([(36, 47), (50, 53)], fill=shade(trim, 0.7))
-    d.polygon([(28, 6), (58, 6), (62, 28), (24, 28)], fill=body)        # head
-    d.polygon([(28, 6), (43, 6), (41, 28), (24, 28)], fill=lit)
-    d.rectangle([(30, 12), (56, 19)], fill=glass)                       # visor band
-    d.rectangle([(30, 12), (42, 19)], fill=(255, 255, 236))
-    d.polygon([(4, 34), (18, 32), (20, 70), (6, 72)], fill=dark)        # arms
-    d.polygon([(68, 32), (82, 34), (80, 72), (66, 70)], fill=dark)
-    d.rectangle([(2, 68), (20, 80)], fill=body)
-    d.rectangle([(66, 68), (84, 80)], fill=body)
-    d.rectangle([(20, 78), (38, 99)], fill=dark)                        # legs
-    d.rectangle([(48, 78), (66, 99)], fill=body)
-    d.rectangle([(16, 94), (42, 99)], fill=trim)
-    d.rectangle([(44, 94), (70, 99)], fill=trim)
-    save(im, "dd-sentinel")
-
-sentinel()
+# The Sentinel moved to tools/make_hires.py with Thor and the Torch. It is
+# the enemy on screen most of the time and the one the teaser shows closest,
+# so it needed the same density as they got — weathered plate with two green
+# optics, rather than the purple toy this file could manage.
 
 # ---------------------------------------------------------------- the line-up
 LINEUP = [

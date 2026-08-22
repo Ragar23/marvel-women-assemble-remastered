@@ -1,4 +1,4 @@
-import { drawMissiles, ignitionBeam } from "./abilities.js";
+import { drawMissiles, ignitionBeam, weaponPoint } from "./abilities.js";
 import { img } from "./assets.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
@@ -45,6 +45,10 @@ export function draw() {
   drawPunches();
   if (world.player.ignition > 0) drawIgnitionBeam();
   drawPlayer();
+  //The God Blast puts the lights out. It goes on after the world and the
+  //player but before the lightning, so the bolts are the only thing left
+  //burning — painted underneath them it would just grey the whole frame.
+  if (fx.storm > 0) drawStormDark();
   drawBoltArcs();
   drawParticles();
   for (const o of pops) drawPop(o);
@@ -378,30 +382,56 @@ export function drawPop(o) {
   ctx.restore();
 }
 
-//Thor's God Blast: a jagged polyline redrawn every frame, so it crackles.
+//The sky going out under the God Blast. It ramps in fast and lifts slowly,
+//so the frame snaps to black on the strike and the world comes back.
+export function drawStormDark() {
+  const t = fx.storm / CONFIG.ult.stormDuration;
+  //Full dark for the first fifth, then easing off across the rest
+  const alpha = 0.82 * Math.min(1, t / 0.8);
+  ctx.save();
+  ctx.fillStyle = `rgba(2,6,16,${alpha})`;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+//Thor's lightning: a jagged polyline redrawn every frame, so it crackles.
+//`fromWeapon` arcs re-read the axe every frame instead of remembering where
+//it was, which is what keeps the bolt attached to it while he moves.
+//`bold` is the ultimate and Stormbreaker's own strikes: thicker, brighter,
+//and drawn twice so they read through the dark.
 export function drawBoltArcs() {
   for (const a of boltArcs) {
+    //A negative t is a stagger — the arc has been queued but has not struck
+    if (a.t < 0) continue;
     const fade = 1 - a.t / a.dur;
-    const dx = a.to.x - a.from.x;
-    const dy = a.to.y - a.from.y;
-    const steps = 9;
+    const from = a.fromWeapon ? weaponPoint() : a.from;
+    const dx = a.to.x - from.x;
+    const dy = a.to.y - from.y;
+    const steps = a.bold ? 12 : 9;
+    const jitter = a.bold ? 34 : 26;
     ctx.save();
     ctx.globalAlpha = fade;
-    ctx.strokeStyle = "#e0f2fe";
     ctx.shadowColor = "#7dd3fc";
-    ctx.shadowBlur = 18;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(a.from.x, a.from.y);
-    for (let i = 1; i < steps; i++) {
-      const k = i / steps;
-      ctx.lineTo(
-        a.from.x + dx * k + rand(-26, 26),
-        a.from.y + dy * k + rand(-26, 26)
-      );
+    ctx.shadowBlur = a.bold ? 30 : 18;
+    //Twice: a wide soft pass for the glow, a narrow white one for the core
+    for (const [width, color] of a.bold
+      ? [[9, "#7dd3fc"], [3.5, "#ffffff"]]
+      : [[3, "#e0f2fe"]]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      for (let i = 1; i < steps; i++) {
+        const k = i / steps;
+        //Pinned at both ends, loosest in the middle, so it reads as a bolt
+        //between two points rather than a scribble near them.
+        const spread = jitter * Math.sin(k * Math.PI);
+        ctx.lineTo(from.x + dx * k + rand(-spread, spread),
+                   from.y + dy * k + rand(-spread, spread));
+      }
+      ctx.lineTo(a.to.x, a.to.y);
+      ctx.stroke();
     }
-    ctx.lineTo(a.to.x, a.to.y);
-    ctx.stroke();
     ctx.restore();
   }
 }

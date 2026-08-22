@@ -18,6 +18,8 @@ const imageSources = {
 
   //Doomsday cast
   ddThor: "./images/dd-thor.png",
+  //The same Thor with the hammer instead of the axe, for when he picks it
+  ddThorMjolnir: "./images/dd-thor-mjolnir.png",
   ddThorEmpty: "./images/dd-thor-empty.png",
   ddCyclops: "./images/dd-cyclops.png",
   ddShuri: "./images/dd-shuri.png",
@@ -32,6 +34,7 @@ const imageSources = {
   ddWitchVeil: "./images/dd-witch-veil.png",
   ddWitchWard: "./images/dd-witch-ward.png",
   stormbreaker: "./images/dd-stormbreaker.png",
+  mjolnir: "./images/mjolnir.png",
   optic: "./images/dd-optic.png",
   claw: "./images/dd-claw.png",
   fire: "./images/dd-fire.png",
