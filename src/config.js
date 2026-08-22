@@ -24,7 +24,23 @@ export const CONFIG = {
     hitScale: 0.58,
   },
   bullet: { speed: 1250 },
-  stones: { maxHp: 100 },
+  //An incursion is two universes' Earths meeting, and both die when they
+  //touch. The meter runs the other way to the health bar it replaces: it
+  //starts at nothing and everything that gets past you brings the other
+  //Earth closer. At `max` the two collide and the run is over.
+  incursion: {
+    max: 100,
+    //A wave cleared without a single thing getting through pushes it back.
+    //It is the only way to give ground back, so holding the line is worth
+    //more than killing quickly.
+    holdReward: 9,
+    //Where the sky changes and reality starts to thin. Fractions of `max`.
+    stages: [0.4, 0.75],
+    //Every stage crossed makes everything on screen faster. The run gets
+    //harder because you are losing, which is what a collapsing universe
+    //ought to feel like.
+    stageSpeed: 0.14,
+  },
   combo: { killsPerStep: 6, max: 5 },
   powerUp: {
     dropChance: 0.14,
@@ -248,8 +264,28 @@ export const ENEMY_TYPES = {
   //Sentinels replace the space dogs: slower, heavier, and there are a lot
   //of them.
   sentinel: { sprite: "ddSentinel", speed: 380, height: 100, hp: 2, points: 12, leak: 8 },
+  //It no longer just weaves past: line up with it and it winds up, then
+  //commits. Standing in a lane is a decision now rather than the whole game.
   sentinelFast: {
     sprite: "ddSentinel", speed: 560, height: 100, hp: 1, points: 16, leak: 8, weave: 140,
+    behaviour: "charge", chargeWindup: 0.45, chargeSpeed: 980, chargeGap: 2.4,
+  },
+  //The one that stops and shoots back. It walks to its line, tracks you
+  //while it decides, locks, and burns a lane. Everything it does is visible
+  //before it happens — the hairline is a promise, not a warning.
+  sentinelGunner: {
+    sprite: "ddSentinelGunner", speed: 300, height: 104, hp: 5, points: 34, leak: 10,
+    tint: "#a3e635",
+    behaviour: "beam", holdAt: 0.66,
+    beamGap: 2.3, //tracking you, deciding
+    beamCharge: 0.85, //locked, and drawn as a hairline
+    beamTime: 0.5, //the lane is lethal for this long
+    beamHeight: 26,
+    //It holds its line for this many shots and then walks on, unlike the
+    //coven, who hold until they are killed. A gunner that stopped for good
+    //would let a late wave stack six of them across the screen and stall
+    //the run behind a wall no one asked for.
+    beamShots: 2,
   },
   chitauri: { sprite: "chit2", speed: 430, height: 81, hp: 2, points: 20, leak: 9, animated: true },
   levi: { sprite: "levi", speed: 265, height: 250, hp: 9, points: 90, leak: 24 },
@@ -312,6 +348,40 @@ export const BOSSES = {
     minion: "sentinel",
     summonGap: 2.2,
     bobSpeed: 1.0,
+    //He is the film's villain and he was a Sentinel Prime with different
+    //numbers. Three phases instead, entered on health and each one a
+    //different problem: a volley, a wall, and a clock.
+    //
+    //`at` is the health fraction at or below which the phase begins, so
+    //they are listed from full health down.
+    phases: [
+      {
+        at: 1,
+        name: "LATVERIA'S SORCERER",
+        shots: 5, spread: 210, fireGap: 1.6, summonGap: 2.2,
+      },
+      {
+        //He puts a window between you and him. Nothing touches him until it
+        //is broken, and he spends the time it buys filling the screen.
+        at: 0.66,
+        name: "THE WARD",
+        ward: (wave) => 22 + wave * 2,
+        shots: 6, spread: 260, fireGap: 1.15, summonGap: 1.3,
+      },
+      {
+        //No more minions, no more patience. He stops trying to beat you and
+        //starts pulling the other Earth in by hand, so the fight becomes a
+        //race he wins by default if you let it run.
+        at: 0.33,
+        name: "THE COLLAPSE",
+        shots: 8, spread: 330, fireGap: 0.85, summonGap: 0,
+        incursionPerSecond: 2.4,
+      },
+    ],
+    //Breaking the ward leaves him open, and hitting him while he is reels
+    //hurts more. It is the whole reward for going through it.
+    staggerTime: 1.8,
+    staggerDamage: 1.85,
   },
 };
 
@@ -319,10 +389,12 @@ export const BOSSES = {
 export const WAVE_PLAN = [
   { count: 20, mix: ["sentinel"] },
   { count: 26, mix: ["sentinel", "sentinelFast"] },
-  { count: 32, mix: ["sentinel", "sentinelFast", "chitauri"] },
-  { count: 36, mix: ["sentinel", "chitauri", "sentinelFast"] },
-  { count: 42, mix: ["sentinel", "sentinelFast", "chitauri", "levi"] },
-  { count: 48, mix: ["sentinelFast", "chitauri", "sentinel", "levi"] },
+  //Gunners from here on. One at a time at first: the wave has to teach the
+  //telegraph before it starts stacking them.
+  { count: 32, mix: ["sentinel", "sentinelFast", "chitauri", "sentinelGunner"] },
+  { count: 36, mix: ["sentinel", "chitauri", "sentinelFast", "sentinelGunner"] },
+  { count: 42, mix: ["sentinel", "sentinelFast", "chitauri", "sentinelGunner", "levi"] },
+  { count: 48, mix: ["sentinelFast", "chitauri", "sentinelGunner", "sentinel", "levi"] },
 ];
 
 //The Black Order arrive one at a time, on top of the ordinary wave, so each

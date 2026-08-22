@@ -428,4 +428,23 @@ def sentinel():
     return g
 
 
+def sentinel_gunner():
+    """The same chassis with a cannon where its left arm was, and the optics
+    turned up. It has to be tellable from the rank and file at a glance:
+    it is the one that stops and shoots back."""
+    g = sentinel()
+    #Brighter optics, so it reads as powered up rather than merely different
+    put(g, 6, 9, "DmVQQmQQVmD")
+    put(g, 7, 9, "DmVQQmQQVmD")
+    #A straight barrel out of the shoulder at chest height, butted against
+    #the arm so the outline pass does not saw it off into a floating block
+    put(g, 13, 3, "LLL")
+    put(g, 14, 0, "MMMMMM")
+    put(g, 15, 0, "VLLLLL")
+    put(g, 16, 0, "MMMMMM")
+    put(g, 17, 3, "DDD")
+    return g
+
+
 save_set([("dd-sentinel", sentinel())])
+save_set([("dd-sentinel-gunner", sentinel_gunner())])

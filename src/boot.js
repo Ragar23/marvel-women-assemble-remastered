@@ -6,9 +6,9 @@ import { startBtn } from "./dom.js";
 import { heldKeys } from "./input.js";
 import { throwMjolnir } from "./mjolnir.js";
 import { becomeWorthy, punch, throwShield } from "./shield.js";
-import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, missiles, particles, playerHitbox, pops, powerUps, punches, resetGame, run, sess, spawnQueue, world } from "./state.js";
+import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, incursionProgress, incursionStage, missiles, particles, playerHitbox, pops, powerUps, punches, resetGame, run, sess, spawnQueue, speedMultiplier, world } from "./state.js";
 import { bossForWave, startWave, summonBoss } from "./waves.js";
-import { addScore, awardLife, damageBoss, damageEnemy, maybeDropPowerUp } from "./world.js";
+import { addScore, awardLife, bossPhase, damageBoss, damageEnemy, holdTheLine, maybeDropPowerUp, updateBossPhase } from "./world.js";
 
 //The Marvel Studios card holds while the sprites load. It is dismissed
 //either by the load finishing or by the player, whichever comes first —
@@ -107,6 +107,8 @@ window.game = {
   heroDef, heroTint, playerHitbox, comboMultiplier,
   fireUlt, startWave, damageBoss, damageEnemy, throwMjolnir, resetGame,
   addScore, awardLife, maybeDropPowerUp,
+  holdTheLine, incursionProgress, incursionStage, speedMultiplier,
+  bossPhase, updateBossPhase,
   bossForWave, summonBoss, throwShield, becomeWorthy, punch, punches,
   BOSSES, ELITE_SCHEDULE,
 };

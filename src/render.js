@@ -2,7 +2,7 @@ import { drawMissiles, ignitionBeam, weaponPoint } from "./abilities.js";
 import { img } from "./assets.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
-import { drawBanner, drawHud } from "./hud.js";
+import { drawBanner, drawHud, drawIncursionSky } from "./hud.js";
 import { drawMjolnir } from "./mjolnir.js";
 import { drawPunches, drawShield } from "./shield.js";
 import { POWERUP_COLORS } from "./world.js";
@@ -21,6 +21,9 @@ export function draw() {
   ctx.drawImage(img.bg, 0, 0, W, H);
 
   drawStars();
+  //The other Earth sits between the starfield and everything else: behind
+  //the fight, in front of the painted backdrop.
+  drawIncursionSky();
   drawSetDressing();
 
   //Power-ups
@@ -32,6 +35,9 @@ export function draw() {
   //Enemies, their remains, and the boss
   for (const c of corpses) drawCorpse(c);
   for (const enemy of enemies) drawEnemy(enemy);
+  //Under the player and the bullets, so a lane full of beam never hides
+  //where you actually are.
+  drawEnemyBeams();
   if (world.boss) drawBoss();
   if (world.bossDying) drawBossDeath();
 
@@ -75,7 +81,7 @@ export function drawStars() {
 }
 
 export function drawSetDressing() {
-  //Groot dances at the back, clear of the Infinity Stones bar. Spider-Man
+  //Groot dances at the back, clear of the incursion meter. Spider-Man
   //and the Chitauri used to stand here too, but they were props that never
   //moved, so they are gone; spiderman.png is kept for a future character.
   ctx.drawImage(fx.grootStanding ? img.grootLeft : img.grootRight, 500, H - 98);
@@ -151,6 +157,45 @@ export function drawEnemy(enemy) {
   }
 }
 
+//A gunner's telegraph and its beam. The dashed hairline while it charges is
+//drawn from exactly the numbers the hitbox will use, so what you dodge is
+//what would have hit you.
+export function drawEnemyBeams() {
+  for (const enemy of enemies) {
+    const b = enemy.beam;
+    if (!b || b.phase === "track") continue;
+    const def = enemy.def;
+    const muzzle = enemy.x + enemy.w * 0.08;
+    ctx.save();
+    if (b.phase === "charge") {
+      const k = 1 - b.t / def.beamCharge;
+      ctx.globalAlpha = 0.35 + k * 0.55;
+      ctx.strokeStyle = def.tint;
+      ctx.lineWidth = 1 + k * 2;
+      ctx.setLineDash([16, 12]);
+      ctx.lineDashOffset = -fx.elapsed * 90;
+      ctx.beginPath();
+      ctx.moveTo(muzzle, b.aimY);
+      ctx.lineTo(0, b.aimY);
+      ctx.stroke();
+    } else {
+      //Stacked glows with a white core, and it thins as it dies
+      const k = Math.min(1, b.t / (def.beamTime * 0.35));
+      ctx.globalCompositeOperation = "lighter";
+      for (const [h, alpha, color] of [
+        [def.beamHeight, 0.28, def.tint],
+        [def.beamHeight * 0.5, 0.5, def.tint],
+        [def.beamHeight * 0.18, 0.95, "#ffffff"],
+      ]) {
+        ctx.globalAlpha = alpha * k;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, b.aimY - (h * k) / 2 + Math.sin(fx.elapsed * 50) * 2, muzzle, h * k);
+      }
+    }
+    ctx.restore();
+  }
+}
+
 export function drawBoss() {
   //Breathing idle, swelling on the wind-up, shoved right by each hit,
   //lunging left as he releases a blast.
@@ -170,6 +215,18 @@ export function drawBoss() {
     }
   );
 
+  //Staggered, he reels: shaken and washed out while the window is open
+  if (world.boss.stagger > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.4 + Math.sin(fx.elapsed * 24) * 0.2;
+    ctx.fillStyle = "#ffffff";
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillRect(world.boss.x, world.boss.y, world.boss.w, world.boss.h);
+    ctx.restore();
+  }
+
+  if (world.boss.ward > 0) drawBossWard();
+
   //Aura: tightens and brightens as the blast charges
   ctx.save();
   ctx.strokeStyle = hexToRgba(world.boss.def.tint, 0.45 + world.boss.windup * 0.5);
@@ -183,6 +240,62 @@ export function drawBoss() {
     Math.PI * 2
   );
   ctx.stroke();
+  ctx.restore();
+}
+
+//The window he puts between you and him: a leaded hexagon in the green of
+//the teaser's glass, panels and all. It thins as it takes damage, so how
+//close it is to breaking is something you can see rather than a bar to read.
+export function drawBossWard() {
+  const b = world.boss;
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  const r = b.w * 0.72;
+  const left = clamp(b.ward / b.wardMax, 0, 1);
+  //Corners of the hexagon, point-up
+  const corner = (i, radius) => {
+    const a = (Math.PI / 3) * i - Math.PI / 2;
+    return [cx + Math.cos(a) * radius, cy + Math.sin(a) * radius];
+  };
+
+  ctx.save();
+  ctx.globalAlpha = 0.25 + left * 0.5 + Math.sin(fx.elapsed * 5) * 0.06;
+
+  ctx.beginPath();
+  ctx.moveTo(...corner(0, r));
+  for (let i = 1; i < 6; i++) ctx.lineTo(...corner(i, r));
+  ctx.closePath();
+  const grd = ctx.createRadialGradient(cx, cy, r * 0.15, cx, cy, r);
+  grd.addColorStop(0, "rgba(74,222,128,0.10)");
+  grd.addColorStop(0.7, "rgba(46,168,74,0.28)");
+  grd.addColorStop(1, "rgba(163,230,53,0.42)");
+  ctx.fillStyle = grd;
+  ctx.fill();
+
+  //Leading: the frame, and the spokes that make it read as glass
+  ctx.strokeStyle = `rgba(190,255,200,${0.5 + left * 0.5})`;
+  ctx.lineWidth = 3 + left * 3;
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(...corner(i, r));
+    ctx.stroke();
+  }
+
+  //Cracks, spreading from the rim inward as it goes
+  if (left < 0.7) {
+    ctx.strokeStyle = `rgba(255,255,255,${(0.7 - left) * 1.1})`;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const [ex, ey] = corner(i + 0.5, r * (0.55 + left * 0.4));
+      ctx.beginPath();
+      ctx.moveTo(...corner(i, r));
+      ctx.lineTo(ex + Math.sin(fx.elapsed * 3 + i) * 4, ey);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 

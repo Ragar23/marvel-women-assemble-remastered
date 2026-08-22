@@ -1,8 +1,9 @@
 # AVENGERS: DOOMSDAY — arcade
 
 A Doomsday-themed reskin of the remastered arcade shooter, on its own branch.
-Same engine, different war: Doom's Sentinels come for the Stones, his coven of
-Latverian Witches arrives one at a time, and Doom himself waits at wave ten.
+Same engine, different war: you are holding a line against an incursion.
+Doom's Sentinels come through it, his coven of Latverian Witches arrives one
+at a time, and Doom himself waits at wave ten.
 
 The countdown on the menu runs to **18 December 2026**. It is a single
 constant, `RELEASE`, at the top of `src/boot.js`.
@@ -62,6 +63,13 @@ mostly works too, but a local server is more reliable for the audio and font fil
     sets him alight for fifteen seconds without the key held: everything on
     screen burns at once, and anything that touches him afterwards burns too.
 
+- **An incursion, not a health bar.** Two universes' Earths are meeting, and
+  everything that gets past you brings the other one closer — it hangs in the
+  sky the whole run, growing. At the top the two collide and it is over.
+  Crossing a stage of it makes everything on screen faster, so the run gets
+  harder *because* you are losing. The one way to give ground back is to take
+  a whole wave without letting anything through, which pushes it away again.
+
 - **Lives you earn back.** Three is what you start with and nowhere near
   enough to reach wave six on, so every 5,000 points is another one, up to
   five, and a rare **1UP** drop is one outright. A sliver under the life
@@ -69,10 +77,23 @@ mostly works too, but a local server is more reliable for the audio and font fil
   coming rather than a surprise. A boss pays 1,000 a wave, which means
   clearing one is usually a life by itself.
 
+- **Sentinels that fight back.** The fast ones line up on you, wind up, and
+  commit. Gunners walk to a line, track you while they decide, lock, and burn
+  a lane — the hairline they draw while charging is exactly where the beam
+  lands, so getting hit is a decision you made. They hold their line for two
+  shots and then come on, so ignoring one still costs you.
+
 - **Sentinels** replace the space dogs — slower, heavier, and there are a lot
-  of them, in two speeds. Weathered plate with two green optics burning out of
+  of them, in three kinds. Weathered plate with two green optics burning out of
   it, the way the teaser has them, and the Prime at wave five is the same
   thing four times the size.
+- **Doom fights in three phases**, entered on his health, each a different
+  problem. He opens as a sorcerer. At two thirds he puts a leaded window
+  between you and him — nothing reaches him until it is broken, and breaking
+  it leaves him reeling and worth nearly double. At a third he stops calling
+  for help altogether and starts pulling the other Earth in by hand, which
+  turns the fight into a race he wins by default if you let it run.
+
 - **The Latverian Witches** arrive one at a time, named, with a health bar from
   the moment they appear, and they do not walk past you. Each holds a line
   partway across the screen and fights from it until it is put down, so the
@@ -123,6 +144,7 @@ Most of the art and all nine sound effects are generated, not hand-authored,
 so they can be tweaked and rebuilt:
 
 ```bash
+python3 tools/make_incursion.py   # the other Earth
 python3 tools/make_menu_art.py    # the menu art, from the stills in images/src/
 python3 tools/make_hires.py       # Thor and the Human Torch — needs Pillow
 python3 tools/tint_shuri.py       # repaints the panther suit in her violet

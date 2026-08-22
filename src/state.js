@@ -1,7 +1,7 @@
 import { img } from "./assets.js";
 import { H, W } from "./canvas.js";
 import { CONFIG, HEROES } from "./config.js";
-import { rand } from "./util.js";
+import { clamp, rand } from "./util.js";
 import { startWave } from "./waves.js";
 
 //=====================================================================//
@@ -25,7 +25,12 @@ export const sess = {
 
 //Everything the scoreboard cares about; cleared on every new run.
 export const run = {
-  score: 0, kills: 0, combo: 0, bestCombo: 1, wave: 0, stonesHp: 0,
+  score: 0, kills: 0, combo: 0, bestCombo: 1, wave: 0,
+  //How far the other Earth has come, 0 → CONFIG.incursion.max
+  incursion: 0,
+  //Anything that got past you this wave. Cleared at the start of each one,
+  //because the reward for holding the line is a whole clean wave.
+  waveLeaks: 0,
   waveElapsed: 0, betweenWaves: false, betweenTimer: 0,
   //The score the next extra life is waiting at, walked forward as they land
   nextLife: 0,
@@ -101,10 +106,24 @@ export function heroTint() {
   return heroDef().tint || "#ffffff";
 }
 
+//How far the incursion has come, 0 → 1.
+export function incursionProgress() {
+  return clamp(run.incursion / CONFIG.incursion.max, 0, 1);
+}
+
+//How many of the incursion's stages have been crossed. Reality thins as the
+//other Earth closes, and everything on this side moves faster for it.
+export function incursionStage() {
+  const p = incursionProgress();
+  return CONFIG.incursion.stages.filter((s) => p >= s).length;
+}
+
 export function speedMultiplier() {
   return Math.min(
     CONFIG.difficulty.speedCap,
-    1 + CONFIG.difficulty.speedStep * (run.wave - 1)
+    1 +
+      CONFIG.difficulty.speedStep * (run.wave - 1) +
+      CONFIG.incursion.stageSpeed * incursionStage()
   );
 }
 
@@ -192,7 +211,8 @@ export function resetGame() {
   run.combo = 0;
   run.bestCombo = 1;
   run.wave = 0;
-  run.stonesHp = CONFIG.stones.maxHp;
+  run.incursion = 0;
+  run.waveLeaks = 0;
 
   run.waveElapsed = 0;
   fx.waveBanner = null;

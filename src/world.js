@@ -4,9 +4,9 @@ import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst, floatText, pop, screenFlash, spawnCorpse } from "./effects.js";
 import { enemySprite } from "./render.js";
-import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroes, particles, playerHitbox, pops, powerUps, run, spawnQueue, world } from "./state.js";
+import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroes, incursionStage, particles, playerHitbox, pops, powerUps, run, spawnQueue, world } from "./state.js";
 import { clamp, overlaps, rand, replaceAll, sweep } from "./util.js";
-import { spawnEnemy } from "./waves.js";
+import { banner, spawnEnemy } from "./waves.js";
 
 export function updateSpawning(dt) {
   while (spawnQueue.length && spawnQueue[0].at <= run.waveElapsed) {
@@ -103,12 +103,30 @@ export function maybeDropPowerUp(enemy) {
 }
 
 export function enemyLeaked(enemy) {
-  run.stonesHp -= enemy.def.leak;
+  const before = incursionStage();
+  run.incursion = Math.min(CONFIG.incursion.max, run.incursion + enemy.def.leak);
+  run.waveLeaks++;
   run.combo = 0;
   addShake(9);
-  screenFlash("#a855f7", 0.4);
-  //Right of the Stones bar, clear of the power-up timers stacked above it.
-  floatText(410, H - 46, `-${enemy.def.leak}`, "#c084fc");
+  screenFlash("#ff3b3f", 0.4);
+  //Right of the incursion meter, clear of the power-up timers above it
+  floatText(430, H - 46, `+${enemy.def.leak}`, "#ff6b6b");
+  //Crossing a stage is worth announcing: everything gets faster from here
+  if (incursionStage() > before) {
+    banner("REALITY THINS", "THE OTHER EARTH IS CLOSER", "#ff3b3f");
+    addShake(18);
+    screenFlash("#ff3b3f", 0.55);
+    playSfx("thunder", 0.4, 0.6);
+  }
+}
+
+//The only way to give ground back. A wave taken without letting anything
+//through pushes the other Earth away again.
+export function holdTheLine() {
+  if (run.waveLeaks > 0) return 0;
+  const before = run.incursion;
+  run.incursion = Math.max(0, run.incursion - CONFIG.incursion.holdReward);
+  return before - run.incursion;
 }
 
 //The Black Order do not simply advance. Each has one idea, and the timers
@@ -151,6 +169,54 @@ function updateElite(enemy, dt) {
         enemy.timer = def.chargeGap;
       }
     }
+  } else if (def.behaviour === "beam") {
+    //A gunner works one cycle: track, lock, burn. Everything it is about to
+    //do is on screen before it happens — the hairline drawn while it charges
+    //is exactly where the beam will be, so a death is always a decision you
+    //made rather than one it made for you.
+    const b = (enemy.beam = enemy.beam || {
+      phase: "track",
+      t: def.beamGap,
+      aimY: enemy.y + enemy.h / 2,
+    });
+    b.t -= dt;
+    if (b.phase === "track") {
+      //It follows you while it is still deciding, so standing still is the
+      //one thing that cannot work.
+      b.aimY +=
+        (world.player.y + world.player.h / 2 - b.aimY) * Math.min(1, dt * 3.2);
+      //And it will not fire on the walk in, only once it is on its line
+      if (b.t <= 0 && enemy.x <= W * def.holdAt + 6) {
+        b.phase = "charge";
+        b.t = def.beamCharge;
+      }
+    } else if (b.phase === "charge") {
+      //Locked. Moving out of the lane from here is the whole answer.
+      if (b.t <= 0) {
+        b.phase = "fire";
+        b.t = def.beamTime;
+        playSfx("shoot", 0.3, 0.45);
+        addShake(5);
+      }
+    } else {
+      const beam = {
+        x: 0,
+        y: b.aimY - def.beamHeight / 2,
+        w: enemy.x,
+        h: def.beamHeight,
+      };
+      //hitPlayer() already respects invulnerability, so a live beam cannot
+      //eat a whole run in the frames it is up.
+      if (overlaps(beam, playerHitbox())) hitPlayer();
+      if (b.t <= 0) {
+        b.phase = "track";
+        b.t = def.beamGap;
+        b.shots = (b.shots || 0) + 1;
+        //Out of shots: it stops holding its line and walks on, so ignoring
+        //one costs you rather than parking it there forever.
+        if (def.beamShots && b.shots >= def.beamShots) enemy.releasedHold = true;
+      }
+    }
   } else if (def.behaviour === "blink") {
     //Vanishes and reappears further in
     if (enemy.timer <= 0) {
@@ -176,7 +242,7 @@ export function updateEnemies(dt) {
     //The coven hold a line rather than crossing it. Named, health-barred and
     //walking off the left edge, the cheapest answer to a witch was to stand
     //aside and pay the leak; now the only way past one is through it.
-    if (enemy.def.holdAt !== undefined) {
+    if (enemy.def.holdAt !== undefined && !enemy.releasedHold) {
       enemy.x = Math.max(enemy.x, W * enemy.def.holdAt);
     }
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
@@ -192,7 +258,7 @@ export function updateEnemies(dt) {
       );
     }
 
-    //Off the left edge — the Stones take the hit
+    //Off the left edge — the other Earth comes a step closer
     if (enemy.x + enemy.w < 0) {
       enemyLeaked(enemy);
       continue;
@@ -235,6 +301,9 @@ export function updateBoss(dt) {
   if (!world.boss) return;
   world.boss.hitFlash = Math.max(0, world.boss.hitFlash - dt);
 
+  //Which phase he is in, and what changes when he enters a new one
+  if (world.boss.def.phases) updateBossPhase(dt);
+
   if (world.boss.entering) {
     world.boss.x -= 240 * dt;
     if (world.boss.x <= W - world.boss.w - 70) {
@@ -267,9 +336,9 @@ export function updateBoss(dt) {
       });
     }
 
-    if (world.boss.fireTimer <= 0) {
-      const bd = world.boss.def;
-      world.boss.fireTimer = clamp(bd.fireGap - run.wave * 0.04, 0.6, bd.fireGap);
+    if (world.boss.fireTimer <= 0 && world.boss.stagger <= 0) {
+      const bd = bossPhase();
+      world.boss.fireTimer = clamp(bd.fireGap - run.wave * 0.04, 0.5, bd.fireGap);
       world.boss.windup = 0;
       world.boss.lunge = 1;
       const cy = world.boss.y + world.boss.h / 2;
@@ -286,19 +355,23 @@ export function updateBoss(dt) {
           h: 28,
           vx: -680,
           vy: dy + offset,
-          color: bd.shotColor,
+          color: world.boss.def.shotColor,
         });
       }
-      burst(world.boss.x, cy, bd.shotColor, 14, 280);
+      burst(world.boss.x, cy, world.boss.def.shotColor, 14, 280);
       addShake(5);
     }
     world.boss.lunge = Math.max(0, world.boss.lunge - dt * 4);
     world.boss.knock = Math.max(0, world.boss.knock - dt * 6);
 
-    world.boss.spawnTimer -= dt;
-    if (world.boss.spawnTimer <= 0) {
-      world.boss.spawnTimer = world.boss.def.summonGap;
-      spawnEnemy(world.boss.def.minion);
+    //A summonGap of zero is a phase that has stopped calling for help
+    const summonGap = bossPhase().summonGap;
+    if (summonGap > 0) {
+      world.boss.spawnTimer -= dt;
+      if (world.boss.spawnTimer <= 0) {
+        world.boss.spawnTimer = summonGap;
+        spawnEnemy(world.boss.def.minion);
+      }
     }
   }
 
@@ -314,8 +387,74 @@ export function updateBoss(dt) {
   if (overlaps(world.boss, playerHitbox())) hitPlayer();
 }
 
+//The phase he is in right now. Bosses without phases behave as they always
+//did: the definition is its own single phase.
+export function bossPhase() {
+  const b = world.boss;
+  if (!b || !b.def.phases) return b ? b.def : null;
+  return b.def.phases[b.stage || 0];
+}
+
+export function updateBossPhase(dt) {
+  const b = world.boss;
+  const frac = b.hp / b.maxHp;
+  //The last phase whose threshold he has fallen to
+  let stage = 0;
+  b.def.phases.forEach((p, i) => {
+    if (frac <= p.at) stage = i;
+  });
+
+  if (stage !== b.stage) {
+    b.stage = stage;
+    const phase = b.def.phases[stage];
+    banner(b.def.name, phase.name, b.def.tint);
+    screenFlash(b.def.tint, 0.4);
+    addShake(16);
+    playSfx("ultimate", 0.4, 0.8);
+    b.fireTimer = 1;
+    if (phase.ward) {
+      b.ward = b.wardMax = phase.ward(run.wave);
+      playSfx("thunder", 0.35, 1.4);
+    }
+  }
+
+  b.stagger = Math.max(0, (b.stagger || 0) - dt);
+
+  //The collapse phase does not need to beat you, only to outlast you
+  const pull = bossPhase().incursionPerSecond;
+  if (pull) {
+    const before = incursionStage();
+    run.incursion = Math.min(CONFIG.incursion.max, run.incursion + pull * dt);
+    if (incursionStage() > before) {
+      banner("REALITY THINS", "HE IS PULLING IT IN", "#ff3b3f");
+      addShake(18);
+    }
+  }
+}
+
 export function damageBoss(amount, hitX, hitY) {
   if (!world.boss) return;
+
+  //Nothing reaches him through the window. It has to come down first.
+  if (world.boss.ward > 0) {
+    world.boss.ward -= amount;
+    burst(hitX, hitY, "#bbf7d0", 8, 240);
+    playSfx("hit", 0.2, 1.5);
+    if (world.boss.ward > 0) return;
+    world.boss.ward = 0;
+    //And breaking it leaves him reeling, which is the only window in the
+    //fight where he is worth more than he costs.
+    world.boss.stagger = world.boss.def.staggerTime;
+    banner("WARD SHATTERED", "", "#bbf7d0");
+    screenFlash("#ffffff", 0.5);
+    addShake(20);
+    playSfx("explode", 0.45, 1.3);
+    burst(world.boss.x + world.boss.w / 2, world.boss.y + world.boss.h / 2, "#bbf7d0", 60, 520);
+    return;
+  }
+
+  //Hits land harder while he is staggered
+  if (world.boss.stagger > 0) amount *= world.boss.def.staggerDamage || 1;
   world.boss.hp -= amount;
   world.boss.hitFlash = 0.1;
   world.boss.knock = 1; //visibly shoved back by the hit

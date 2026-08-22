@@ -3,14 +3,14 @@ import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { burst, floatText } from "./effects.js";
-import { heldKeys } from "./input.js";
+import { heldKeys, touch } from "./input.js";
 import { endGame } from "./loop.js";
 import { throwMjolnir, updateMjolnir } from "./mjolnir.js";
 import { punch, throwShield, updatePunches, updateShield, updateWorthy } from "./shield.js";
 import { bullets, enemies, fx, heroDef, heroTint, run, world } from "./state.js";
 import { clamp, overlaps, sweep } from "./util.js";
 import { startWave, waveIsClear } from "./waves.js";
-import { addScore, damageEnemy, updateBoss, updateBossDeath, updateBullets, updateDressing, updateEffects, updateEnemies, updateHeroes, updatePowerUps, updateSpawning } from "./world.js";
+import { addScore, damageEnemy, holdTheLine, updateBoss, updateBossDeath, updateBullets, updateDressing, updateEffects, updateEnemies, updateHeroes, updatePowerUps, updateSpawning } from "./world.js";
 
 //=====================================================================//
 export function update(dt) {
@@ -51,13 +51,20 @@ export function update(dt) {
     addScore(bonus);
     playSfx("wave", 0.35);
     floatText(W / 2 - 60, H / 2, `WAVE CLEAR +${bonus}`, "#4ade80");
+    //Nothing got through: the other Earth is pushed back, and that is the
+    //only thing in the game that moves the meter the right way.
+    const pushed = holdTheLine();
+    if (pushed > 0) {
+      floatText(W / 2 - 90, H / 2 + 44, `LINE HELD  −${pushed} INCURSION`, "#38bdf8");
+      playSfx("pickup", 0.4, 0.8);
+    }
   }
   if (run.betweenWaves) {
     run.betweenTimer -= dt;
     if (run.betweenTimer <= 0) startWave(run.wave + 1);
   }
 
-  if (run.stonesHp <= 0 || world.player.lives <= 0) endGame();
+  if (run.incursion >= CONFIG.incursion.max || world.player.lives <= 0) endGame();
 }
 
 export function updatePlayer(dt) {
@@ -70,8 +77,18 @@ export function updatePlayer(dt) {
   if (heldKeys.has("ArrowLeft")) world.player.x -= step;
   if (heldKeys.has("ArrowRight")) world.player.x += step;
 
+  //A finger on the canvas flies him directly. It is set rather than eased,
+  //because anything less than one-to-one reads as lag on a touchscreen.
+  let dragBank = 0;
+  if (touch.active) {
+    const wasY = world.player.y;
+    world.player.x = touch.x;
+    world.player.y = touch.y;
+    dragBank = clamp((world.player.y - wasY) / Math.max(1, step), -1, 1);
+  }
+
   //Bank into the turn, level out when the keys are released
-  const targetBank = (down ? 1 : 0) - (up ? 1 : 0);
+  const targetBank = touch.active ? dragBank : (down ? 1 : 0) - (up ? 1 : 0);
   world.player.bank +=
     (targetBank * CONFIG.anim.bankAngle - world.player.bank) *
     Math.min(1, dt * CONFIG.anim.bankEase);
@@ -91,7 +108,8 @@ export function updatePlayer(dt) {
   updateIgnition(dt);
   updatePanther(dt);
 
-  if (heldKeys.has("KeyS") && world.player.cooldown <= 0) fire();
+  //Holding the screen fires, the same as holding S
+  if ((heldKeys.has("KeyS") || touch.active) && world.player.cooldown <= 0) fire();
 }
 
 export function fire() {

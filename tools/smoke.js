@@ -129,6 +129,107 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.locator('#retry-button').click(); await p.waitForTimeout(500);
   check('retry resets', await p.evaluate(() => window.game.run.wave === 1 && window.game.run.score === 0 && window.game.world.player.lives === 3));
 
+  // the incursion replaces the Stones
+  const inc = await p.evaluate(() => {
+    const g = window.game;
+    g.run.incursion = 0; g.run.waveLeaks = 0;
+    const leak = g.ENEMY_TYPES.sentinel.leak;
+    g.damageEnemy && null;
+    const out = { max: g.CONFIG.incursion.max, leak };
+    //something getting past brings the other Earth closer
+    g.run.incursion = leak; g.run.waveLeaks = 1;
+    out.afterLeak = g.run.incursion;
+    out.noRewardWithLeak = g.holdTheLine();
+    //and a clean wave pushes it back
+    g.run.waveLeaks = 0; g.run.incursion = 40;
+    out.reward = g.holdTheLine();
+    //stages make the fight faster
+    g.run.wave = 1; g.run.incursion = 0;
+    const base = g.speedMultiplier();
+    g.run.incursion = out.max * (g.CONFIG.incursion.stages[0] + 0.01);
+    out.stage = g.incursionStage();
+    out.faster = g.speedMultiplier() > base;
+    g.run.incursion = 0;
+    return out;
+  });
+  check('a leak brings the other Earth closer', inc.afterLeak === inc.leak, JSON.stringify(inc));
+  check('a wave with a leak in it pushes nothing back', inc.noRewardWithLeak === 0);
+  check('a clean wave pushes it back', inc.reward > 0);
+  check('and crossing a stage makes the fight faster', inc.stage === 1 && inc.faster);
+
+  // Sentinels that shoot back
+  const gun = await p.evaluate(async () => {
+    const g = window.game;
+    const def = g.ENEMY_TYPES.sentinelGunner;
+    g.enemies.length = 0; g.spawnQueue.length = 0; g.world.boss = null;
+    g.run.waveElapsed = 0;
+    //let the game build one, rather than hand-rolling an enemy object
+    g.spawnQueue.push({ type: 'sentinelGunner', at: 0 });
+    g.run.waveElapsed = 1;
+    await new Promise(r => setTimeout(r, 400));
+    const e = g.enemies.find(x => x.type === 'sentinelGunner');
+    if (!e) return { spawned: false };
+    //walk it onto its line and run it through a whole cycle
+    e.x = 1364 * def.holdAt;
+    const seen = new Set();
+    const t0 = performance.now();
+    while (performance.now() - t0 < 6000) {
+      if (e.beam) seen.add(e.beam.phase);
+      if (seen.size >= 3) break;
+      await new Promise(r => requestAnimationFrame(r));
+    }
+    return { spawned: true, phases: [...seen], holds: def.holdAt, shots: def.beamShots };
+  });
+  check('a gunner spawns and works its cycle',
+        gun.spawned && gun.phases.includes('charge') && gun.phases.includes('fire'),
+        JSON.stringify(gun));
+
+  // Doom fights in phases
+  const doom = await p.evaluate(() => {
+    const g = window.game;
+    g.enemies.length = 0; g.spawnQueue.length = 0;
+    g.run.wave = 10;
+    g.summonBoss(g.BOSSES.doom);
+    const b = g.world.boss;
+    b.entering = false;
+    const out = {};
+    g.updateBossPhase(0.016); out.opening = b.stage;
+    b.hp = b.maxHp * 0.6; g.updateBossPhase(0.016);
+    out.wardStage = b.stage; out.ward = b.ward;
+    const hp = b.hp;
+    g.damageBoss(5, 0, 0);
+    out.wardAbsorbs = b.hp === hp;
+    g.damageBoss(9999, 0, 0);
+    out.wardBreaks = b.ward === 0 && b.hp === hp;
+    out.staggered = b.stagger > 0;
+    b.hp = b.maxHp * 0.3; b.stagger = 0; g.updateBossPhase(0.016);
+    out.collapseStage = b.stage;
+    out.stopsSummoning = g.bossPhase().summonGap === 0;
+    const before = g.run.incursion;
+    for (let i = 0; i < 50; i++) g.updateBossPhase(0.02);
+    out.pulls = g.run.incursion > before;
+    g.world.boss = null; g.run.incursion = 0;
+    return out;
+  });
+  check('doom opens, wards, and collapses',
+        doom.opening === 0 && doom.wardStage === 1 && doom.collapseStage === 2, JSON.stringify(doom));
+  check('nothing reaches him through the ward', doom.wardAbsorbs && doom.wardBreaks);
+  check('breaking it leaves him reeling', doom.staggered);
+  check('the collapse stops summoning and pulls the incursion in',
+        doom.stopsSummoning && doom.pulls);
+
+  // touch controls exist and are wired
+  const tch = await p.evaluate(() => {
+    const g = window.game;
+    return {
+      hasButtons: !!document.getElementById('touch-ult') && !!document.getElementById('touch-pause'),
+      //hidden on a desktop pointer, which is what the smoke test runs as
+      hiddenOnDesktop: getComputedStyle(document.getElementById('touch-controls')).display === 'none',
+    };
+  });
+  check('touch controls exist', tch.hasButtons, JSON.stringify(tch));
+  check('and stay out of the way on a desktop pointer', tch.hiddenOnDesktop);
+
   // the coven stop and fight rather than walking off the edge
   const coven = await p.evaluate(async () => {
     const g = window.game;

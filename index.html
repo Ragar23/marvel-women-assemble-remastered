@@ -101,13 +101,15 @@
           <section class="panel">
             <h2>HOW TO PLAY</h2>
             <ul class="rules">
-              <li><b>Don't let them get pass you.</b> Anything that reaches the left it's close to the multiverse destruction.</li>
+              <li><b>Don't let them get past you.</b> Everything that reaches the left brings the other Earth closer. When the two meet, that is the run.</li>
+              <li><b>Hold a whole wave clean</b> and you push the incursion back. It is the only thing that does.</li>
               <li><b>You have 3 lives.</b> A hit costs one, with a moment of invulnerability after.</li>
               <li><b>Earn more.</b> Every 5,000 points is an extra life, up to five, and the odd drop is one outright.</li>
               <li><b>Chain kills</b> without letting anything through to build your multiplier.</li>
               <li><b>Grab the drops</b> for rapid fire, a shield, or a screen-clearing blast.</li>
               <li><b>Watch for the Latverian Witches.</b> Doom's coven. Each fights its own way, and none of them walk past you &mdash; they stop and hold until they are put down.</li>
-              <li><b>Every fifth wave is a boss.</b> A Sentinel Prime first. Doom himself at wave ten.</li>
+              <li><b>Every fifth wave is a boss.</b> A Sentinel Prime first. Doom himself at wave ten, in three phases &mdash; and the ward he raises has to come down before he does.</li>
+              <li><b>Gunners shoot back.</b> The line one draws while charging is exactly where its beam will land. Leave the lane.</li>
               <li><b>Thor picks his weapon.</b> Stormbreaker earths chained lightning; Mjolnir is thrown and comes back.</li>
             </ul>
           </section>
@@ -121,6 +123,7 @@
               <li><kbd>Esc</kbd><span>Pause</span></li>
               <li><kbd>M</kbd><span>Mute</span></li>
               <li><kbd>W</kbd><span>&hellip;the line-up arrives</span></li>
+              <li><kbd>Touch</kbd><span>Drag to fly &mdash; it fires while you hold</span></li>
             </ul>
           </section>
         </div>
@@ -134,6 +137,17 @@
     <section id="screen-game" class="screen">
       <div class="stage">
         <canvas id="myCanvas" width="1364" height="768"></canvas>
+
+        <!-- Shown only on a touch device. Movement is a drag anywhere on the
+             canvas, so the only things that need a button are the two keys a
+             phone has no way to press. -->
+        <div id="touch-controls" class="touch">
+          <button id="touch-pause" class="touch-btn" aria-label="Pause">II</button>
+          <button id="touch-ult" class="touch-btn touch-ult" aria-label="Ultimate">
+            ULT
+          </button>
+        </div>
+
         <div id="pause-overlay" class="overlay">
           <p class="overlay-title">PAUSED</p>
           <p class="overlay-sub">Press <kbd>Esc</kbd> to resume</p>

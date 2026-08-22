@@ -11,6 +11,8 @@ export function startWave(n) {
   run.wave = n;
   run.waveElapsed = 0;
   run.betweenWaves = false;
+  //Held clean, this wave pushes the incursion back when it clears
+  run.waveLeaks = 0;
   spawnQueue.length = 0;
 
   const isBoss = n % CONFIG.bossEvery === 0;
@@ -98,7 +100,11 @@ export function summonBoss(def) {
     hp: def.hp(run.wave),
     maxHp: def.hp(run.wave),
     entering: true,
-    phase: 0,
+    phase: 0, //bob timer, not the fight phase
+    stage: 0, //which of def.phases he is in
+    ward: 0,
+    wardMax: 0,
+    stagger: 0,
     fireTimer: 1.4,
     spawnTimer: 2.6,
     hitFlash: 0,

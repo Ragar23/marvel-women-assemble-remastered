@@ -5,11 +5,17 @@ import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScor
 import { draw } from "./render.js";
 import { update } from "./sim.js";
 import { fx, resetGame, run, sess } from "./state.js";
+import { clamp } from "./util.js";
 
 //=====================================================================//
 export function frame(now) {
   if (sess.state !== "playing") return;
-  const realDt = Math.min((now - sess.lastFrameTime) / 1000, 0.05);
+  //Floored at zero as well as capped. A negative delta — the clock stepping
+  //back, or a requestAnimationFrame timestamp that does not share an origin
+  //with performance.now() — makes `fx.hitStop -= realDt` count *up*, and the
+  //loop then draws for ever inside the hit-stop branch without once calling
+  //update(). The frame keeps painting, so it does not look like a hang.
+  const realDt = clamp((now - sess.lastFrameTime) / 1000, 0, 0.05);
   sess.lastFrameTime = now;
 
   //Hit-stop: hold the world still for a few frames, but keep drawing so the
@@ -70,8 +76,8 @@ export function endGame() {
   pauseOverlay.classList.remove("is-visible");
 
   gameOverTitle.innerText =
-    run.stonesHp <= 0
-      ? "DOOMSDAY HAS COME"
+    run.incursion >= CONFIG.incursion.max
+      ? "THE EARTHS HAVE MET"
       : "HELL ANSWERS TO ME";
   countUp(statScore, run.score);
   countUp(statWave, run.wave, 0.6);

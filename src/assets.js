@@ -13,6 +13,8 @@ const imageSources = {
   grootRight: "./images/babyGrootLeft.png",
   stanLee: "./images/StanLee.png",
   gaunlet: "./images/stones.png",
+  //The other Earth, drawn in the sky and on the meter
+  incursion: "./images/dd-incursion.png",
   blast: "./images/blast.png",
   lightning: "./images/lightning.png",
 
@@ -30,6 +32,7 @@ const imageSources = {
   ddTorchFlame3: "./images/dd-torch-flame3.png",
   ddDoom: "./images/dd-doom.png",
   ddSentinel: "./images/dd-sentinel.png",
+  ddSentinelGunner: "./images/dd-sentinel-gunner.png",
   ddWitchHex: "./images/dd-witch-hex.png",
   ddWitchVeil: "./images/dd-witch-veil.png",
   ddWitchWard: "./images/dd-witch-ward.png",

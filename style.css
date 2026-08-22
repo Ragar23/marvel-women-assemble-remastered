@@ -458,6 +458,72 @@ canvas {
   background: #05060a;
 }
 
+/* Touch controls. Hidden outside a touch device rather than shown at a
+   breakpoint: a small window on a laptop still has a keyboard, and a tablet
+   in landscape does not. body.is-touch is set in input.js from
+   (pointer: coarse). */
+.touch {
+  display: none;
+}
+
+body.is-touch .touch {
+  position: absolute;
+  right: 2%;
+  bottom: 4%;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.7rem;
+  /* The drag that flies the ship is on the canvas underneath, so anything
+     that is not a button has to let it through. */
+  pointer-events: none;
+}
+
+.touch-btn {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  background: rgba(8, 16, 11, 0.55);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  /* iOS shows a grey flash and a magnifier on a held button otherwise */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.touch-btn:active {
+  transform: scale(0.94);
+  background: rgba(74, 222, 128, 0.3);
+}
+
+.touch-ult {
+  width: 84px;
+  height: 84px;
+  font-size: 0.86rem;
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+/* The meter tells you when it is worth pressing */
+.touch-ult.is-ready {
+  border-color: var(--red-bright);
+  background: rgba(74, 222, 128, 0.26);
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
+}
+
+/* Dragging on the canvas must not scroll the page or pick a selection. */
+body.is-touch canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
