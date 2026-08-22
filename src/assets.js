@@ -22,7 +22,10 @@ const imageSources = {
   ddCyclops: "./images/dd-cyclops.png",
   ddShuri: "./images/dd-shuri.png",
   ddTorch: "./images/dd-torch.png",
-  ddTorchFlame: "./images/dd-torch-flame.png",
+  //Three frames of him alight, cycled while he is throwing fire
+  ddTorchFlame1: "./images/dd-torch-flame1.png",
+  ddTorchFlame2: "./images/dd-torch-flame2.png",
+  ddTorchFlame3: "./images/dd-torch-flame3.png",
   ddDoom: "./images/dd-doom.png",
   ddSentinel: "./images/dd-sentinel.png",
   ddWitchHex: "./images/dd-witch-hex.png",

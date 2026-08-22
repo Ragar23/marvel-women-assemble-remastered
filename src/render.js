@@ -1,11 +1,11 @@
-import { drawMissiles } from "./abilities.js";
+import { drawMissiles, ignitionBeam } from "./abilities.js";
 import { img } from "./assets.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { drawBanner, drawHud } from "./hud.js";
 import { drawMjolnir } from "./mjolnir.js";
 import { drawPunches, drawShield } from "./shield.js";
-import { boltArcs, bullets, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroes, particles, pops, powerUps, world } from "./state.js";
+import { boltArcs, bullets, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, particles, pops, powerUps, world } from "./state.js";
 import { clamp, drawSprite, rand } from "./util.js";
 
 //=====================================================================//
@@ -239,23 +239,37 @@ export function drawPowerUp(p) {
   ctx.textBaseline = "alphabetic";
 }
 
+//Johnny is only alight while he is actually throwing fire — held S, or
+//Flame On, which keeps him lit without it. Returns the frame to draw, or
+//null for any hero who has no flame frames at all.
+export function flameFrame(hero) {
+  if (!hero.flameFrames) return null;
+  if (world.player.firing <= 0 && world.player.worthy <= 0) return null;
+  const i = Math.floor(fx.elapsed * (hero.flameFps || 12)) % hero.flameFrames.length;
+  return hero.flameFrames[i];
+}
+
 export function drawPlayer() {
+  const hero = heroDef();
+  //Shuri's kinetic field and Johnny's flame both hold invulnerability open
+  //for as long as they burn, and both draw an effect of their own. Blinking
+  //through five and fifteen seconds of that would simply delete the hero
+  //from the screen, so only the moment after a hit blinks.
+  const aura =
+    world.player.panther > 0 || (hero.ult === "flameon" && world.player.worthy > 0);
   //Blink while invulnerable so the state is readable
-  const blinking = world.player.invuln > 0 && Math.floor(fx.elapsed * 14) % 2 === 0;
+  const blinking =
+    !aura && world.player.invuln > 0 && Math.floor(fx.elapsed * 14) % 2 === 0;
   if (!blinking) {
     const r = world.player.recoil;
     //Thor and Cap have their weapon in hand in the sprite, so while it is
     //in flight they need the empty-handed version instead.
-    const hero = heroDef();
     //Empty-handed whenever what he threw is still in the air — which now
     //includes Mjolnir, since Cap throws it too.
     const away = world.mjolnir || world.shield;
-    const worthy = world.player.worthy > 0 && hero.worthySprite;
     const sprite = away
       ? hero.emptySprite || hero.sprite
-      : worthy
-      ? hero.worthySprite
-      : hero.sprite;
+      : flameFrame(hero) || hero.sprite;
     drawSprite(
       img[sprite],
       world.player.x - r * CONFIG.anim.recoilPx,
@@ -270,6 +284,39 @@ export function drawPlayer() {
         flash: r * 0.4 + (world.player.ignition > 0 ? 0.7 : 0),
       }
     );
+  }
+  //Shuri keeps the kinetic charge for a few seconds after she spends it:
+  //counter-rotating arcs and a soft core, so it reads as a field she is
+  //standing inside rather than a ring drawn on top of her.
+  if (world.player.panther > 0) {
+    const cx = world.player.x + world.player.w / 2;
+    const cy = world.player.y + world.player.h / 2;
+    //Fade out over the last half-second instead of switching off
+    const fade = Math.min(1, world.player.panther * 2);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const grd = ctx.createRadialGradient(cx, cy, world.player.w * 0.2, cx, cy, world.player.w);
+    grd.addColorStop(0, `rgba(192,132,252,${0.3 * fade})`);
+    grd.addColorStop(0.6, `rgba(168,85,247,${0.16 * fade})`);
+    grd.addColorStop(1, "rgba(168,85,247,0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(cx, cy, world.player.w, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 4; i++) {
+      //Alternate the spin direction so the arcs cross rather than march
+      const dir = i % 2 ? -1 : 1;
+      const spin = fx.elapsed * (2.2 + i * 0.9) * dir;
+      ctx.strokeStyle = `rgba(${i % 2 ? "233,213,255" : "192,132,252"},${
+        (0.75 - i * 0.12) * fade
+      })`;
+      ctx.beginPath();
+      ctx.arc(cx, cy, world.player.w * (0.55 + i * 0.19), spin, spin + Math.PI * 1.1);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   //Wanda wears her hex while it is running
   if (world.player.hex > 0) {
@@ -355,19 +402,24 @@ export function drawBoltArcs() {
   }
 }
 
-//Captain Marvel's beam, drawn as stacked glows so it reads as heat.
+//Cyclops' overload, drawn as stacked glows so it reads as heat. It borrows
+//the beam box the hitbox uses, so what burns and what is drawn cannot drift
+//apart, and it burns in his own red rather than a colour of its own.
 export function drawIgnitionBeam() {
-  const y = world.player.y + world.player.h / 2;
+  const beam = ignitionBeam();
+  const y = beam.y + beam.h / 2;
   const fade = Math.min(1, world.player.ignition * 2);
-  const x = world.player.x + world.player.w;
+  const x = beam.x;
+  const tint = heroTint();
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
-  for (const [h, alpha] of [[world.player.h * 0.62, 0.25], [world.player.h * 0.3, 0.5], [10, 0.95]]) {
+  //Outer wash, mid body, and a white-hot core down the middle
+  for (const [h, alpha] of [[beam.h, 0.25], [beam.h * 0.5, 0.5], [beam.h * 0.14, 0.95]]) {
     ctx.globalAlpha = alpha * fade;
     const grd = ctx.createLinearGradient(x, 0, W, 0);
     grd.addColorStop(0, "#ffffff");
-    grd.addColorStop(0.25, "#f0b323");
-    grd.addColorStop(1, "rgba(240,179,35,0.15)");
+    grd.addColorStop(0.25, tint);
+    grd.addColorStop(1, hexToRgba(tint, 0.15));
     ctx.fillStyle = grd;
     ctx.fillRect(x, y - h / 2 + Math.sin(fx.elapsed * 40) * 2, W - x, h);
   }

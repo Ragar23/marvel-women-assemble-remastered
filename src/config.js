@@ -49,8 +49,19 @@ export const CONFIG = {
     chargePerBossHit: 1.2,
     hexDuration: 5, //Wanda: how long the world crawls
     hexSlow: 0.28, //enemies move at this fraction of their speed
-    ignitionDuration: 1.7, //Captain Marvel: beam uptime
+    //Cyclops' Optic Overload: the same beam he fires normally, opened all
+    //the way up. It is his one screen-clearing window, so it stays open
+    //long enough to sweep the lane rather than blinking past.
+    ignitionDuration: 3.4, //beam uptime
+    //Beam height as a fraction of his own, so it scales with the sprite.
+    //Wider than he is tall: this is the blast with the visor off.
+    ignitionWidth: 1.35,
     ignitionDamage: 999,
+    //Shuri: the kinetic charge she dumps out does not stop at the
+    //shockwave. It clings to her for these seconds afterwards, and burns
+    //anything that closes while it does.
+    pantherDuration: 5,
+    pantherContactDamage: 999,
     godBlastDamage: 7, //Thor: damage to everything on screen
     //Iron Man: a swarm that arcs out, then hunts
     missileCount: 18,
@@ -164,8 +175,13 @@ export const HEROES = {
     ultName: "KINETIC BLAST",
   },
   torch: {
+    //Johnny out of costume-mode: the blue suit, no flame. He only lights
+    //up when he actually throws fire.
     sprite: "ddTorch",
-    worthySprite: "ddTorchFlame",
+    //Held S cycles these, and so does Flame On — the difference is that
+    //the ultimate keeps him alight without the key held down.
+    flameFrames: ["ddTorchFlame1", "ddTorchFlame2", "ddTorchFlame3"],
+    flameFps: 14,
     bullet: "fire",
     bulletSize: [56, 48],
     damage: 2,

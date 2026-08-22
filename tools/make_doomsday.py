@@ -43,30 +43,9 @@ save(figure(suit=(52, 92, 190), build="athletic", hair=(84, 54, 34),
             boots=(112, 68, 40), gloves=(30, 32, 44), visor=(226, 52, 44),
             belt=YELLOW, detail=cyclops_kit, extra=optic), "dd-cyclops")
 
-def storm(d, im, c):
-    cx, hw = c["cx"], c["hw"]
-    x = cx + hw + 26
-    d.polygon([(x - 4, 26), (x + 18, 22), (x + 20, 50), (x - 4, 46)], fill=STEEL)
-    d.polygon([(x - 4, 26), (x + 18, 22), (x + 18, 30), (x - 4, 33)], fill=STEEL_LIT)
-    d.polygon([(x + 12, 46), (x + 20, 50), (x + 16, 60), (x + 9, 55)], fill=shade(STEEL, 0.66))
-    d.polygon([(x - 16, 40), (x - 2, 36), (x - 1, 44), (x - 15, 48)], fill=(104, 68, 42, 255))
-    for x0, y0, x1, y1 in ((x + 6, 12, x + 9, 21), (x + 22, 28, x + 25, 38),
-                           (x + 4, 60, x + 7, 70), (x - 10, 22, x - 7, 32)):
-        d.polygon([(x0, y0), (x1, y0 + 4), (x0 + 1, y1)], fill=(186, 243, 255, 255))
-
-def thor_kit(d, im, c):
-    cx, hw = c["cx"], c["hw"]
-    d.polygon([(cx - hw + 2, 38), (cx + hw - 2, 36), (cx + hw - 3, 43), (cx - hw + 2, 45)],
-              fill=(150, 158, 172, 255))                             # chest armour band
-    for gx in range(cx - hw + 4, cx + hw - 4, 6):
-        d.rectangle([(gx, 46), (gx + 2, 60)], fill=shade((84, 96, 118), 0.75))
-
-save(figure(suit=(84, 96, 118), build="heavy", hair=(228, 202, 134), hairStyle="short",
-            boots=(52, 54, 68), gloves=(64, 68, 86), cape=(150, 40, 46),
-            belt=(150, 158, 172), detail=thor_kit, extra=storm), "dd-thor")
-save(figure(suit=(84, 96, 118), build="heavy", hair=(228, 202, 134), hairStyle="short",
-            boots=(52, 54, 68), gloves=(64, 68, 86), cape=(150, 40, 46),
-            belt=(150, 158, 172), detail=thor_kit), "dd-thor-empty")
+#Thor lives in tools/make_hires.py now, drawn on a 27x34 logical grid and
+#upscaled, so that he stands next to the hand-drawn Cyclops without looking
+#like a thumbnail of himself. The 104x96 builder below could not get there.
 
 def shuri_kit(d, im, c):
     cx, hw = c["cx"], c["hw"]
@@ -86,28 +65,9 @@ save(figure(suit=(46, 42, 62), build="slim", helmet=(38, 34, 54), skin=(92, 62, 
             boots=(34, 30, 48), gloves=(126, 74, 196), visor=(214, 176, 255),
             belt=(126, 74, 196), detail=shuri_kit, extra=shuri_claws), "dd-shuri")
 
-def torch_kit(d, im, c):
-    cx, hw = c["cx"], c["hw"]
-    d.ellipse([(cx - 7, 42), (cx + 7, 56)], fill=(28, 28, 34, 255))  # the 4
-    d.rectangle([(cx - 3, 45), (cx - 1, 53)], fill=(255, 236, 150, 255))
-    d.rectangle([(cx - 3, 49), (cx + 4, 51)], fill=(255, 236, 150, 255))
-    d.rectangle([(cx + 2, 45), (cx + 4, 53)], fill=(255, 236, 150, 255))
-
-def flame(d, im, c):
-    cx, hw = c["cx"], c["hw"]
-    for r, col in ((17, (255, 96, 20, 190)), (12, (255, 168, 42, 225)), (7, (255, 240, 160, 255))):
-        d.ellipse([(cx + hw + 25 - r, 46 - r), (cx + hw + 25 + r, 46 + r)], fill=col)
-    for x, y, h in ((16, 6, 14), (30, 0, 18), (44, 4, 16), (8, 22, 12)):
-        d.polygon([(x, y + h), (x + 6, y), (x + 12, y + h)], fill=(255, 150, 40, 220))
-        d.polygon([(x + 2, y + h), (x + 6, y + 6), (x + 10, y + h)], fill=(255, 236, 150, 235))
-
-save(figure(suit=(238, 122, 26), build="slim", hair=(255, 186, 70), hairStyle="swept",
-            skin=(255, 208, 130), boots=(214, 88, 18), gloves=(255, 214, 120),
-            belt=(28, 28, 34), detail=torch_kit, extra=flame), "dd-torch")
-save(figure(suit=(255, 172, 44), build="slim", hair=(255, 226, 130), hairStyle="swept",
-            skin=(255, 232, 170), boots=(255, 136, 24), gloves=(255, 240, 170),
-            belt=(255, 200, 90), detail=torch_kit, extra=flame), "dd-torch-flame")
-
+#The Human Torch is in tools/make_hires.py for the same reason, and because
+#he now needs four frames rather than two: the blue suit, and three of him
+#alight that the game cycles while he is throwing fire.
 
 # ---------------------------------------------------------------- Doctor Doom
 # Drawn front-on rather than through the shared side-facing builder: he is

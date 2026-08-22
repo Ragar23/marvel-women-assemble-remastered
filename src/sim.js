@@ -1,4 +1,4 @@
-import { updateIgnition, updateMissiles } from "./abilities.js";
+import { updateIgnition, updateMissiles, updatePanther } from "./abilities.js";
 import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
@@ -86,8 +86,10 @@ export function updatePlayer(dt) {
   world.player.shield = Math.max(0, world.player.shield - dt);
   world.player.rapid = Math.max(0, world.player.rapid - dt);
   world.player.hex = Math.max(0, world.player.hex - dt);
+  world.player.firing = Math.max(0, world.player.firing - dt);
   world.player.cooldown -= dt;
   updateIgnition(dt);
+  updatePanther(dt);
 
   if (heldKeys.has("KeyS") && world.player.cooldown <= 0) fire();
 }
@@ -122,6 +124,10 @@ export function fire() {
   world.player.cooldown =
     hero.cooldown * (world.player.rapid > 0 ? CONFIG.powerUp.rapidFactor : 1);
   world.player.recoil = 1;
+  //Held down, this never lapses, so Johnny stays alight for as long as the
+  //key is. It is a shade longer than his cooldown so the frames do not
+  //stutter out between shots.
+  world.player.firing = Math.max(hero.cooldown * 1.6, 0.2);
   //Most heroes fire a single shot down the centre; Iron Man has two palms.
   const barrels = hero.barrels || [0];
   for (const offset of barrels) {

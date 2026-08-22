@@ -24,5 +24,19 @@
 # a fraction of his height measured from the visor in the art. Replace
 # his sprite and that number needs re-measuring, or the beam leaves his
 # chin instead of his eyes.
+#
+# A second caveat, for sprites the game swaps between mid-frame — Thor with
+# and without Stormbreaker, and Johnny's four torch frames. Those are drawn
+# at the *player's* width and height whichever one is showing, so a set
+# whose members have different aspect ratios visibly stretches on the swap.
+# Replace one and you have to replace the whole set at a matching shape.
+# tools/make_hires.py crops each set to one shared box for this reason.
+#
+# Shuri is a special case: images/src/dd-shuri.png is the drawing as it
+# arrived, and tools/tint_shuri.py repaints it into her violet suit on the
+# way to images/dd-shuri.png. Edit the one under src/ and re-run the tool.
 
 dd-cyclops
+dd-beast
+dd-mystique
+dd-shuri

@@ -139,7 +139,9 @@ export function resetGame() {
     worthy: 0, //Cap: seconds holding Mjolnir
     throwUp: false, //which way his next throw leaves his hand
     punchHand: 0, //alternates, so the swings read as a combo
-    ignition: 0, //Captain Marvel: seconds of beam remaining
+    ignition: 0, //Cyclops: seconds of optic overload remaining
+    panther: 0, //Shuri: seconds the kinetic charge clings to her
+    firing: 0, //seconds since the last shot, so Johnny can burn while he shoots
   };
 
   bullets.length = 0;

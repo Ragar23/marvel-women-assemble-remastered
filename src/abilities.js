@@ -40,12 +40,16 @@ export function fireUlt() {
     }
     burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#e0457b", 60, 460);
   } else if (kind === "ignition") {
+    //Red, because it is his optic blast and nothing else — the overload
+    //only widens what the visor already does.
     world.player.ignition = CONFIG.ult.ignitionDuration;
-    screenFlash("#f0b323", 0.38);
+    screenFlash(heroTint(), 0.38);
     addShake(16);
-    burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, "#f0b323", 50, 420);
+    burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2, heroTint(), 50, 420);
   } else if (kind === "pantherblast") {
-    //Shuri: kinetic energy dumped back out in one purple shockwave
+    //Shuri: kinetic energy dumped back out in one purple shockwave — and
+    //what the suit cannot spend in that instant stays wrapped around her.
+    world.player.panther = CONFIG.ult.pantherDuration;
     screenFlash("#c084fc", 0.45);
     addShake(20);
     for (let i = 0; i < 5; i++) {
@@ -239,19 +243,26 @@ export function godBlast() {
 }
 
 //The lane-clearing beam is a moving hitbox, so it needs updating per frame.
+//It is the same beam the visor fires normally, so it is centred on the
+//visor rather than the chest and it burns in his own colour.
+export function ignitionBeam() {
+  const h = world.player.h * CONFIG.ult.ignitionWidth;
+  return {
+    x: world.player.x + world.player.w,
+    y: world.player.y + world.player.h * (0.5 + (heroDef().barrels || [0])[0]) - h / 2,
+    w: W,
+    h,
+  };
+}
+
 export function updateIgnition(dt) {
   if (world.player.ignition <= 0) return;
   world.player.ignition = Math.max(0, world.player.ignition - dt);
 
-  const beam = {
-    x: world.player.x + world.player.w,
-    y: world.player.y + world.player.h * 0.18,
-    w: W,
-    h: world.player.h * 0.64,
-  };
+  const beam = ignitionBeam();
   for (const enemy of [...enemies]) {
     if (!overlaps(enemy, beam)) continue;
-    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#f0b323", 14, 300);
+    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, heroTint(), 14, 300);
     damageEnemy(
       enemy,
       CONFIG.ult.ignitionDamage,
@@ -261,6 +272,52 @@ export function updateIgnition(dt) {
   }
   sweep(enemies, (e) => e.hp > 0);
   if (world.boss && overlaps(world.boss, beam)) damageBoss(dt * 26, world.boss.x, world.boss.y + world.boss.h / 2);
+}
+
+//Shuri's leftover charge. It shields her the way Johnny's flame does —
+//nothing survives closing on her while it is lit — and sheds sparks so the
+//field reads as energy rather than a drawn circle.
+export function updatePanther(dt) {
+  if (world.player.panther <= 0) return;
+  world.player.panther = Math.max(0, world.player.panther - dt);
+
+  const cx = world.player.x + world.player.w / 2;
+  const cy = world.player.y + world.player.h / 2;
+  world.player.invuln = Math.max(world.player.invuln, 0.1);
+
+  const field = {
+    x: cx - world.player.w * 0.95,
+    y: cy - world.player.h * 0.95,
+    w: world.player.w * 1.9,
+    h: world.player.h * 1.9,
+  };
+  for (const enemy of [...enemies]) {
+    if (!overlaps(enemy, field)) continue;
+    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#c084fc", 16, 320);
+    damageEnemy(
+      enemy,
+      CONFIG.ult.pantherContactDamage,
+      enemy.x + enemy.w / 2,
+      enemy.y + enemy.h / 2
+    );
+  }
+  sweep(enemies, (e) => e.hp > 0);
+
+  //A slow drip of sparks, not a burst per frame, or the field turns solid
+  if (Math.random() < dt * 34) {
+    const a = rand(0, Math.PI * 2);
+    const r = world.player.w * 0.75;
+    particles.push({
+      x: cx + Math.cos(a) * r,
+      y: cy + Math.sin(a) * r,
+      vx: Math.cos(a) * rand(40, 130),
+      vy: Math.sin(a) * rand(40, 130),
+      life: 0.5,
+      maxLife: 0.5,
+      size: rand(2, 5),
+      color: Math.random() < 0.5 ? "#c084fc" : "#e9d5ff",
+    });
+  }
 }
 
 //=====================================================================//
