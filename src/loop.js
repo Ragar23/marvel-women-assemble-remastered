@@ -1,10 +1,11 @@
 import { audio, playMusic } from "./audio.js";
 import { countUp } from "./boot.js";
 import { CONFIG } from "./config.js";
-import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
+import { gameOverTitle, leaderboard, leaderboardList, nameForm, nameInput, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
 import { draw } from "./render.js";
 import { update } from "./sim.js";
 import { isTouch, releaseAllInput } from "./input.js";
+import { addScore, loadScores, qualifies } from "./scores.js";
 import { fx, resetGame, run, sess } from "./state.js";
 import { clamp } from "./util.js";
 
@@ -82,9 +83,14 @@ export function startRun() {
 function markPauseButton(paused) {
   if (!touchPauseBtn) return;
   touchPauseBtn.classList.toggle("is-paused", paused);
-  touchPauseBtn.innerHTML = paused
-    ? "<b>&#9654;</b><small>resume</small>"
-    : "<b>&#10073;&#10073;</b><small>pause</small>";
+  //Built rather than assigned as markup. Nothing in this file writes HTML
+  //from a string — the leaderboard puts a name someone typed on the screen,
+  //and the safest rule is the one with no exceptions to remember.
+  const glyph = document.createElement("b");
+  glyph.textContent = paused ? "\u25B6" : "\u2759\u2759";
+  const label = document.createElement("small");
+  label.textContent = paused ? "resume" : "pause";
+  touchPauseBtn.replaceChildren(glyph, label);
 }
 
 export function togglePause() {
@@ -155,6 +161,60 @@ export function endGame() {
   showScreen("gameover");
   leaveFullscreen();
   audio.pause();
+  presentBoard();
+}
+
+//=====================================================================//
+//  THE LEADERBOARD, on the screen you land on
+//=====================================================================//
+function drawBoard(rows, place = -1) {
+  if (!leaderboard || !leaderboardList) return;
+  leaderboard.hidden = rows.length === 0;
+  leaderboardList.replaceChildren();
+  rows.forEach((row, i) => {
+    const li = document.createElement("li");
+    li.className = i === place ? "is-yours" : "";
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = row.name;
+    const what = document.createElement("span");
+    what.className = "what";
+    what.textContent = row.wave ? `WAVE ${row.wave}` : "";
+    const points = document.createElement("b");
+    points.textContent = row.score.toLocaleString("en-GB");
+    li.append(who, what, points);
+    leaderboardList.append(li);
+  });
+}
+
+//Ask for a name only when the run actually earned a place.
+function presentBoard() {
+  if (!nameForm) return;
+  const earned = qualifies(run.score);
+  nameForm.hidden = !earned;
+  drawBoard(loadScores());
+  if (!earned) return;
+  //Offer back whatever they used last time, so a regular does not retype it
+  nameInput.value = window.localStorage.getItem(LAST_NAME) || "";
+  //Focusing on a phone throws the keyboard up over the screen; let them tap.
+  if (!isTouch) nameInput.focus();
+}
+
+const LAST_NAME = "doomsday.lastName";
+
+if (nameForm) {
+  nameForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = nameInput.value.trim();
+    const { rows, place } = addScore(name, run.score, run.wave, sess.chosenHero);
+    try {
+      window.localStorage.setItem(LAST_NAME, name);
+    } catch {
+      /* not being able to remember the name costs nothing */
+    }
+    nameForm.hidden = true;
+    drawBoard(rows, place);
+  });
 }
 
 //=====================================================================//

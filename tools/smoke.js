@@ -33,19 +33,25 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   }));
   check('countdown is ticking', await p.evaluate(() => document.querySelector('#countdown [data-unit="seconds"]').textContent !== '00'));
   check('all four heroes on the menu', await p.locator('.hero-card').count() === 4);
-  //The menu is what stands between opening the page and playing, so it is
-  //kept short: four lines of rules, the rest behind a drawer that starts shut.
-  check('the rules panel is short by default',
-        await p.locator('.panel .rules').first().locator('li').count() <= 5);
-  check('and the detail is a drawer that starts shut',
-        await p.locator('.notes').count() === 1 &&
-        await p.locator('.notes[open]').count() === 0);
-  check('the drawer opens', await p.evaluate(async () => {
-    const d = document.querySelector('.notes');
-    d.querySelector('summary').click();
-    await new Promise(r => setTimeout(r, 100));
-    return d.open && d.querySelectorAll('li').length >= 5;
-  }));
+  //The whole menu is one screen: the hero, the rules and the controls all
+  //visible at once, with nothing to scroll past to reach START.
+  const menuFits = await p.evaluate(() => {
+    const de = document.documentElement;
+    const start = document.getElementById('start-button').getBoundingClientRect();
+    return {
+      contentH: de.scrollHeight, viewportH: de.clientHeight,
+      contentW: de.scrollWidth, viewportW: de.clientWidth,
+      startBottom: Math.round(start.bottom),
+      rules: document.querySelectorAll('.rules li').length,
+      keys: document.querySelectorAll('.keys li').length,
+    };
+  });
+  check('the menu is one screen with no scroll',
+        menuFits.contentH <= menuFits.viewportH + 1 &&
+        menuFits.contentW <= menuFits.viewportW + 1 &&
+        menuFits.startBottom <= menuFits.viewportH + 1, JSON.stringify(menuFits));
+  check('with the rules and the controls both on it',
+        menuFits.rules >= 4 && menuFits.keys === 7, JSON.stringify(menuFits));
 
   // Thor is the only one carrying a choice, so his panel opens and the
   // others close it again.
@@ -239,7 +245,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     //Turn them on the way a phone would, then use them.
     document.body.classList.add('is-touch');
     await new Promise(r => setTimeout(r, 60));
-    const pad = document.getElementById('touch-pad');
+    const stick = document.getElementById('touch-pad');
     const fire = document.querySelector('.touch-fire');
     const ult = document.getElementById('touch-ult');
     const w = document.querySelector('.touch-w');
@@ -262,29 +268,29 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     //has its own space rather than covering the thing you are looking at.
     const hits = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
     const cvR = cv.getBoundingClientRect();
-    out.clearOfPicture = [pad, fire, ult, w, pause, document.getElementById('mute-button')]
+    out.clearOfPicture = [stick, fire, ult, w, pause, document.getElementById('mute-button')]
       .every(el => !hits(el.getBoundingClientRect(), cvR));
 
     //All four directions, one at a time
     out.arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].every((code, i) => {
       const spot = [[0.5, 0.06], [0.5, 0.94], [0.06, 0.5], [0.94, 0.5]][i];
       const p = id++;
-      at(pad, spot[0], spot[1], 'pointerdown', p);
+      at(stick, spot[0], spot[1], 'pointerdown', p);
       const held = g.heldKeys.has(code) && g.heldKeys.size === 1;
-      at(pad, spot[0], spot[1], 'pointerup', p);
+      at(stick, spot[0], spot[1], 'pointerup', p);
       return held && g.heldKeys.size === 0;
     });
 
     const p1 = id++;
-    at(pad, 0.06, 0.5, 'pointerdown', p1);
+    at(stick, 0.06, 0.5, 'pointerdown', p1);
     out.padHolds = g.heldKeys.has('ArrowLeft');
     const x0 = g.world.player.x; step();
     out.flies = g.world.player.x < x0 - 20;
-    at(pad, 0.94, 0.06, 'pointermove', p1);
+    at(stick, 0.94, 0.06, 'pointermove', p1);
     out.diagonal = g.heldKeys.has('ArrowUp') && g.heldKeys.has('ArrowRight');
-    at(pad, 0.5, 0.5, 'pointermove', p1);
+    at(stick, 0.5, 0.5, 'pointermove', p1);
     out.deadZone = g.heldKeys.size === 0;
-    at(pad, 0.5, 0.5, 'pointerup', p1);
+    at(stick, 0.5, 0.5, 'pointerup', p1);
     out.released = g.heldKeys.size === 0;
 
     const p2 = id++;
@@ -331,7 +337,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('touch controls stay out of the way on a desktop pointer', tch.hiddenOnDesktop);
   check('no control sits on the picture', tch.clearOfPicture, JSON.stringify(tch));
   check('all four arrows hold their own key', tch.arrows);
-  check('the pad holds arrows, flies him, does diagonals and a dead zone',
+  check('the stick holds arrows, flies him, does diagonals and a dead zone',
         tch.padHolds && tch.flies && tch.diagonal && tch.deadZone && tch.released, JSON.stringify(tch));
   check('FIRE holds, shoots, and lets go', tch.fireHolds && tch.shoots && tch.fireStops);
   check('ULT lights when full and spends the meter', tch.ultLights && tch.ultSpends);
@@ -510,6 +516,45 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('crossing a milestone awards a life', lives.onCrossing === lives.start + 1);
   check('lives stop at the cap', lives.capped === lives.max);
   check('no 1UP drops at the cap', !lives.kindsAtCap.includes('life'), lives.kindsAtCap.join(','));
+
+  // the leaderboard
+  const board = await p.evaluate(async () => {
+    const g = window.game;
+    localStorage.removeItem('doomsday.scores.v1');
+    if (g.sess.state !== 'playing') document.getElementById('start-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    const out = {};
+    g.run.score = 12345; g.run.wave = 7; g.world.player.lives = 0;
+    for (let i = 0; i < 3; i++) g.update(0.05);
+    await new Promise(r => setTimeout(r, 300));
+    const form = document.getElementById('name-form');
+    out.asked = !form.hidden;
+    document.getElementById('name-input').value = 'SMOKE';
+    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await new Promise(r => setTimeout(r, 150));
+    const rows = [...document.querySelectorAll('#leaderboard-list li')];
+    out.onBoard = rows.length === 1 && /SMOKE/.test(rows[0].textContent);
+    out.marked = rows[0] && rows[0].classList.contains('is-yours');
+    out.formHidden = form.hidden;
+    out.stored = JSON.parse(localStorage.getItem('doomsday.scores.v1') || '[]')[0];
+    // a poor run is not asked, but still sees the board
+    document.getElementById('retry-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    g.run.score = 10; g.run.wave = 1; g.world.player.lives = 0;
+    for (let i = 0; i < 3; i++) g.update(0.05);
+    await new Promise(r => setTimeout(r, 300));
+    out.poorNotAsked = document.getElementById('name-form').hidden;
+    out.poorSeesBoard = !document.getElementById('leaderboard').hidden;
+    localStorage.removeItem('doomsday.scores.v1');
+    return out;
+  });
+  check('a run worth a place is asked for a name', board.asked, JSON.stringify(board));
+  check('the name and score land on the board, marked as theirs',
+        board.onBoard && board.marked && board.formHidden);
+  check('and are written to storage',
+        board.stored && board.stored.name === 'SMOKE' && board.stored.score === 12345);
+  check('a poor run is not asked, but still sees the board',
+        board.poorNotAsked && board.poorSeesBoard);
 
   console.log('\nERRORS:', errs.length ? errs.join('\n  ') : 'none');
   console.log(fail.length ? `\n${fail.length} CHECK(S) FAILED` : '\nALL CHECKS PASSED');

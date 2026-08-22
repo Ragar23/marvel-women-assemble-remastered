@@ -10,71 +10,30 @@ export const heldKeys = new Set();
 //Drop every key and un-light every control.
 //
 //A finger only releases a key when the browser delivers pointerup to the
-//button it went down on — and when a run ends, the controls are hidden by
+//control it went down on — and when a run ends, the controls are hidden by
 //the screen change, which releases the pointer capture and sends that
 //pointerup somewhere else. The key stayed in the set, so the next run began
-//with FIRE already down and the hero shooting on his own, or an arrow held
-//and the hero drifting. Runs start and end through here instead.
+//with FIRE already down and the hero shooting on his own. Runs start and end
+//through here instead.
 //
-//Declared as a function rather than a const so loop.js can import it
-//without the two modules' evaluation order mattering.
+//Declared as a function rather than a const so loop.js can import it without
+//the two modules' evaluation order mattering.
 export function releaseAllInput() {
   heldKeys.clear();
-  //=====================================================================//
-//  KEEPING THE PAGE STILL WHILE YOU PLAY
-//
-//  Playing needs two thumbs — one on the pad, one on FIRE — and two fingers
-//  on a screen is precisely what a browser reads as a pinch. touch-action
-//  does not help: iOS Safari ignores it for page zoom outright, and a pinch
-//  spanning two separate elements is a page gesture either way. So the
-//  gestures are refused directly, and only while a run is on screen: the
-//  menu is a wall of small text and pinching it is the only way some people
-//  can read it.
-//=====================================================================//
-const inPlay = () => document.body.dataset.screen === "game";
-
-//Safari's own pinch events. Nothing else fires these, and preventing them is
-//the only thing that stops the page scaling under two thumbs.
-for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
-  document.addEventListener(
-    type,
-    (event) => {
-      if (inPlay()) event.preventDefault();
-    },
-    { passive: false }
-  );
-}
-
-//And the general case: any second finger dragging while a run is on.
-document.addEventListener(
-  "touchmove",
-  (event) => {
-    if (inPlay() && event.touches.length > 1) event.preventDefault();
-  },
-  { passive: false }
-);
-
-//Double-tap-to-zoom. Two quick taps on FIRE is an ordinary thing to do.
-let lastTouchEnd = 0;
-document.addEventListener(
-  "touchend",
-  (event) => {
-    if (!inPlay()) return;
-    const now = performance.now();
-    if (now - lastTouchEnd < 320) event.preventDefault();
-    lastTouchEnd = now;
-  },
-  { passive: false }
-);
-
-//=====================================================================//
-const pad = document.getElementById("touch-pad");
-  if (pad) pad.classList.remove("is-up", "is-down", "is-left", "is-right");
+  const stick = document.getElementById("touch-pad");
+  if (stick) {
+    stick.classList.remove("is-held");
+    stick.style.setProperty("--dx", 0);
+    stick.style.setProperty("--dy", 0);
+  }
   for (const btn of document.querySelectorAll(".touch-btn")) {
     btn.classList.remove("is-down");
   }
 }
 
+//=====================================================================//
+//  KEYBOARD
+//=====================================================================//
 document.addEventListener("keydown", (event) => {
   const movement = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
   if (movement.includes(event.code) || event.code === "KeyS") {
@@ -119,19 +78,10 @@ document.addEventListener("visibilitychange", () => {
 });
 
 //=====================================================================//
-//  THE EASTER EGG
-
-//=====================================================================//
 //  TOUCH
 //
 //  Every control here ends in heldKeys or in the same handler the keyboard
-//  calls, so there is one input path in the game rather than two. The pad
-//  looks like a d-pad and behaves like a stick: the direction comes from how
-//  far off centre the thumb is, which gives diagonals for free and means
-//  sliding from one arm to the next never drops the input.
-//
-//  The drag-to-fly this replaces put movement on the same surface as the
-//  picture, which meant every shot you fired also flew you somewhere.
+//  calls, so there is one input path in the game rather than two.
 //=====================================================================//
 export const isTouch =
   typeof window.matchMedia === "function" &&
@@ -139,51 +89,16 @@ export const isTouch =
 
 if (isTouch) document.body.classList.add("is-touch");
 
-const ARROWS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-
-//Inside this fraction of the pad's radius counts as centre, so resting a
-//thumb on it does not creep.
-const DEAD_ZONE = 0.24;
-//And an axis has to carry this much of the push before it counts, which is
-//what stops a straight push registering as a diagonal.
-const AXIS_BITE = 0.38;
-
-function releaseArrows(pad) {
-  for (const code of ARROWS) heldKeys.delete(code);
-  pad.classList.remove("is-up", "is-down", "is-left", "is-right");
-}
-
-function aimPad(pad, event) {
-  const rect = pad.getBoundingClientRect();
-  const dx = event.clientX - (rect.left + rect.width / 2);
-  const dy = event.clientY - (rect.top + rect.height / 2);
-  const radius = rect.width / 2;
-  const dist = Math.hypot(dx, dy);
-
-  releaseArrows(pad);
-  if (dist < radius * DEAD_ZONE) return;
-
-  const held = [];
-  if (dy < -dist * AXIS_BITE) held.push(["ArrowUp", "is-up"]);
-  if (dy > dist * AXIS_BITE) held.push(["ArrowDown", "is-down"]);
-  if (dx < -dist * AXIS_BITE) held.push(["ArrowLeft", "is-left"]);
-  if (dx > dist * AXIS_BITE) held.push(["ArrowRight", "is-right"]);
-  for (const [code, cls] of held) {
-    heldKeys.add(code);
-    pad.classList.add(cls);
-  }
-}
-
 //=====================================================================//
 //  KEEPING THE PAGE STILL WHILE YOU PLAY
 //
-//  Playing needs two thumbs — one on the pad, one on FIRE — and two fingers
-//  on a screen is precisely what a browser reads as a pinch. touch-action
-//  does not help: iOS Safari ignores it for page zoom outright, and a pinch
-//  spanning two separate elements is a page gesture either way. So the
-//  gestures are refused directly, and only while a run is on screen: the
-//  menu is a wall of small text and pinching it is the only way some people
-//  can read it.
+//  Playing needs two thumbs — one on the stick, one on FIRE — and two
+//  fingers on a screen is precisely what a browser reads as a pinch.
+//  touch-action does not help: iOS Safari ignores it for page zoom outright,
+//  and a pinch spanning two separate elements is a page gesture either way.
+//  So the gestures are refused directly, and only while a run is on screen:
+//  the menu is small text and pinching it is the only way some people can
+//  read it.
 //=====================================================================//
 const inPlay = () => document.body.dataset.screen === "game";
 
@@ -222,43 +137,93 @@ document.addEventListener(
 );
 
 //=====================================================================//
-const pad = document.getElementById("touch-pad");
-if (pad) {
-  let padPointer = null;
-  pad.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    padPointer = event.pointerId;
-    //So a thumb that slides off the pad still steers, instead of sticking on
-    //whatever direction it happened to leave by.
-    capture(pad, event);
-    aimPad(pad, event);
-  });
-  pad.addEventListener("pointermove", (event) => {
-    if (event.pointerId !== padPointer) return;
-    event.preventDefault();
-    aimPad(pad, event);
-  });
-  const liftPad = (event) => {
-    if (event && event.pointerId !== padPointer) return;
-    padPointer = null;
-    releaseArrows(pad);
-  };
-  pad.addEventListener("pointerup", liftPad);
-  pad.addEventListener("pointercancel", liftPad);
-  //Capture is lost when the pad is hidden out from under the thumb
-  pad.addEventListener("lostpointercapture", () => liftPad());
+//  THE STICK
+//
+//  It was four arrow caps, which meant four small targets and eight
+//  directions. This is one target the size of the whole circle — anywhere in
+//  it steers — and the knob follows the thumb so where you are pushing is
+//  visible. It still ends in the arrow keys, so nothing downstream knows a
+//  touchscreen exists.
+//=====================================================================//
+const ARROWS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+
+//Inside this fraction of the radius counts as centre, so a thumb resting on
+//it does not creep.
+const DEAD_ZONE = 0.22;
+//And an axis has to carry this much of the push before it counts, which is
+//what stops a straight push registering as a diagonal.
+const AXIS_BITE = 0.38;
+//How far the knob may leave the middle, as a fraction of the radius.
+const KNOB_TRAVEL = 0.62;
+
+function releaseStick(stick) {
+  for (const code of ARROWS) heldKeys.delete(code);
+  stick.classList.remove("is-held");
+  stick.style.setProperty("--dx", 0);
+  stick.style.setProperty("--dy", 0);
+}
+
+function aimStick(stick, event) {
+  const rect = stick.getBoundingClientRect();
+  const radius = rect.width / 2;
+  const dx = event.clientX - (rect.left + radius);
+  const dy = event.clientY - (rect.top + radius);
+  const dist = Math.hypot(dx, dy);
+
+  //The knob follows the thumb but stops at the ring
+  const reach = Math.min(dist, radius * KNOB_TRAVEL);
+  const scale = dist > 0 ? reach / dist : 0;
+  stick.style.setProperty("--dx", (dx * scale).toFixed(1));
+  stick.style.setProperty("--dy", (dy * scale).toFixed(1));
+  stick.classList.add("is-held");
+
+  for (const code of ARROWS) heldKeys.delete(code);
+  if (dist < radius * DEAD_ZONE) return;
+  if (dy < -dist * AXIS_BITE) heldKeys.add("ArrowUp");
+  if (dy > dist * AXIS_BITE) heldKeys.add("ArrowDown");
+  if (dx < -dist * AXIS_BITE) heldKeys.add("ArrowLeft");
+  if (dx > dist * AXIS_BITE) heldKeys.add("ArrowRight");
 }
 
 //Capturing keeps a thumb that slides off the control still driving it. It
 //throws if the pointer is not active — a synthetic event, or an element that
-//has left the document — and an uncaught throw here would abort the rest of
-//the handler and leave the control dead, so it is never allowed to matter.
+//has left the document — and an uncaught throw would abort the rest of the
+//handler and leave the control dead, so it is never allowed to matter.
 function capture(el, event) {
   try {
     el.setPointerCapture(event.pointerId);
   } catch {
     /* not capturable; the control still works, it just stops at the edge */
   }
+}
+
+const stick = document.getElementById("touch-pad");
+if (stick) {
+  let stickPointer = null;
+
+  stick.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    stickPointer = event.pointerId;
+    capture(stick, event);
+    aimStick(stick, event);
+  });
+
+  stick.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== stickPointer) return;
+    event.preventDefault();
+    aimStick(stick, event);
+  });
+
+  const liftStick = (event) => {
+    if (event && event.pointerId !== stickPointer) return;
+    stickPointer = null;
+    releaseStick(stick);
+  };
+
+  stick.addEventListener("pointerup", liftStick);
+  stick.addEventListener("pointercancel", liftStick);
+  //Capture is lost when the stick is hidden out from under the thumb
+  stick.addEventListener("lostpointercapture", () => liftStick());
 }
 
 //The buttons are declared in the markup: data-hold is a key held for as long
@@ -284,9 +249,10 @@ for (const btn of document.querySelectorAll("[data-hold], [data-press]")) {
     btn.classList.remove("is-down");
     if (hold) heldKeys.delete(hold);
   };
+
   btn.addEventListener("pointerup", lift);
   btn.addEventListener("pointercancel", lift);
-  //A pointer that never comes back — the button hidden under the finger by
-  //a screen change, the tab going away — is caught by releaseAllInput().
+  //A pointer that never comes back — the button hidden under the finger by a
+  //screen change, the tab going away — is caught by releaseAllInput().
   btn.addEventListener("lostpointercapture", lift);
 }

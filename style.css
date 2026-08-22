@@ -115,6 +115,17 @@ body::after {
   animation: fade-in 0.45s ease both;
 }
 
+/* The menu is exactly one screen and never scrolls, so it needs a definite
+   height for the layout inside it to resolve against — a percentage height
+   on .menu-inner has nothing to measure otherwise. */
+#screen-menu.is-active {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -123,39 +134,39 @@ body::after {
 }
 
 /*----------------- Menu -----------------*/
+/* One screen, no scroll. The menu asks for one decision — which hero — and
+   the rules and the controls are reference beside it, not a column of prose
+   under it. Width pays for the height: three cards abreast on anything wide,
+   and on a phone the heroes take a row with the other two sharing the next.
+   Every size is a clamp against vh, so a short screen compresses instead of
+   overflowing. */
 .menu-inner {
-  width: min(1500px, 100%);
+  width: min(1180px, 100%);
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(1.2rem, 3vh, 2.4rem);
+  justify-content: center;
+  gap: clamp(0.4rem, 1.8vh, 1.1rem);
 }
 
-.title-block {
-  text-align: center;
+.masthead {
+  display: grid;
+  justify-items: center;
+  gap: clamp(0.2rem, 0.9vh, 0.6rem);
 }
 
-.studios {
-  width: min(340px, 60vw);
-  height: auto;
-  opacity: 0.95;
-  filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.8));
-}
-
-/* The h1 is now a frame for the real lockup rather than type of our own.
-   Its alt text carries the name for anything that cannot see the image. */
 .game-title {
   margin: 0;
   line-height: 0;
 }
 
 .title-logo {
-  width: min(760px, 82vw);
-  height: auto;
-  /* The still is lit from behind; this puts the same green under it on the
-     page, so it sits in the backdrop rather than on top of it. */
-  filter: drop-shadow(0 0 46px rgba(74, 222, 128, 0.34))
-    drop-shadow(0 14px 30px rgba(0, 0, 0, 0.7));
+  display: block;
+  max-height: clamp(46px, 32vh, 310px);
+  max-width: min(840px, 90vw);
+  width: auto;
+  filter: drop-shadow(0 0 34px rgba(74, 222, 128, 0.32));
   animation: logo-in 1s cubic-bezier(0.2, 1.1, 0.3, 1) both;
 }
 
@@ -163,61 +174,85 @@ body::after {
   from {
     opacity: 0;
     transform: scale(1.08);
-    filter: drop-shadow(0 0 90px rgba(74, 222, 128, 0.9));
   }
 }
 
-.tagline {
-  margin: 0;
-  color: var(--muted);
-  font-size: clamp(1rem, 1.7vw, 1.5rem);
-  letter-spacing: 0.14em;
-}
-
-.panels {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: clamp(1rem, 2vw, 1.8rem);
-  width: 100%;
-  /* Each panel is as tall as what is in it. Stretched to match the tallest,
-     the short ones carried a stretch of nothing at the bottom — and the
-     shortest is the one whose whole point is that it is short. */
-  align-items: start;
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--edge);
-  border-radius: 14px;
-  padding: clamp(1rem, 2vw, 1.6rem);
-  backdrop-filter: blur(9px);
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5);
+/* ---- the countdown, on one line ---- */
+.clock {
   display: flex;
-  flex-direction: column;
-}
-
-.panel h2 {
+  align-items: baseline;
+  gap: clamp(0.4rem, 1.3vw, 0.9rem);
   font-family: var(--font-display);
   font-weight: 700;
-
-  margin: 0 0 0.8rem;
-  font-size: clamp(1.15rem, 1.7vw, 1.5rem);
-  letter-spacing: 0.2em;
-  color: var(--red-bright);
-  border-bottom: 2px solid rgba(74, 222, 128, 0.35);
-  padding-bottom: 0.45rem;
 }
 
-.panel ul {
+.clock-lead {
+  font-size: clamp(0.46rem, 0.95vw, 0.64rem);
+  letter-spacing: 0.24em;
+  color: var(--muted);
+  align-self: center;
+}
+
+.clock b {
+  font-size: clamp(0.8rem, 1.9vw, 1.25rem);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px rgba(74, 222, 128, 0.45);
+}
+
+.clock i {
+  font-style: normal;
+  font-size: clamp(0.4rem, 0.8vw, 0.55rem);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-left: 0.12em;
+}
+
+.clock.is-out .clock-lead::after {
+  content: " — OUT NOW";
+}
+
+/* ---- the three cards ---- */
+.deck {
+  display: grid;
+  gap: clamp(0.4rem, 1.1vw, 0.9rem);
+  width: 100%;
+  grid-template-columns: 1.25fr 1fr 0.95fr;
+  align-items: stretch;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: clamp(0.45rem, 1.3vh, 0.9rem) clamp(0.5rem, 1vw, 0.9rem);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.3rem, 0.9vh, 0.6rem);
+  min-width: 0;
+}
+
+.card h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(0.52rem, 1.05vw, 0.76rem);
+  letter-spacing: 0.2em;
+  color: var(--red-bright);
+  border-bottom: 1px solid rgba(74, 222, 128, 0.28);
+  padding-bottom: clamp(0.15rem, 0.5vh, 0.35rem);
+}
+
+/* ---- rules ---- */
+.rules {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  font-size: clamp(0.98rem, 1.25vw, 1.2rem);
+  display: grid;
+  gap: clamp(0.22rem, 0.8vh, 0.5rem);
+  font-size: clamp(0.62rem, 1.02vw, 0.95rem);
+  line-height: 1.28;
   color: #d7dbe4;
-  line-height: 1.35;
 }
 
 .rules b {
@@ -225,247 +260,162 @@ body::after {
   font-weight: normal;
 }
 
-/* The long-form rules, shut. Everything in here is either discoverable by
-   playing or a detail you only want once, and left open it doubled the
-   height of the menu. */
-.notes {
-  margin-top: 0.9rem;
-  border-top: 1px solid var(--edge);
-  padding-top: 0.7rem;
-}
-
-.notes summary {
-  cursor: pointer;
-  list-style: none;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
-  color: var(--muted);
-  transition: color 0.2s ease;
-}
-
-.notes summary::-webkit-details-marker {
-  display: none;
-}
-
-/* A caret of its own, so it reads as something that opens */
-.notes summary::after {
-  content: " ▸";
-  display: inline-block;
-  transition: transform 0.2s ease;
-}
-
-.notes[open] summary::after {
-  transform: rotate(90deg);
-}
-
-.notes summary:hover,
-.notes[open] summary {
-  color: var(--red-bright);
-}
-
-.notes .rules {
-  margin-top: 0.7rem;
-}
-
-/* Key and meaning as a chip and a word, two across, rather than a column of
-   sentences to read line by line. */
+/* ---- controls: a key and the one word it does ---- */
 .keys {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem 0.9rem !important;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: clamp(0.18rem, 0.6vh, 0.4rem);
 }
 
 .keys li {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   min-width: 0;
 }
 
-.key-caps {
+.keys .caps {
   display: inline-flex;
-  gap: 0.15rem;
+  gap: 0.1rem;
   flex: none;
 }
 
-/* Four arrow caps plus a word will not fit in half a panel, and the word is
-   the half that was being cut. It takes the whole row. */
-.keys li:first-child {
-  grid-column: 1 / -1;
-}
-
-.keys span:last-child {
+.keys .what {
   color: var(--muted);
-  font-size: 0.92em;
+  font-size: clamp(0.6rem, 1vw, 0.9rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.keys-note {
-  margin: 0.9rem 0 0;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--edge);
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
 kbd {
   display: inline-grid;
   place-items: center;
-  min-width: 1.9em;
-  padding: 0.2em 0.5em;
-  border-radius: 6px;
+  min-width: 1.75em;
+  padding: 0.08em 0.35em;
+  border-radius: 5px;
   border: 1px solid var(--edge);
-  border-bottom-width: 3px;
+  border-bottom-width: 2px;
   background: rgba(255, 255, 255, 0.07);
   font-family: var(--font);
-  font-size: 0.95em;
-  color: #fff;
+  font-size: clamp(0.58rem, 0.98vw, 0.88rem);
+}
+
+.touch-note {
+  margin: auto 0 0;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--edge);
+  color: var(--muted);
+  font-size: clamp(0.55rem, 0.92vw, 0.8rem);
+  line-height: 1.2;
+}
+
+/* ---- go ---- */
+.go {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
 }
 
 /*----------------- Hero cards -----------------*/
 .hero-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.55rem;
-  /* Fill the panel so the card column is not left half empty next to the
-     taller rules and controls panels. */
-  flex: 1;
-  align-content: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.3rem, 0.8vw, 0.55rem);
 }
 
 .hero-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.9rem 0.35rem;
-  border-radius: 12px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.1rem;
+  padding: clamp(0.3rem, 0.9vh, 0.6rem) 0.25rem;
+  border-radius: 10px;
   border: 2px solid transparent;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font-family: var(--font);
   cursor: pointer;
-  transition: transform 0.22s ease, border-color 0.22s ease,
-    background 0.22s ease, box-shadow 0.22s ease;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
 .hero-card img {
-  /* Sized by height, the way the game sizes sprites, so a tall portrait
-     and a wide action pose still make matching cards. */
-  height: clamp(56px, 5vw, 76px);
+  height: clamp(28px, 7.4vh, 62px);
   width: auto;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.7));
-  transition: transform 0.22s ease;
-}
-
-.hero-card:hover {
-  transform: translateY(-6px);
-  background: rgba(255, 255, 255, 0.09);
-}
-
-.hero-card:hover img {
-  transform: scale(1.12);
-}
-
-.hero-card.is-selected {
-  border-color: var(--red-bright);
-  background: rgba(74, 222, 128, 0.14);
-  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.14),
-    0 14px 34px rgba(74, 222, 128, 0.22);
-}
-
-/* Thor's weapon, shown only while he is the one selected. Laid out flatter
-   and smaller than the hero cards so it reads as a setting on the choice
-   above rather than a fifth character. */
-.weapon-choice {
-  display: none;
-  margin-top: 0.9rem;
-}
-
-.weapon-choice.is-open {
-  display: block;
-  animation: fade-in 0.3s ease both;
-}
-
-.weapon-label {
-  margin: 0 0 0.4rem;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.7rem;
-  letter-spacing: 0.26em;
-  color: var(--muted);
-}
-
-.weapon-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-}
-
-.weapon-card {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  grid-template-rows: auto auto;
-  align-items: center;
-  gap: 0 0.5rem;
-  padding: 0.5rem 0.6rem;
-  text-align: left;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
-  font-family: var(--font);
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.weapon-card img {
-  grid-row: 1 / 3;
-  width: 34px;
-  height: auto;
   image-rendering: pixelated;
-}
-
-.weapon-card:hover {
-  background: rgba(255, 255, 255, 0.09);
-}
-
-.weapon-card.is-selected {
-  border-color: var(--red-bright);
-  background: rgba(74, 222, 128, 0.14);
-}
-
-.weapon-name {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.66rem;
-  letter-spacing: 0.04em;
-}
-
-.weapon-perk {
-  font-size: 0.78rem;
-  color: var(--muted);
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.7));
 }
 
 .hero-name {
   font-family: var(--font-display);
   font-weight: 700;
-
-  font-size: 0.82rem;
-  letter-spacing: 0.02em;
-  text-align: center;
+  font-size: clamp(0.46rem, 0.95vw, 0.66rem);
+  letter-spacing: 0.04em;
 }
 
 .hero-perk {
-  font-size: 0.8rem;
+  font-size: clamp(0.55rem, 0.95vw, 0.74rem);
   color: var(--muted);
-  text-align: center;
-  line-height: 1.2;
+  line-height: 1.1;
 }
+
+.hero-card:hover {
+  transform: translateY(-2px);
+}
+
+.hero-card.is-selected {
+  border-color: var(--red-bright);
+  background: rgba(74, 222, 128, 0.14);
+}
+
+/* ---- weapon, only for whoever has a choice ---- */
+.weapon-choice {
+  display: none;
+  align-items: center;
+  gap: clamp(0.25rem, 0.7vw, 0.5rem);
+  flex-wrap: wrap;
+}
+
+.weapon-choice.is-open {
+  display: flex;
+}
+
+.weapon-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(0.4rem, 0.8vw, 0.54rem);
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+
+.weapon-card {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.55rem 0.22rem 0.3rem;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(0.44rem, 0.88vw, 0.6rem);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.weapon-card img {
+  height: clamp(14px, 2.6vh, 22px);
+  image-rendering: pixelated;
+}
+
+.weapon-card.is-selected {
+  border-color: var(--red-bright);
+  background: rgba(74, 222, 128, 0.16);
+}
+
 
 /*----------------- Buttons -----------------*/
 .btn {
@@ -669,7 +619,7 @@ body.is-touch[data-screen="game"] .mute {
     display: contents;
   }
 
-  body.is-touch .touch-pad {
+  body.is-touch .touch-stick {
     order: -1;
   }
 
@@ -686,7 +636,7 @@ body.is-touch[data-screen="game"] .mute {
   /* Sized off the height, which is the axis that runs out first on a phone
      held sideways, and kept narrow: every pixel a deck takes is nearly two
      off the width of a 16:9 picture. */
-  body.is-touch .touch-pad {
+  body.is-touch .touch-stick {
     /* Grows into whatever the picture cannot use. A 16:9 picture at full
        height leaves width over on a phone as wide as a modern one, and with
        the decks fixed that space simply sat at the edges — the game looking
@@ -741,68 +691,59 @@ body.is-touch[data-screen="game"] .mute {
   }
 }
 
-/* ---- the pad ---- */
-.touch-pad {
+/* ---- the stick ----
+   Four arrow caps meant four small targets and eight directions. This is one
+   target the size of the whole circle, and it flies wherever the thumb goes
+   rather than to the nearest eighth. */
+.touch-stick {
   position: relative;
+  display: grid;
+  place-items: center;
   width: min(34vmin, 190px);
   aspect-ratio: 1;
-  border-radius: 22%;
-  background: rgba(6, 14, 9, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  /* The container takes every pointer; the arms below are paint only. */
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.09),
+    rgba(6, 14, 9, 0.52) 68%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(2px);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-.pad-arm {
+/* A ring at the limit, so how far it can be pushed is visible */
+.stick-ring {
   position: absolute;
-  display: grid;
-  place-items: center;
-  width: 32%;
-  height: 32%;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.11);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 1rem;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.pad-up,
-.pad-down {
-  left: 34%;
-}
-
-.pad-left,
-.pad-right {
-  top: 34%;
-}
-
-.pad-up { top: 3%; }
-.pad-down { bottom: 3%; }
-.pad-left { left: 3%; }
-.pad-right { right: 3%; }
-
-.pad-hub {
-  position: absolute;
-  inset: 36%;
+  inset: 11%;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
   pointer-events: none;
 }
 
-/* Which way it is being pushed, lit as you push it */
-.touch-pad.is-up .pad-up,
-.touch-pad.is-down .pad-down,
-.touch-pad.is-left .pad-left,
-.touch-pad.is-right .pad-right {
-  background: var(--red-bright);
-  border-color: var(--red-bright);
-  color: #04240f;
-  box-shadow: 0 0 14px rgba(74, 222, 128, 0.7);
+.stick-knob {
+  position: absolute;
+  width: 46%;
+  height: 46%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #eafff0, var(--red-bright) 60%, #1d7a3e);
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  /* input.js sets --dx/--dy in pixels from the centre */
+  transform: translate(calc(var(--dx, 0) * 1px), calc(var(--dy, 0) * 1px));
+}
+
+/* Let go and it springs back rather than staying where it was left */
+.touch-stick:not(.is-held) .stick-knob {
+  transition: transform 0.16s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.touch-stick.is-held {
+  border-color: rgba(74, 222, 128, 0.55);
 }
 
 /* ---- the action cluster ---- */
@@ -1011,6 +952,138 @@ body.is-touch .game-shell {
   align-items: center;
 }
 
+/* ---- the name, asked for only when the run earned a place ---- */
+.name-form {
+  margin: 0 0 1.1rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+}
+
+.name-form label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+}
+
+.name-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.name-input {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  width: min(240px, 52vw);
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  border: 2px solid rgba(74, 222, 128, 0.45);
+  background: rgba(4, 10, 6, 0.75);
+  color: var(--text);
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: var(--red-bright);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18);
+}
+
+.btn-small {
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+}
+
+/* ---- the board ---- */
+.leaderboard {
+  margin: 0 0 1.2rem;
+  text-align: left;
+  width: min(420px, 100%);
+  margin-inline: auto;
+}
+
+.leaderboard h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--red-bright);
+  text-align: center;
+}
+
+.leaderboard-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: place;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.leaderboard-list li {
+  counter-increment: place;
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto auto;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.24rem 0.5rem;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.95rem;
+}
+
+.leaderboard-list li::before {
+  content: counter(place);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.leaderboard-list .who {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-list .what {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.leaderboard-list b {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The row they just earned, so the eye goes straight to it */
+.leaderboard-list li.is-yours {
+  background: rgba(74, 222, 128, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.45);
+}
+
+.leaderboard-note {
+  margin: 0.5rem 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 /*----------------- Mute -----------------*/
 .mute {
   position: fixed;
@@ -1038,69 +1111,140 @@ body.is-touch .game-shell {
   text-decoration: line-through;
 }
 
-@media (max-width: 720px) {
+/* ---- phone: the heroes take a row, the other two share the next ---- */
+@media (max-width: 780px) {
   .screen {
     padding: 2vh 3vw;
   }
 
-  /* The masthead is most of what stands between opening the page and
-     starting a run, so it gives up some of its height here. */
+  .deck {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .card-heroes {
+    grid-column: 1 / -1;
+  }
+
+  .clock-lead {
+    display: none;
+  }
+}
+
+/* ---- short and wide: the masthead pays for it first ---- */
+@media (orientation: landscape) and (max-height: 480px) {
+  .title-logo {
+    max-height: 17vh;
+  }
+
+  .hero-perk,
+  .touch-note {
+    display: none;
+  }
+}
+
+/* ---- shorter still: the heroes go to a single row, which buys a whole
+        card's worth of height ---- */
+@media (orientation: landscape) and (max-height: 430px) {
   .menu-inner {
-    gap: 0.9rem;
+    gap: clamp(0.2rem, 0.8vh, 0.45rem);
+  }
+
+  .masthead {
+    gap: 0.15rem;
   }
 
   .title-logo {
-    width: min(760px, 74vw);
+    max-height: 10vh;
   }
 
-  .tagline {
-    font-size: 0.95rem;
-    letter-spacing: 0.08em;
+  .deck {
+    grid-template-columns: 1.45fr 1fr 1.12fr;
   }
 
-  .countdown {
-    margin-top: 0.4rem;
-  }
-
-  .countdown-clock span {
-    font-size: clamp(1.4rem, 7vw, 2rem);
-  }
-
-  .countdown-clock div {
-    min-width: 2.6em;
-  }
-
-  .panel {
-    padding: 0.9rem 1rem;
-  }
-
-  .panel h2 {
-    margin-bottom: 0.6rem;
-    padding-bottom: 0.35rem;
-  }
-  /* Two up rather than one: four full-width cards put START most of a
-     screen further down than it needs to be, and they fit side by side
-     comfortably at any width a phone actually reports. */
   .hero-cards {
-    gap: 0.45rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .hero-card {
-    padding: 0.6rem 0.3rem;
+
+  .hero-card img {
+    height: clamp(22px, 8.5vh, 38px);
   }
-  .hero-perk {
-    font-size: 0.72rem;
+
+  .card {
+    padding: 0.35rem 0.45rem;
+    gap: 0.25rem;
   }
-  .weapon-cards {
-    gap: 0.4rem;
+
+  .rules {
+    gap: 0.18rem;
+    font-size: clamp(0.56rem, 0.92vw, 0.78rem);
   }
 }
 
-/* Only the very narrowest need one at a time */
+/* ---- shortest of all: the controls fold into two columns ---- */
+@media (orientation: landscape) and (max-height: 385px) {
+  .keys {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 0.5rem;
+  }
+
+  .keys li:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .keys li {
+    gap: 0.25rem;
+  }
+
+  .keys .what {
+    font-size: clamp(0.5rem, 0.82vw, 0.7rem);
+  }
+
+  kbd {
+    min-width: 1.45em;
+    padding: 0.05em 0.26em;
+    font-size: clamp(0.5rem, 0.84vw, 0.74rem);
+  }
+}
+
+/* ---- a 2012 phone on its side: the clock keeps its numbers, drops the
+        words ---- */
+@media (orientation: landscape) and (max-height: 340px) {
+  .menu-inner {
+    gap: 0.2rem;
+  }
+
+  .clock i {
+    display: none;
+  }
+
+  .clock {
+    gap: 0.5rem;
+  }
+
+  .card {
+    padding: 0.3rem 0.4rem;
+  }
+}
+
+/* ---- the narrowest phones ---- */
 @media (max-width: 360px) {
-  .hero-cards {
-    grid-template-columns: 1fr;
+  .menu-inner {
+    gap: 0.35rem;
+  }
+
+  .title-logo {
+    max-height: 12vh;
+  }
+
+  .card {
+    padding: 0.4rem 0.45rem;
+  }
+
+  .deck {
+    gap: 0.35rem;
   }
 }
+
 
 /* A phone held sideways leaves very little height, and the game-over panel
    was taller than it — the run ends and TRY AGAIN is off the bottom of the
@@ -1147,15 +1291,39 @@ body.is-touch .game-shell {
     padding: 0.5rem 1.4rem;
     font-size: 0.9rem;
   }
+
+  /* The board is the tallest thing on this screen, so it gives up the most */
+  .leaderboard,
+  .name-form {
+    margin-bottom: 0.6rem;
+  }
+
+  .leaderboard-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+    gap: 0.14rem 0.5rem;
+  }
+
+  .leaderboard-list li {
+    padding: 0.14rem 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .leaderboard-note {
+    display: none;
+  }
+
+  .name-input {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.6rem;
+  }
 }
 
-/* On a phone the rules and the controls list put START the better part of a
-   screen below the fold. It sticks to the bottom of the viewport instead, so
-   it is reachable from anywhere in the menu without scrolling back down. */
-body.is-touch[data-screen="menu"] #start-button {
-  position: sticky;
-  bottom: 0.9rem;
-  z-index: 5;
+/* The menu is one screen now, so there is nothing to scroll past and START
+   no longer needs to follow you down the page. It also must not scroll: a
+   sticky button inside a viewport-height flex column fights the layout. */
+body.is-touch[data-screen="menu"] {
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1221,7 +1389,10 @@ body.is-touch[data-screen="menu"] #start-button {
 
 .loading-bar.is-done {
   opacity: 0;
-  transition: opacity 0.4s ease;
+  /* And it gives its height back, or it holds a gap under START for a bar
+     nobody can see. */
+  height: 0;
+  transition: opacity 0.4s ease, height 0.4s ease;
 }
 
 /* Stat tiles land one after another as the score counts up. */
@@ -1249,60 +1420,3 @@ body.is-touch[data-screen="menu"] #start-button {
 }
 
 
-/*----------------- Doomsday -----------------*/
-
-.countdown {
-  margin-top: clamp(0.8rem, 2vh, 1.6rem);
-  text-align: center;
-}
-
-.countdown-label {
-  font-family: var(--font-display);
-  font-weight: 700;
-
-  margin: 0 0 0.35rem;
-  font-size: clamp(0.85rem, 1.5vw, 1.25rem);
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
-  color: #eafff0;
-  text-shadow: 0 0 26px rgba(74, 222, 128, 0.6);
-}
-
-.countdown-clock {
-  display: flex;
-  justify-content: center;
-  gap: clamp(0.7rem, 2.4vw, 2.2rem);
-}
-
-.countdown-clock div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 3.2em;
-}
-
-.countdown-clock span {
-  font-family: var(--font-display);
-  font-weight: 700;
-
-  font-size: clamp(1.8rem, 4.4vw, 3.4rem);
-  line-height: 1;
-  letter-spacing: 0.08em;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 30px rgba(74, 222, 128, 0.55);
-}
-
-.countdown-clock label {
-  font-family: var(--font-display);
-  font-weight: 600;
-
-  font-size: clamp(0.6rem, 0.9vw, 0.78rem);
-  letter-spacing: 0.22em;
-  color: #8fbf9e;
-  margin-top: 0.35rem;
-}
-
-.countdown.is-out .countdown-label::after {
-  content: " — IN CINEMAS";
-}

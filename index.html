@@ -46,8 +46,11 @@
 
     <!-- ============ MENU ============ -->
     <section id="screen-menu" class="screen is-active">
+      <!-- One screen, no scroll: the masthead, three cards side by side, and
+           the button. Width is what pays for it — on a phone the heroes take
+           a full row and the rules and the controls share the one below. -->
       <div class="menu-inner">
-        <header class="title-block">
+        <div class="masthead">
           <h1 class="game-title">
             <img
               class="title-logo"
@@ -55,114 +58,87 @@
               alt="Marvel Studios — Avengers: Doomsday"
             />
           </h1>
-          <p class="tagline">
-            Doomsday is coming. The witches are coming.
-          </p>
-          <div class="countdown" id="countdown" aria-label="Time until release">
-            <p class="countdown-label">IN CINEMAS 18 DECEMBER 2026</p>
-            <div class="countdown-clock">
-              <div><span data-unit="months">00</span><label>MONTHS</label></div>
-              <div><span data-unit="days">00</span><label>DAYS</label></div>
-              <div><span data-unit="hours">00</span><label>HOURS</label></div>
-              <div><span data-unit="minutes">00</span><label>MINUTES</label></div>
-              <div><span data-unit="seconds">00</span><label>SECONDS</label></div>
-            </div>
+          <!-- The live clock, on one line. It used to be a labelled block
+               under a heading that repeated the tagline above it. -->
+          <div class="clock" id="countdown" aria-label="Time until release">
+            <span class="clock-lead">IN CINEMAS</span>
+            <b><span data-unit="months">00</span><i>MTH</i></b>
+            <b><span data-unit="days">00</span><i>DAY</i></b>
+            <b><span data-unit="hours">00</span><i>HR</i></b>
+            <b><span data-unit="minutes">00</span><i>MIN</i></b>
+            <b><span data-unit="seconds">00</span><i>SEC</i></b>
           </div>
-        </header>
+        </div>
 
-        <div class="panels">
-          <section class="panel">
+        <div class="deck">
+          <section class="card card-heroes">
             <h2>CHOOSE YOUR HERO</h2>
             <div class="hero-cards">
               <button class="hero-card is-selected" data-character="thor">
                 <img src="images/dd-thor.png" alt="Thor" />
                 <span class="hero-name">THOR</span>
-                <span class="hero-perk">Stormbreaker &middot; God Blast</span>
+                <span class="hero-perk">God Blast</span>
               </button>
               <button class="hero-card" data-character="cyclops">
                 <img src="images/dd-cyclops.png" alt="Cyclops" />
                 <span class="hero-name">CYCLOPS</span>
-                <span class="hero-perk">Optic blast &middot; Optic Overload</span>
+                <span class="hero-perk">Optic Overload</span>
               </button>
               <button class="hero-card" data-character="shuri">
                 <img src="images/dd-shuri.png" alt="Shuri" />
                 <span class="hero-name">SHURI</span>
-                <span class="hero-perk">Claws &amp; fists &middot; Kinetic Blast</span>
+                <span class="hero-perk">Kinetic Blast</span>
               </button>
               <button class="hero-card" data-character="torch">
                 <img src="images/dd-torch.png" alt="Human Torch" />
                 <span class="hero-name">HUMAN TORCH</span>
-                <span class="hero-perk">Fireballs &middot; Flame On</span>
+                <span class="hero-perk">Flame On</span>
               </button>
             </div>
 
             <!-- Only Thor carries a choice, so this appears with him and
                  goes away again for everyone else. -->
             <div class="weapon-choice" id="weapon-choice">
-              <p class="weapon-label">THOR CARRIES</p>
-              <div class="weapon-cards">
-                <button class="weapon-card is-selected" data-weapon="stormbreaker">
-                  <img src="images/dd-icon-stormbreaker.png" alt="" />
-                  <span class="weapon-name">STORMBREAKER</span>
-                  <span class="weapon-perk">Chained thunder</span>
-                </button>
-                <button class="weapon-card" data-weapon="mjolnir">
-                  <img src="images/dd-icon-mjolnir.png" alt="" />
-                  <span class="weapon-name">MJOLNIR</span>
-                  <span class="weapon-perk">Thrown, and it comes back</span>
-                </button>
-              </div>
+              <span class="weapon-label">CARRIES</span>
+              <button class="weapon-card is-selected" data-weapon="stormbreaker">
+                <img src="images/dd-icon-stormbreaker.png" alt="" />STORMBREAKER
+              </button>
+              <button class="weapon-card" data-weapon="mjolnir">
+                <img src="images/dd-icon-mjolnir.png" alt="" />MJOLNIR
+              </button>
             </div>
           </section>
 
-          <section class="panel">
+          <section class="card">
             <h2>THE JOB</h2>
-            <!-- Four lines, because four is what you cannot work out by
-                 playing. The rest is in the drawer below, shut, for whoever
-                 wants it. -->
             <ul class="rules">
               <li><b>Nothing gets past you.</b> Each one that does drags the other Earth closer.</li>
-              <li><b>Take a wave clean</b> to push it back again.</li>
+              <li><b>Take a wave clean</b> to push it back.</li>
               <li><b>Three lives</b>, and another every 5,000 points.</li>
+              <li><b>Chain kills</b> without a leak to build the multiplier.</li>
               <li><b>A boss every fifth wave.</b> Doom himself at ten.</li>
             </ul>
-
-            <details class="notes">
-              <summary>Field notes</summary>
-              <ul class="rules">
-                <li><b>Chain kills</b> without a leak to build the multiplier.</li>
-                <li><b>Drops:</b> rapid fire, a shield, a screen-clearing blast, the odd 1UP.</li>
-                <li><b>The coven stop and hold.</b> None of them walk past you.</li>
-                <li><b>A gunner's charging line</b> is exactly where its beam will land.</li>
-                <li><b>Doom's ward</b> comes down before he does.</li>
-                <li><b>Thor picks his weapon</b> before the run &mdash; axe or hammer.</li>
-              </ul>
-            </details>
           </section>
 
-          <section class="panel">
+          <section class="card">
             <h2>CONTROLS</h2>
-            <!-- Chips in a grid rather than a column of sentences: a key and
-                 the one word it does, read at a glance instead of line by
-                 line. -->
             <ul class="keys">
-              <li><span class="key-caps"><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd></span><span>Move</span></li>
-              <li><span class="key-caps"><kbd>S</kbd></span><span>Fire</span></li>
-              <li><span class="key-caps"><kbd>Space</kbd></span><span>Ultimate</span></li>
-              <li><span class="key-caps"><kbd>Esc</kbd></span><span>Pause</span></li>
-              <li><span class="key-caps"><kbd>Q</kbd></span><span>Quit</span></li>
-              <li><span class="key-caps"><kbd>M</kbd></span><span>Mute</span></li>
-              <li><span class="key-caps"><kbd>W</kbd></span><span>&hellip;the line-up</span></li>
+              <li><span class="caps"><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd></span><span class="what">Move</span></li>
+              <li><span class="caps"><kbd>S</kbd></span><span class="what">Fire</span></li>
+              <li><span class="caps"><kbd>Space</kbd></span><span class="what">Ultimate</span></li>
+              <li><span class="caps"><kbd>Esc</kbd></span><span class="what">Pause</span></li>
+              <li><span class="caps"><kbd>Q</kbd></span><span class="what">Quit</span></li>
+              <li><span class="caps"><kbd>M</kbd></span><span class="what">Mute</span></li>
+              <li><span class="caps"><kbd>W</kbd></span><span class="what">Line-up</span></li>
             </ul>
-            <p class="keys-note">
-              On a phone: a pad one side, FIRE and ULT the other.
-            </p>
+            <p class="touch-note">On a phone: a stick one side, FIRE and ULT the other.</p>
           </section>
-
         </div>
 
-        <button id="start-button" class="btn btn-primary" disabled>LOADING&hellip;</button>
-        <div id="loading-bar" class="loading-bar"><span></span></div>
+        <div class="go">
+          <button id="start-button" class="btn btn-primary" disabled>LOADING&hellip;</button>
+          <div id="loading-bar" class="loading-bar"><span></span></div>
+        </div>
       </div>
     </section>
 
@@ -191,15 +167,12 @@
         <!-- Shown only on a touch device. Every control holds or presses the
              key it is labelled with, so touch and keyboard are one path. -->
         <div class="touch-deck">
-          <!-- The arms are painted, not pressed: the whole cross takes the
-               pointer, so a thumb between two arrows gives the diagonal and
-               sliding from one to the next never drops the input. -->
-          <div id="touch-pad" class="touch-pad" aria-label="Move">
-            <span class="pad-arm pad-up">&#9650;</span>
-            <span class="pad-arm pad-down">&#9660;</span>
-            <span class="pad-arm pad-left">&#9664;</span>
-            <span class="pad-arm pad-right">&#9654;</span>
-            <span class="pad-hub"></span>
+          <!-- A stick rather than four arrows. Every point of the circle is
+               the control, so the target is the whole thing instead of four
+               small caps, and it flies in any direction rather than eight. -->
+          <div id="touch-pad" class="touch-stick" aria-label="Move">
+            <span class="stick-ring"></span>
+            <span class="stick-knob"></span>
           </div>
 
           <div class="touch-actions">
@@ -230,6 +203,32 @@
           <div class="stat"><span id="stat-kills">0</span><label>ENEMIES DOWN</label></div>
           <div class="stat"><span id="stat-combo">x1</span><label>BEST COMBO</label></div>
         </div>
+        <!-- Only shown when the run earned a place. Being asked for a name
+             and then not appearing would be worse than not being asked. -->
+        <form id="name-form" class="name-form" hidden>
+          <label for="name-input">A PLACE ON THE BOARD &mdash; WHO WAS IT?</label>
+          <div class="name-row">
+            <input
+              id="name-input"
+              class="name-input"
+              type="text"
+              maxlength="12"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              placeholder="YOUR NAME"
+              aria-label="Your name"
+            />
+            <button type="submit" class="btn btn-primary btn-small">SAVE</button>
+          </div>
+        </form>
+
+        <section id="leaderboard" class="leaderboard" hidden>
+          <h3>BEST RUNS</h3>
+          <ol id="leaderboard-list" class="leaderboard-list"></ol>
+          <p class="leaderboard-note">Kept on this device.</p>
+        </section>
+
         <div class="gameover-actions">
           <button id="retry-button" class="btn btn-primary">TRY AGAIN</button>
           <button id="menu-button" class="btn btn-ghost">MAIN MENU</button>

@@ -70,6 +70,12 @@ mostly works too, but a local server is more reliable for the audio and font fil
   harder *because* you are losing. The one way to give ground back is to take
   a whole wave without letting anything through, which pushes it away again.
 
+- **A leaderboard.** Ten best runs, kept on the device in `localStorage` —
+  the game has no server, and asking for one to hold ten rows would be a
+  strange trade, so the screen says where they live. A run is only asked for
+  a name when it actually earned a place: being asked and then not appearing
+  would be worse than not being asked.
+
 - **Pausing is the way out.** `Esc` — or the button beside the screen —
   offers RESUME and MAIN MENU, because once a run had started there was no
   route back to the menu at all, and a phone has no key to press. `Q` quits
@@ -99,15 +105,21 @@ mostly works too, but a local server is more reliable for the audio and font fil
   for help altogether and starts pulling the other Earth in by hand, which
   turns the fight into a race he wins by default if you let it run.
 
+- **The menu is one screen.** The hero, the rules and the controls are all
+  on it at once with nothing to scroll past to reach START — three cards
+  abreast on anything wide, and on a phone the heroes take a row with the
+  other two sharing the next. Everything is sized against viewport height, so
+  a short screen compresses instead of overflowing.
+
 - **It plays on a phone**, and the controls have their own space rather than
   sitting on top of the picture. A four-way pad on one side, FIRE, ULT, W and
   pause on the other; in landscape they flank the screen, in portrait the
   picture goes up top and the deck fills what is left. Every control holds or
   presses the key it is labelled with, so touch and keyboard run down one
-  path and the simulation has no idea a touchscreen exists. The pad *looks*
-  like a d-pad and *behaves* like a stick — direction comes from how far off
-  centre the thumb is, so diagonals are free and sliding between arrows never
-  drops the input. The picture is sized around whatever the deck leaves, so
+  path and the simulation has no idea a touchscreen exists. Movement is a
+  stick rather than four arrows: four caps meant four small targets, where
+  this is one the size of the whole circle, the knob follows the thumb, and
+  it flies wherever you push rather than to the nearest eighth. The picture is sized around whatever the deck leaves, so
   nothing is ever cropped, and the page is locked against scrolling.
 
   The picture is sized from the screen it is on rather than from a number

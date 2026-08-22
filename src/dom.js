@@ -21,6 +21,10 @@ export const statScore = document.getElementById("stat-score");
 export const statWave = document.getElementById("stat-wave");
 export const statKills = document.getElementById("stat-kills");
 export const statCombo = document.getElementById("stat-combo");
+export const nameForm = document.getElementById("name-form");
+export const nameInput = document.getElementById("name-input");
+export const leaderboard = document.getElementById("leaderboard");
+export const leaderboardList = document.getElementById("leaderboard-list");
 
 //The menu is the screen the markup ships with, so the attribute has to
 //agree with it before anything is clicked.
