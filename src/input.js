@@ -20,7 +20,55 @@ export const heldKeys = new Set();
 //without the two modules' evaluation order mattering.
 export function releaseAllInput() {
   heldKeys.clear();
-  const pad = document.getElementById("touch-pad");
+  //=====================================================================//
+//  KEEPING THE PAGE STILL WHILE YOU PLAY
+//
+//  Playing needs two thumbs — one on the pad, one on FIRE — and two fingers
+//  on a screen is precisely what a browser reads as a pinch. touch-action
+//  does not help: iOS Safari ignores it for page zoom outright, and a pinch
+//  spanning two separate elements is a page gesture either way. So the
+//  gestures are refused directly, and only while a run is on screen: the
+//  menu is a wall of small text and pinching it is the only way some people
+//  can read it.
+//=====================================================================//
+const inPlay = () => document.body.dataset.screen === "game";
+
+//Safari's own pinch events. Nothing else fires these, and preventing them is
+//the only thing that stops the page scaling under two thumbs.
+for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+  document.addEventListener(
+    type,
+    (event) => {
+      if (inPlay()) event.preventDefault();
+    },
+    { passive: false }
+  );
+}
+
+//And the general case: any second finger dragging while a run is on.
+document.addEventListener(
+  "touchmove",
+  (event) => {
+    if (inPlay() && event.touches.length > 1) event.preventDefault();
+  },
+  { passive: false }
+);
+
+//Double-tap-to-zoom. Two quick taps on FIRE is an ordinary thing to do.
+let lastTouchEnd = 0;
+document.addEventListener(
+  "touchend",
+  (event) => {
+    if (!inPlay()) return;
+    const now = performance.now();
+    if (now - lastTouchEnd < 320) event.preventDefault();
+    lastTouchEnd = now;
+  },
+  { passive: false }
+);
+
+//=====================================================================//
+const pad = document.getElementById("touch-pad");
   if (pad) pad.classList.remove("is-up", "is-down", "is-left", "is-right");
   for (const btn of document.querySelectorAll(".touch-btn")) {
     btn.classList.remove("is-down");
@@ -121,6 +169,54 @@ function aimPad(pad, event) {
   }
 }
 
+//=====================================================================//
+//  KEEPING THE PAGE STILL WHILE YOU PLAY
+//
+//  Playing needs two thumbs — one on the pad, one on FIRE — and two fingers
+//  on a screen is precisely what a browser reads as a pinch. touch-action
+//  does not help: iOS Safari ignores it for page zoom outright, and a pinch
+//  spanning two separate elements is a page gesture either way. So the
+//  gestures are refused directly, and only while a run is on screen: the
+//  menu is a wall of small text and pinching it is the only way some people
+//  can read it.
+//=====================================================================//
+const inPlay = () => document.body.dataset.screen === "game";
+
+//Safari's own pinch events. Nothing else fires these, and preventing them is
+//the only thing that stops the page scaling under two thumbs.
+for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+  document.addEventListener(
+    type,
+    (event) => {
+      if (inPlay()) event.preventDefault();
+    },
+    { passive: false }
+  );
+}
+
+//And the general case: any second finger dragging while a run is on.
+document.addEventListener(
+  "touchmove",
+  (event) => {
+    if (inPlay() && event.touches.length > 1) event.preventDefault();
+  },
+  { passive: false }
+);
+
+//Double-tap-to-zoom. Two quick taps on FIRE is an ordinary thing to do.
+let lastTouchEnd = 0;
+document.addEventListener(
+  "touchend",
+  (event) => {
+    if (!inPlay()) return;
+    const now = performance.now();
+    if (now - lastTouchEnd < 320) event.preventDefault();
+    lastTouchEnd = now;
+  },
+  { passive: false }
+);
+
+//=====================================================================//
 const pad = document.getElementById("touch-pad");
 if (pad) {
   let padPointer = null;

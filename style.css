@@ -469,14 +469,7 @@ canvas {
 /* ---- the game screen becomes a phone screen ---- */
 body.is-touch[data-screen="game"] {
   /* Nothing scrolls while playing: a thumb near an edge would otherwise drag
-     the whole document instead of pressing a button. Pinned to the viewport
-     as well as clipped, so the document is not a few pixels taller than the
-     window and does not bounce against the top on iOS. */
-  /* A percentage, not a viewport unit. html is already sized to the real
-     viewport, so 100% is exactly the visible area — where 100vh is famously
-     taller than that on iOS and 100dvh can resolve to the chrome-less height
-     before the chrome has gone, either of which leaves the document a few
-     pixels longer than the window and bouncing against the top. */
+     the whole document instead of pressing a button. */
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -488,12 +481,25 @@ body.is-touch[data-screen="game"] {
    setting display here left the game screen showing on every screen: a blank
    viewport-tall block under the menu, and the game-over panel pushed a whole
    screen down the page where the TRY AGAIN button could not be reached. The
-   flex box it inherits from .screen.is-active was always the right one. */
+   flex box it inherits from .screen.is-active was always the right one.
+
+   Pinned with position: fixed rather than sized in any flavour of viewport
+   unit. inset: 0 *is* the visible area by definition, so there is no height
+   chain to get wrong, nothing for iOS to rubber-band against, and no reflow
+   when the address bar slides away mid-run. The safe-area insets keep the
+   controls out of a notch and off the home indicator. */
 body.is-touch #screen-game.is-active {
-  padding: 0;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  height: auto;
   min-height: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
   overflow: hidden;
+  /* Belt and braces with the gesture handlers in src/input.js: this stops
+     scroll and double-tap zoom where it is honoured, those stop the pinch
+     that two thumbs on the controls would otherwise be read as. */
+  touch-action: none;
 }
 
 body.is-touch .game-shell {

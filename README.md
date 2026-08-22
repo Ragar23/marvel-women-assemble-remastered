@@ -105,6 +105,17 @@ mostly works too, but a local server is more reliable for the audio and font fil
   drops the input. The picture is sized around whatever the deck leaves, so
   nothing is ever cropped, and the page is locked against scrolling.
 
+  Playing needs two thumbs, which is precisely what a browser reads as a
+  pinch — so while a run is on screen the game refuses the zoom gestures
+  outright, `touch-action` being no help at all here (iOS ignores it for page
+  zoom). It refuses them *only* while playing: pinching the menu is how some
+  people read it. The played screen is pinned with `position: fixed`, which
+  is the visible area by definition, so there is no viewport-unit arithmetic
+  to get wrong and nothing to rubber-band against. START asks for fullscreen
+  where the browser has it, and the page carries a manifest and icons so
+  adding it to a home screen opens it with no browser chrome at all — which
+  is the steadiest it gets on an iPhone, where there is no Fullscreen API.
+
 - **The Latverian Witches** arrive one at a time, named, with a health bar from
   the moment they appear, and they do not walk past you. Each holds a line
   partway across the screen and fights from it until it is put down, so the
@@ -155,6 +166,7 @@ Most of the art and all nine sound effects are generated, not hand-authored,
 so they can be tweaked and rebuilt:
 
 ```bash
+python3 tools/make_icons.py       # the home-screen icons
 python3 tools/make_incursion.py   # the other Earth
 python3 tools/make_menu_art.py    # the menu art, from the stills in images/src/
 python3 tools/make_hires.py       # Thor and the Human Torch — needs Pillow

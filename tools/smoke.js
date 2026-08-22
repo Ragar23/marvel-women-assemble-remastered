@@ -364,6 +364,40 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('a key held when the run ends does not survive it',
         phone.releasedOnDeath === 0 && phone.retryClean === 0, JSON.stringify(phone));
   check('TRY AGAIN is reachable without scrolling', phone.retryOnScreen);
+
+  // zoom: refused while a run is on, allowed everywhere else
+  const zoom = await p.evaluate(async () => {
+    const twoFinger = () => {
+      const t = (x, y, i) => new Touch({ identifier: i, target: document.body, clientX: x, clientY: y });
+      const touches = [t(80, 200, 1), t(300, 220, 2)];
+      const ev = new TouchEvent('touchmove', { touches, targetTouches: touches,
+        changedTouches: touches, bubbles: true, cancelable: true });
+      document.body.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    const gesture = () => {
+      const ev = new Event('gesturestart', { bubbles: true, cancelable: true });
+      document.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    document.body.classList.add('is-touch');
+    const out = {};
+    //On the menu it must still work: pinching is how small text gets read
+    document.getElementById('menu-button')?.click();
+    await new Promise(r => setTimeout(r, 120));
+    out.menuPinchAllowed = !twoFinger() && !gesture();
+    document.getElementById('start-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    //Two thumbs on the controls is the grip the game asks for, and it is
+    //exactly what a browser reads as a pinch.
+    out.playPinchRefused = twoFinger() && gesture();
+    out.screenPinned = getComputedStyle(document.getElementById('screen-game')).position === 'fixed';
+    document.body.classList.remove('is-touch');
+    return out;
+  });
+  check('pinching still works on the menu', zoom.menuPinchAllowed, JSON.stringify(zoom));
+  check('but two thumbs on the controls cannot zoom the game', zoom.playPinchRefused);
+  check('and the played screen is pinned to the viewport', zoom.screenPinned);
   check('the picture fits the screen and the page cannot scroll', tch.fits && tch.locked);
 
   // the coven stop and fight rather than walking off the edge

@@ -2,7 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the picture reach into a notched phone's
+         corners; the safe-area insets in style.css keep the controls out of
+         them. user-scalable is deliberately left alone — pinching the menu
+         is how some people read it, so the game refuses the gesture in
+         src/input.js only while a run is actually on screen. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#03080a" />
+    <!-- Added to a home screen, it opens without browser chrome at all,
+         which is the steadiest this can be on iOS. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DOOMSDAY" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232ea84a'/%3E%3Ctext x='16' y='23' font-family='Impact,sans-serif' font-size='20' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E"

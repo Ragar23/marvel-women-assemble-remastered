@@ -4,7 +4,7 @@ import { CONFIG } from "./config.js";
 import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
 import { draw } from "./render.js";
 import { update } from "./sim.js";
-import { releaseAllInput } from "./input.js";
+import { isTouch, releaseAllInput } from "./input.js";
 import { fx, resetGame, run, sess } from "./state.js";
 import { clamp } from "./util.js";
 
@@ -45,9 +45,30 @@ export function frame(now) {
   }
 }
 
+//A phone's address bar slides in and out as you play, resizing the viewport
+//under the game every time. Fullscreen is the only way to stop it, and START
+//is a user gesture, which is the only moment a browser will allow the
+//request. Best-effort in every sense: Chrome on Android takes it, iPhone
+//Safari does not support it at all, and nothing here depends on the answer —
+//if it is refused the game is exactly as it was.
+function goFullscreen() {
+  if (!isTouch || document.fullscreenElement) return;
+  const el = document.documentElement;
+  const request =
+    el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if (!request) return;
+  try {
+    const result = request.call(el, { navigationUI: "hide" });
+    if (result && typeof result.catch === "function") result.catch(() => {});
+  } catch {
+    /* refused; the run carries on in the space the browser gives us */
+  }
+}
+
 export function startRun() {
   //Whatever was under a thumb when the last run ended is not held any more
   releaseAllInput();
+  goFullscreen();
   resetGame();
   showScreen("game");
   sess.state = "playing";
@@ -84,6 +105,18 @@ export function togglePause() {
   }
 }
 
+//Leaving the game gives the browser back — the menu and the game-over panel
+//are ordinary pages and should behave like them.
+function leaveFullscreen() {
+  if (!document.fullscreenElement) return;
+  try {
+    const result = document.exitFullscreen && document.exitFullscreen();
+    if (result && typeof result.catch === "function") result.catch(() => {});
+  } catch {
+    /* nothing to do about it */
+  }
+}
+
 export function endGame() {
   //The screen is about to change out from under whatever is being pressed,
   //which is exactly when a held key would otherwise survive into the next
@@ -104,6 +137,7 @@ export function endGame() {
   countUp(statCombo, run.bestCombo, 0.6, "x");
 
   showScreen("gameover");
+  leaveFullscreen();
   audio.pause();
 }
 
