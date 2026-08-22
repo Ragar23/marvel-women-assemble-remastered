@@ -222,7 +222,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   const tch = await p.evaluate(async () => {
     const g = window.game;
     const hiddenOnDesktop =
-      getComputedStyle(document.getElementById('touch-controls')).display === 'none';
+      getComputedStyle(document.querySelector('.touch-deck')).display === 'none';
     //Turn them on the way a phone would, then use them.
     document.body.classList.add('is-touch');
     await new Promise(r => setTimeout(r, 60));
@@ -324,6 +324,46 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('ULT lights when full and spends the meter', tch.ultLights && tch.ultSpends);
   check('W is a press, not a stuck hold', tch.wWorks && tch.wNotStuck);
   check('one button pauses and resumes, and relabels itself', tch.pauses && tch.resumes);
+
+  // the phone bugs: a key held when a run ends, and the screens stacking up
+  const phone = await p.evaluate(async () => {
+    const g = window.game;
+    document.body.classList.add('is-touch');
+    await new Promise(r => setTimeout(r, 60));
+    const disp = (id) => getComputedStyle(document.getElementById(id)).display;
+    const on = (el) => { const r = el.getBoundingClientRect();
+      return r.top >= -1 && r.bottom <= document.documentElement.clientHeight + 1 && r.width > 0; };
+    const at = (el, fx, fy, type, pid) => { const r = el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent(type, { pointerId: pid, bubbles: true, cancelable: true,
+        pointerType: 'touch', clientX: r.left + r.width * fx, clientY: r.top + r.height * fy })); };
+    const out = {};
+    //Only one screen at a time. `body.is-touch #screen-game` outranks
+    //`.screen { display: none }`, so a display set there leaves the game
+    //screen behind every other one.
+    out.gameHiddenOnMenu = disp('screen-game');
+    document.getElementById('start-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    out.menuHiddenInGame = disp('screen-menu');
+    //Die with a finger still down on FIRE, and never lift it
+    at(document.querySelector('.touch-fire'), 0.5, 0.5, 'pointerdown', 950);
+    g.world.player.lives = 0;
+    for (let i = 0; i < 3; i++) g.update(0.05);
+    await new Promise(r => setTimeout(r, 200));
+    out.releasedOnDeath = g.heldKeys.size;
+    out.gameHiddenOnGameOver = disp('screen-game');
+    out.retryOnScreen = on(document.getElementById('retry-button'));
+    document.getElementById('retry-button').click();
+    await new Promise(r => setTimeout(r, 200));
+    out.retryClean = g.heldKeys.size;
+    document.body.classList.remove('is-touch');
+    return out;
+  });
+  check('only one screen shows at a time on a phone',
+        phone.gameHiddenOnMenu === 'none' && phone.menuHiddenInGame === 'none' &&
+        phone.gameHiddenOnGameOver === 'none', JSON.stringify(phone));
+  check('a key held when the run ends does not survive it',
+        phone.releasedOnDeath === 0 && phone.retryClean === 0, JSON.stringify(phone));
+  check('TRY AGAIN is reachable without scrolling', phone.retryOnScreen);
   check('the picture fits the screen and the page cannot scroll', tch.fits && tch.locked);
 
   // the coven stop and fight rather than walking off the edge

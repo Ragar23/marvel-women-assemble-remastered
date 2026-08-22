@@ -143,7 +143,10 @@
           <canvas id="myCanvas" width="1364" height="768"></canvas>
           <div id="pause-overlay" class="overlay">
             <p class="overlay-title">PAUSED</p>
-            <p class="overlay-sub">Press <kbd>Esc</kbd> to resume</p>
+            <!-- A phone has no Esc, and the button beside the screen is the
+                 only way back in — so each device is told its own way. -->
+            <p class="overlay-sub overlay-keys">Press <kbd>Esc</kbd> to resume</p>
+            <p class="overlay-sub overlay-touch">Tap <b>&#9654;</b> to resume</p>
           </div>
         </div>
 

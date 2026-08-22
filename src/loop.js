@@ -4,6 +4,7 @@ import { CONFIG } from "./config.js";
 import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
 import { draw } from "./render.js";
 import { update } from "./sim.js";
+import { releaseAllInput } from "./input.js";
 import { fx, resetGame, run, sess } from "./state.js";
 import { clamp } from "./util.js";
 
@@ -45,6 +46,8 @@ export function frame(now) {
 }
 
 export function startRun() {
+  //Whatever was under a thumb when the last run ended is not held any more
+  releaseAllInput();
   resetGame();
   showScreen("game");
   sess.state = "playing";
@@ -82,6 +85,10 @@ export function togglePause() {
 }
 
 export function endGame() {
+  //The screen is about to change out from under whatever is being pressed,
+  //which is exactly when a held key would otherwise survive into the next
+  //run — the controls are hidden, so their pointerup never arrives.
+  releaseAllInput();
   sess.state = "gameover";
   if (sess.animationId !== null) cancelAnimationFrame(sess.animationId);
   sess.animationId = null;

@@ -7,6 +7,26 @@ import { sess } from "./state.js";
 //=====================================================================//
 export const heldKeys = new Set();
 
+//Drop every key and un-light every control.
+//
+//A finger only releases a key when the browser delivers pointerup to the
+//button it went down on — and when a run ends, the controls are hidden by
+//the screen change, which releases the pointer capture and sends that
+//pointerup somewhere else. The key stayed in the set, so the next run began
+//with FIRE already down and the hero shooting on his own, or an arrow held
+//and the hero drifting. Runs start and end through here instead.
+//
+//Declared as a function rather than a const so loop.js can import it
+//without the two modules' evaluation order mattering.
+export function releaseAllInput() {
+  heldKeys.clear();
+  const pad = document.getElementById("touch-pad");
+  if (pad) pad.classList.remove("is-up", "is-down", "is-left", "is-right");
+  for (const btn of document.querySelectorAll(".touch-btn")) {
+    btn.classList.remove("is-down");
+  }
+}
+
 document.addEventListener("keydown", (event) => {
   const movement = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
   if (movement.includes(event.code) || event.code === "KeyS") {
@@ -32,7 +52,16 @@ document.addEventListener("keyup", (event) => heldKeys.delete(event.code));
 
 //Losing focus mid-run should pause, not hand you a silent death.
 window.addEventListener("blur", () => {
-  heldKeys.clear();
+  releaseAllInput();
+  if (sess.state === "playing") togglePause();
+});
+
+//A phone backgrounds the tab without always firing blur — switching apps,
+//taking a call, the screen locking. Anything held at that moment would still
+//be held when you came back.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "hidden") return;
+  releaseAllInput();
   if (sess.state === "playing") togglePause();
 });
 
@@ -115,7 +144,8 @@ if (pad) {
   };
   pad.addEventListener("pointerup", liftPad);
   pad.addEventListener("pointercancel", liftPad);
-  window.addEventListener("blur", () => liftPad());
+  //Capture is lost when the pad is hidden out from under the thumb
+  pad.addEventListener("lostpointercapture", () => liftPad());
 }
 
 //Capturing keeps a thumb that slides off the control still driving it. It
@@ -155,6 +185,7 @@ for (const btn of document.querySelectorAll("[data-hold], [data-press]")) {
   };
   btn.addEventListener("pointerup", lift);
   btn.addEventListener("pointercancel", lift);
-  //Held through a pause, a death or a tab switch, the key would stay down
-  window.addEventListener("blur", lift);
+  //A pointer that never comes back — the button hidden under the finger by
+  //a screen change, the tab going away — is caught by releaseAllInput().
+  btn.addEventListener("lostpointercapture", lift);
 }

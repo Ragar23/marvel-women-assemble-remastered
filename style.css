@@ -469,17 +469,29 @@ canvas {
 /* ---- the game screen becomes a phone screen ---- */
 body.is-touch[data-screen="game"] {
   /* Nothing scrolls while playing: a thumb near an edge would otherwise drag
-     the whole document instead of pressing a button. */
+     the whole document instead of pressing a button. Pinned to the viewport
+     as well as clipped, so the document is not a few pixels taller than the
+     window and does not bounce against the top on iOS. */
+  /* A percentage, not a viewport unit. html is already sized to the real
+     viewport, so 100% is exactly the visible area — where 100vh is famously
+     taller than that on iOS and 100dvh can resolve to the chrome-less height
+     before the chrome has gone, either of which leaves the document a few
+     pixels longer than the window and bouncing against the top. */
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   overscroll-behavior: none;
 }
 
-body.is-touch #screen-game {
+/* Scoped to .is-active, and it does not touch `display`.
+   `body.is-touch #screen-game` outranks `.screen { display: none }`, so
+   setting display here left the game screen showing on every screen: a blank
+   viewport-tall block under the menu, and the game-over panel pushed a whole
+   screen down the page where the TRY AGAIN button could not be reached. The
+   flex box it inherits from .screen.is-active was always the right one. */
+body.is-touch #screen-game.is-active {
   padding: 0;
-  display: block;
-  height: 100vh;
-  /* dvh follows the browser chrome as it hides; the vh line is the fallback */
-  height: 100dvh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -492,11 +504,11 @@ body.is-touch .game-shell {
   height: 100%;
 }
 
-body.is-touch #screen-game .stage {
+body.is-touch #screen-game.is-active .stage {
   flex: none;
 }
 
-body.is-touch #screen-game canvas {
+body.is-touch #screen-game.is-active canvas {
   border-radius: 0;
   border: none;
   box-shadow: none;
@@ -527,8 +539,9 @@ body.is-touch[data-screen="game"] .mute {
     flex-direction: column;
   }
 
-  body.is-touch #screen-game .stage {
+  body.is-touch #screen-game.is-active .stage {
     width: 100vw;
+    max-height: 100%;
   }
 
   body.is-touch[data-screen="game"] .touch-deck {
@@ -579,13 +592,16 @@ body.is-touch[data-screen="game"] .mute {
     margin: 0 1.2vw;
   }
 
-  body.is-touch #screen-game .stage {
+  body.is-touch #screen-game.is-active .stage {
     /* Whichever runs out first — the width left between the two decks, or
-       the height — decides, so the HUD along the bottom is never cropped. */
+       the height — decides, so the HUD along the bottom is never cropped.
+       max-height is the backstop: if the viewport unit in the calc ever
+       reads high, the picture is still clipped to what it is sitting in. */
     width: min(
       calc(100vw - 2 * var(--deck) - 5vw),
       calc(100dvh * 1364 / 768)
     );
+    max-height: 100%;
   }
 }
 
@@ -718,6 +734,26 @@ body.is-touch[data-screen="game"] .mute {
   border-color: var(--red-bright);
   background: rgba(74, 222, 128, 0.3);
   box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.2);
+}
+
+/* Each device is told the way back in that it actually has */
+.overlay-touch {
+  display: none;
+}
+
+body.is-touch .overlay-keys {
+  display: none;
+}
+
+body.is-touch .overlay-touch {
+  display: block;
+}
+
+/* Long-press on a control should not raise iOS's copy/look-up callout, and
+   a double tap anywhere in the play area should not zoom the page. */
+body.is-touch .game-shell {
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 /* Paused, the same button is the way back in */
@@ -872,6 +908,53 @@ body.is-touch[data-screen="game"] .mute {
 @media (max-width: 360px) {
   .hero-cards {
     grid-template-columns: 1fr;
+  }
+}
+
+/* A phone held sideways leaves very little height, and the game-over panel
+   was taller than it — the run ends and TRY AGAIN is off the bottom of the
+   screen, which is the worst possible moment to make someone hunt for a
+   button. Everything about it tightens up when height is the scarce
+   dimension. */
+@media (max-height: 500px) {
+  #screen-gameover {
+    padding: 1vh 3vw;
+  }
+
+  .gameover-inner {
+    padding: 0.9rem 1.4rem;
+  }
+
+  #gameover-title {
+    margin: 0 0 0.7rem;
+    font-size: clamp(1.1rem, 3.4vw, 1.8rem);
+  }
+
+  .stats {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .stat {
+    padding: 0.4rem 0.25rem;
+  }
+
+  .stat span {
+    font-size: clamp(1.1rem, 3vw, 1.7rem);
+  }
+
+  .stat label {
+    font-size: 0.6rem;
+  }
+
+  .gameover-actions {
+    gap: 0.6rem;
+  }
+
+  .gameover-actions .btn {
+    padding: 0.5rem 1.4rem;
+    font-size: 0.9rem;
   }
 }
 
