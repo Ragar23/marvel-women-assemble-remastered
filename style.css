@@ -179,6 +179,10 @@ body::after {
   grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: clamp(1rem, 2vw, 1.8rem);
   width: 100%;
+  /* Each panel is as tall as what is in it. Stretched to match the tallest,
+     the short ones carried a stretch of nothing at the bottom — and the
+     shortest is the one whose whole point is that it is short. */
+  align-items: start;
 }
 
 .panel {
@@ -221,21 +225,97 @@ body::after {
   font-weight: normal;
 }
 
+/* The long-form rules, shut. Everything in here is either discoverable by
+   playing or a detail you only want once, and left open it doubled the
+   height of the menu. */
+.notes {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--edge);
+  padding-top: 0.7rem;
+}
+
+.notes summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.notes summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A caret of its own, so it reads as something that opens */
+.notes summary::after {
+  content: " ▸";
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.notes[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.notes summary:hover,
+.notes[open] summary {
+  color: var(--red-bright);
+}
+
+.notes .rules {
+  margin-top: 0.7rem;
+}
+
+/* Key and meaning as a chip and a word, two across, rather than a column of
+   sentences to read line by line. */
+.keys {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.9rem !important;
+}
+
 .keys li {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
 }
 
-.keys span {
+.key-caps {
+  display: inline-flex;
+  gap: 0.15rem;
+  flex: none;
+}
+
+/* Four arrow caps plus a word will not fit in half a panel, and the word is
+   the half that was being cut. It takes the whole row. */
+.keys li:first-child {
+  grid-column: 1 / -1;
+}
+
+.keys span:last-child {
   color: var(--muted);
-  margin-left: 0.35rem;
+  font-size: 0.92em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keys-note {
+  margin: 0.9rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--edge);
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 kbd {
   display: inline-grid;
   place-items: center;
-  min-width: 2.1em;
+  min-width: 1.9em;
   padding: 0.2em 0.5em;
   border-radius: 6px;
   border: 1px solid var(--edge);
@@ -961,6 +1041,42 @@ body.is-touch .game-shell {
 @media (max-width: 720px) {
   .screen {
     padding: 2vh 3vw;
+  }
+
+  /* The masthead is most of what stands between opening the page and
+     starting a run, so it gives up some of its height here. */
+  .menu-inner {
+    gap: 0.9rem;
+  }
+
+  .title-logo {
+    width: min(760px, 74vw);
+  }
+
+  .tagline {
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+  }
+
+  .countdown {
+    margin-top: 0.4rem;
+  }
+
+  .countdown-clock span {
+    font-size: clamp(1.4rem, 7vw, 2rem);
+  }
+
+  .countdown-clock div {
+    min-width: 2.6em;
+  }
+
+  .panel {
+    padding: 0.9rem 1rem;
+  }
+
+  .panel h2 {
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.35rem;
   }
   /* Two up rather than one: four full-width cards put START most of a
      screen further down than it needs to be, and they fit side by side

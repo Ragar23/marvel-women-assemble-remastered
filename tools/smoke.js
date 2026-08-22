@@ -33,6 +33,19 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   }));
   check('countdown is ticking', await p.evaluate(() => document.querySelector('#countdown [data-unit="seconds"]').textContent !== '00'));
   check('all four heroes on the menu', await p.locator('.hero-card').count() === 4);
+  //The menu is what stands between opening the page and playing, so it is
+  //kept short: four lines of rules, the rest behind a drawer that starts shut.
+  check('the rules panel is short by default',
+        await p.locator('.panel .rules').first().locator('li').count() <= 5);
+  check('and the detail is a drawer that starts shut',
+        await p.locator('.notes').count() === 1 &&
+        await p.locator('.notes[open]').count() === 0);
+  check('the drawer opens', await p.evaluate(async () => {
+    const d = document.querySelector('.notes');
+    d.querySelector('summary').click();
+    await new Promise(r => setTimeout(r, 100));
+    return d.open && d.querySelectorAll('li').length >= 5;
+  }));
 
   // Thor is the only one carrying a choice, so his panel opens and the
   // others close it again.
