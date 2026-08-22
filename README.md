@@ -94,15 +94,16 @@ mostly works too, but a local server is more reliable for the audio and font fil
   for help altogether and starts pulling the other Earth in by hand, which
   turns the fight into a race he wins by default if you let it run.
 
-- **It plays on a phone.** A d-pad under the left thumb and FIRE, ULT and W
-  under the right, laid over the corners of the picture. Every one of them
-  holds or presses the key it is labelled with, so touch and keyboard run
-  down the same path and the simulation has no idea a touchscreen exists.
-  The game screen is letterboxed to fit the viewport rather than overflowing
-  it, the HUD's bottom row moves up under the boss bar so the thumbs are not
-  sitting on it, and the page is locked against scrolling while you play.
-  Portrait asks you to turn the device — a 16:9 battlefield in portrait is a
-  postage stamp.
+- **It plays on a phone**, and the controls have their own space rather than
+  sitting on top of the picture. A four-way pad on one side, FIRE, ULT, W and
+  pause on the other; in landscape they flank the screen, in portrait the
+  picture goes up top and the deck fills what is left. Every control holds or
+  presses the key it is labelled with, so touch and keyboard run down one
+  path and the simulation has no idea a touchscreen exists. The pad *looks*
+  like a d-pad and *behaves* like a stick — direction comes from how far off
+  centre the thumb is, so diagonals are free and sliding between arrows never
+  drops the input. The picture is sized around whatever the deck leaves, so
+  nothing is ever cropped, and the page is locked against scrolling.
 
 - **The Latverian Witches** arrive one at a time, named, with a health bar from
   the moment they appear, and they do not walk past you. Each holds a line

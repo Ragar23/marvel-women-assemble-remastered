@@ -10,6 +10,7 @@ export const menuBtn = document.getElementById("menu-button");
 export const muteBtn = document.getElementById("mute-button");
 export const pauseOverlay = document.getElementById("pause-overlay");
 export const touchUltBtn = document.getElementById("touch-ult");
+export const touchPauseBtn = document.getElementById("touch-pause");
 export const heroCards = Array.from(document.querySelectorAll(".hero-card"));
 export const weaponCards = Array.from(document.querySelectorAll(".weapon-card"));
 export const weaponChoice = document.getElementById("weapon-choice");

@@ -1,7 +1,7 @@
 import { audio, playMusic } from "./audio.js";
 import { countUp } from "./boot.js";
 import { CONFIG } from "./config.js";
-import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave } from "./dom.js";
+import { gameOverTitle, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
 import { draw } from "./render.js";
 import { update } from "./sim.js";
 import { fx, resetGame, run, sess } from "./state.js";
@@ -53,16 +53,28 @@ export function startRun() {
   playMusic();
 }
 
+//The same button pauses and resumes, so it has to say which it is about to
+//do. A phone has no Esc to fall back on if it gets this wrong.
+function markPauseButton(paused) {
+  if (!touchPauseBtn) return;
+  touchPauseBtn.classList.toggle("is-paused", paused);
+  touchPauseBtn.innerHTML = paused
+    ? "<b>&#9654;</b><small>resume</small>"
+    : "<b>&#10073;&#10073;</b><small>pause</small>";
+}
+
 export function togglePause() {
   if (sess.state === "playing") {
     sess.state = "paused";
     if (sess.animationId !== null) cancelAnimationFrame(sess.animationId);
     sess.animationId = null;
     pauseOverlay.classList.add("is-visible");
+    markPauseButton(true);
     audio.pause();
   } else if (sess.state === "paused") {
     sess.state = "playing";
     pauseOverlay.classList.remove("is-visible");
+    markPauseButton(false);
     sess.lastFrameTime = performance.now();
     sess.animationId = requestAnimationFrame(frame);
     playMusic();

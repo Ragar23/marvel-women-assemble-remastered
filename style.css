@@ -462,35 +462,38 @@ canvas {
    breakpoint: a small window on a laptop still has a keyboard, and a tablet
    in landscape does not. body.is-touch is set in input.js from
    (pointer: coarse). */
-.touch,
-.rotate-hint {
+.touch-deck {
   display: none;
 }
 
-/* ---- the game screen has to fit the phone, not the other way round ---- */
+/* ---- the game screen becomes a phone screen ---- */
 body.is-touch[data-screen="game"] {
-  /* No page scroll while playing: a drag near the edge would otherwise pull
-     the whole document around under the pad. */
+  /* Nothing scrolls while playing: a thumb near an edge would otherwise drag
+     the whole document instead of pressing a button. */
   overflow: hidden;
   overscroll-behavior: none;
 }
 
 body.is-touch #screen-game {
   padding: 0;
-  /* Pinned to the viewport rather than merely at least as tall as it, or the
-     screen ends up a handful of pixels longer than the window and the whole
-     page can be dragged under the thumbs. dvh follows the browser chrome as
-     it hides; the vh line above it is the fallback. */
+  display: block;
   height: 100vh;
+  /* dvh follows the browser chrome as it hides; the vh line is the fallback */
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
 }
 
+body.is-touch .game-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 body.is-touch #screen-game .stage {
-  /* Letterboxed: whichever of width or height runs out first decides, so the
-     HUD along the bottom is never cropped off the screen. */
-  width: min(100vw, calc(100dvh * 1364 / 768));
+  flex: none;
 }
 
 body.is-touch #screen-game canvas {
@@ -499,87 +502,144 @@ body.is-touch #screen-game canvas {
   box-shadow: none;
 }
 
-/* Pause and mute pair up along the top edge, out of both thumbs' way and
-   clear of the score and the lives at either end of the strip. */
+body.is-touch[data-screen="game"] .touch-deck {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4vw;
+}
+
+/* Mute goes to the corner of the deck, never over the picture */
 body.is-touch[data-screen="game"] .mute {
-  top: 0.5rem;
-  bottom: auto;
-  left: calc(50% + 4px);
+  top: 0.4rem;
+  left: 0.4rem;
   right: auto;
-  width: 44px;
-  height: 30px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  opacity: 0.7;
+  bottom: auto;
+  width: 34px;
+  height: 34px;
+  font-size: 0.9rem;
+  opacity: 0.6;
 }
 
-/* ---- the controls themselves ---- */
-body.is-touch[data-screen="game"] .touch {
-  position: absolute;
-  inset: 0;
-  display: block;
-  /* Only the controls take touches; the picture between them does not. */
-  pointer-events: none;
+/* ---- portrait: picture on top, deck underneath ---- */
+@media (orientation: portrait) {
+  body.is-touch .game-shell {
+    flex-direction: column;
+  }
+
+  body.is-touch #screen-game .stage {
+    width: 100vw;
+  }
+
+  body.is-touch[data-screen="game"] .touch-deck {
+    flex: 1;
+    width: 100%;
+    /* Down where the thumbs are, not floating in the middle of the gap */
+    align-items: flex-end;
+    padding: 0 3vw 7vh;
+  }
+
+  /* Bottom-left, below the pad. Deriving a position from the canvas height
+     was a calculation that had to stay true as the layout changed; the deck
+     is padded off the bottom edge, so this corner is simply empty. */
+  body.is-touch[data-screen="game"] .mute {
+    top: auto;
+    bottom: 0.4rem;
+    left: 0.4rem;
+    right: auto;
+  }
 }
 
-.touch-pad,
-.touch-btn {
-  pointer-events: auto;
-  -webkit-tap-highlight-color: transparent;
+/* ---- landscape: pad one side, actions the other, picture between ---- */
+@media (orientation: landscape) {
+  body.is-touch {
+    /* How much of the width each column of controls is allowed */
+    --deck: min(22vw, 148px);
+  }
+
+  /* The deck stops being a box of its own and hands its two children
+     straight to the shell, so they can sit either side of the picture
+     without the markup having to change between orientations. */
+  body.is-touch[data-screen="game"] .touch-deck {
+    display: contents;
+  }
+
+  body.is-touch .touch-pad {
+    order: -1;
+  }
+
+  body.is-touch .touch-actions {
+    order: 1;
+  }
+
+  body.is-touch .touch-pad,
+  body.is-touch .touch-actions {
+    width: var(--deck);
+    flex: none;
+    margin: 0 1.2vw;
+  }
+
+  body.is-touch #screen-game .stage {
+    /* Whichever runs out first — the width left between the two decks, or
+       the height — decides, so the HUD along the bottom is never cropped. */
+    width: min(
+      calc(100vw - 2 * var(--deck) - 5vw),
+      calc(100dvh * 1364 / 768)
+    );
+  }
+}
+
+/* ---- the pad ---- */
+.touch-pad {
+  position: relative;
+  width: min(34vmin, 190px);
+  aspect-ratio: 1;
+  border-radius: 22%;
+  background: rgba(6, 14, 9, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  /* The container takes every pointer; the arms below are paint only. */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-}
-
-/* The pad reads as a d-pad and behaves as a stick: how far off centre the
-   thumb is decides the direction, so diagonals come free and sliding from
-   one arm to the next never drops the input. */
-.touch-pad {
-  position: absolute;
-  left: 3%;
-  bottom: 6%;
-  width: 34vmin;
-  height: 34vmin;
-  max-width: 150px;
-  max-height: 150px;
-  border-radius: 50%;
-  background: rgba(6, 14, 9, 0.44);
-  border: 2px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(2px);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pad-arm {
   position: absolute;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 3px;
+  display: grid;
+  place-items: center;
+  width: 32%;
+  height: 32%;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1rem;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .pad-up,
 .pad-down {
-  left: 50%;
-  width: 15%;
-  height: 26%;
-  transform: translateX(-50%);
+  left: 34%;
 }
 
 .pad-left,
 .pad-right {
-  top: 50%;
-  height: 15%;
-  width: 26%;
-  transform: translateY(-50%);
+  top: 34%;
 }
 
-.pad-up { top: 10%; }
-.pad-down { bottom: 10%; }
-.pad-left { left: 10%; }
-.pad-right { right: 10%; }
+.pad-up { top: 3%; }
+.pad-down { bottom: 3%; }
+.pad-left { left: 3%; }
+.pad-right { right: 3%; }
 
 .pad-hub {
   position: absolute;
-  inset: 38%;
+  inset: 36%;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  pointer-events: none;
 }
 
 /* Which way it is being pushed, lit as you push it */
@@ -588,32 +648,47 @@ body.is-touch[data-screen="game"] .touch {
 .touch-pad.is-left .pad-left,
 .touch-pad.is-right .pad-right {
   background: var(--red-bright);
-  box-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
+  border-color: var(--red-bright);
+  color: #04240f;
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.7);
 }
 
+/* ---- the action cluster ---- */
 .touch-actions {
-  position: absolute;
-  right: 3%;
-  bottom: 6%;
-  width: 38vmin;
-  height: 38vmin;
-  max-width: 168px;
-  max-height: 168px;
-  pointer-events: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3%;
+  width: min(34vmin, 190px);
+  aspect-ratio: 1;
 }
 
 .touch-btn {
-  position: absolute;
   display: grid;
   place-items: center;
+  gap: 1px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.28);
   background: rgba(6, 14, 9, 0.5);
   color: var(--text);
   font-family: var(--font-display);
   font-weight: 700;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-btn b {
+  font-size: clamp(0.56rem, 2.4vmin, 0.82rem);
   letter-spacing: 0.04em;
-  backdrop-filter: blur(2px);
+}
+
+.touch-btn small {
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: clamp(0.5rem, 1.9vmin, 0.7rem);
+  color: var(--muted);
+  letter-spacing: 0.02em;
 }
 
 .touch-btn:active,
@@ -623,33 +698,19 @@ body.is-touch[data-screen="game"] .touch {
   border-color: var(--red-bright);
 }
 
-/* Laid out like a pad: fire under the thumb, the two situational ones up
-   and left of it where they cannot be hit by accident. */
+/* FIRE sits bottom-right, nearest the thumb, and is the one you hold */
 .touch-fire {
-  right: 0;
-  bottom: 0;
-  width: 46%;
-  height: 46%;
-  font-size: 0.7rem;
-  border-color: rgba(255, 59, 63, 0.55);
+  border-color: rgba(255, 59, 63, 0.6);
+  background: rgba(40, 8, 10, 0.55);
 }
 
 .touch-ult {
-  right: 44%;
-  bottom: 26%;
-  width: 38%;
-  height: 38%;
-  font-size: 0.62rem;
   border-color: rgba(74, 222, 128, 0.5);
 }
 
-.touch-w {
-  right: 6%;
-  bottom: 52%;
-  width: 30%;
-  height: 30%;
-  font-size: 0.62rem;
-  opacity: 0.75;
+.touch-w,
+.touch-pause {
+  opacity: 0.82;
 }
 
 /* The meter says when the ultimate is worth pressing */
@@ -659,63 +720,10 @@ body.is-touch[data-screen="game"] .touch {
   box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.2);
 }
 
-.touch-pause {
-  position: absolute;
-  top: 0.5rem;
-  right: calc(50% + 4px);
-  width: 44px;
-  height: 30px;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  opacity: 0.7;
-}
-
-/* ---- portrait ---- */
-@media (orientation: portrait) {
-  body.is-touch[data-screen="game"] .rotate-hint {
-    position: fixed;
-    inset: 0;
-    z-index: 70;
-    display: grid;
-    place-content: center;
-    justify-items: center;
-    gap: 0.6rem;
-    padding: 2rem;
-    text-align: center;
-    background: rgba(3, 8, 5, 0.94);
-  }
-
-  /* Nothing to press while it is up, and nothing worth seeing behind it */
-  body.is-touch[data-screen="game"] .touch {
-    display: none;
-  }
-}
-
-.rotate-mark {
-  margin: 0;
-  font-size: 3.4rem;
-  line-height: 1;
-  color: var(--red-bright);
-  animation: rotate-nudge 2.2s ease-in-out infinite;
-}
-
-@keyframes rotate-nudge {
-  0%, 60%, 100% { transform: rotate(0deg); }
-  30% { transform: rotate(90deg); }
-}
-
-.rotate-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: 0.16em;
-}
-
-.rotate-sub {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
+/* Paused, the same button is the way back in */
+.touch-pause.is-paused {
+  border-color: var(--gold);
+  background: rgba(163, 230, 53, 0.26);
 }
 
 .overlay {
