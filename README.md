@@ -112,10 +112,14 @@ mostly works too, but a local server is more reliable for the audio and font fil
 
   The picture is sized from the screen it is on rather than from a number
   picked in advance: it asks for whatever width it needs to fill the height,
-  the two decks share what is left, and if that leaves them narrower than a
-  thumb the picture gives ground until it does not. A tall phone, a wide one
-  and a tablet each end up with the largest picture their own screen can
-  carry.
+  the decks take what is left, and if that would leave them narrower than a
+  thumb the picture gives ground until it does not. A phone as wide as a
+  modern one has width over even then — a 16:9 picture at full height cannot
+  use it — so that goes to the thumbs too rather than sitting at the edges
+  with the game looking narrow in the middle of it. Only the controls dodge
+  the notch and the home indicator; the picture is full bleed, because
+  padding the whole screen by the safe area cost it a fifth of its width on
+  an iPhone in landscape for no reason at all.
 
   Playing needs two thumbs, which is precisely what a browser reads as a
   pinch — so while a run is on screen the game refuses the zoom gestures

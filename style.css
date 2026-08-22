@@ -498,8 +498,12 @@ body.is-touch #screen-game.is-active {
   animation: none;
   height: auto;
   min-height: 0;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* Full bleed. Padding the whole screen by the safe area cost the picture
+     the notch's width on a phone that has one — about 110px on an iPhone in
+     landscape, which is a fifth of the picture — for no reason: it is the
+     controls that must stay out of the notch and off the home indicator,
+     not the background and the HUD. The insets moved onto them. */
+  padding: 0;
   overflow: hidden;
   /* Belt and braces with the gesture handlers in src/input.js: this stops
      scroll and double-tap zoom where it is honoured, those stop the pinch
@@ -560,7 +564,8 @@ body.is-touch[data-screen="game"] .mute {
     width: 100%;
     /* Down where the thumbs are, not floating in the middle of the gap */
     align-items: flex-end;
-    padding: 0 3vw 7vh;
+    padding: 0 max(3vw, env(safe-area-inset-right)) max(7vh, env(safe-area-inset-bottom))
+      max(3vw, env(safe-area-inset-left));
   }
 
   /* Bottom-left, below the pad. Deriving a position from the canvas height
@@ -598,19 +603,50 @@ body.is-touch[data-screen="game"] .mute {
      the picture gives ground until it does not — so a tall phone, a wide
      one and a tablet each end up with the largest picture their own screen
      can carry and controls that are still worth pressing. */
-  body.is-touch .touch-pad,
+  /* Sized off the height, which is the axis that runs out first on a phone
+     held sideways, and kept narrow: every pixel a deck takes is nearly two
+     off the width of a 16:9 picture. */
+  body.is-touch .touch-pad {
+    /* Grows into whatever the picture cannot use. A 16:9 picture at full
+       height leaves width over on a phone as wide as a modern one, and with
+       the decks fixed that space simply sat at the edges — the game looking
+       narrow with nothing either side of it. It goes to the thumbs instead,
+       which is the only other thing that wants it. */
+    flex: 1 1 auto;
+    width: clamp(92px, 30vh, 150px);
+    /* A floor as well as a ceiling. Without it a small phone in landscape
+       shrinks both decks along with the picture, and the thumbs end up with
+       less than they need — the picture is the thing that should give. */
+    min-width: 86px;
+    max-width: min(190px, 24vw);
+    margin-left: max(1vw, env(safe-area-inset-left));
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* A column rather than a square block. Square, it was a small cluster with
+     a stretch of nothing above and below it — the empty right-hand side —
+     while costing the picture width it could have used. Stacked, it fills
+     the height it is given and takes barely half the width. */
   body.is-touch .touch-actions {
     flex: 1 1 auto;
-    width: auto;
-    min-width: 104px;
-    max-width: 220px;
-    margin: 0 1vw;
+    width: clamp(76px, 22vh, 118px);
+    min-width: 72px;
+    /* Capped tighter than the pad: four buttons in a column go wide and
+       squat if this is let run, and the pad is the bigger target anyway. */
+    max-width: min(124px, 16vw);
+    height: min(100%, calc(4.4 * clamp(76px, 22vh, 118px)));
+    aspect-ratio: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    margin-right: max(1vw, env(safe-area-inset-right));
+    margin-bottom: env(safe-area-inset-bottom);
   }
 
   body.is-touch #screen-game.is-active .stage {
     /* aspect-ratio makes height the driver: it takes exactly the width it
        needs to fill the height available, and flex-shrink takes that width
-       back if the decks cannot fit beside it. */
+       back if the decks cannot fit beside it. The decks no longer grow, so
+       every pixel they do not need ends up here. */
     flex: 0 1 auto;
     height: 100%;
     width: auto;
