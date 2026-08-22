@@ -7,6 +7,8 @@ import { heldKeys } from "./input.js";
 import { throwMjolnir } from "./mjolnir.js";
 import { becomeWorthy, punch, throwShield } from "./shield.js";
 import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, incursionProgress, incursionStage, missiles, particles, playerHitbox, pops, powerUps, punches, resetGame, run, sess, spawnQueue, speedMultiplier, world } from "./state.js";
+import { draw } from "./render.js";
+import { update } from "./sim.js";
 import { bossForWave, startWave, summonBoss } from "./waves.js";
 import { addScore, awardLife, bossPhase, damageBoss, damageEnemy, holdTheLine, maybeDropPowerUp, updateBossPhase } from "./world.js";
 
@@ -106,6 +108,9 @@ window.game = {
   img, sfx, heldKeys,
   heroDef, heroTint, playerHitbox, comboMultiplier,
   fireUlt, startWave, damageBoss, damageEnemy, throwMjolnir, resetGame,
+  //Let a test step the world a frame at a time instead of waiting on
+  //requestAnimationFrame, which a headless browser does not always drive.
+  update, draw,
   addScore, awardLife, maybeDropPowerUp,
   holdTheLine, incursionProgress, incursionStage, speedMultiplier,
   bossPhase, updateBossPhase,

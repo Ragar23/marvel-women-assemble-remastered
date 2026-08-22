@@ -123,7 +123,7 @@
               <li><kbd>Esc</kbd><span>Pause</span></li>
               <li><kbd>M</kbd><span>Mute</span></li>
               <li><kbd>W</kbd><span>&hellip;the line-up arrives</span></li>
-              <li><kbd>Touch</kbd><span>Drag to fly &mdash; it fires while you hold</span></li>
+              <li><kbd>Touch</kbd><span>Pad to fly, FIRE to shoot, ULT for the meter</span></li>
             </ul>
           </section>
         </div>
@@ -138,14 +138,43 @@
       <div class="stage">
         <canvas id="myCanvas" width="1364" height="768"></canvas>
 
-        <!-- Shown only on a touch device. Movement is a drag anywhere on the
-             canvas, so the only things that need a button are the two keys a
-             phone has no way to press. -->
+        <!-- Shown only on a touch device. A pad on the left and a cluster on
+             the right, laid over the edges of the picture: every one of them
+             holds or presses the key it is labelled with, so touch and
+             keyboard run down exactly the same path. -->
         <div id="touch-controls" class="touch">
-          <button id="touch-pause" class="touch-btn" aria-label="Pause">II</button>
-          <button id="touch-ult" class="touch-btn touch-ult" aria-label="Ultimate">
-            ULT
+          <div id="touch-pad" class="touch-pad" aria-label="Move">
+            <span class="pad-arm pad-up"></span>
+            <span class="pad-arm pad-down"></span>
+            <span class="pad-arm pad-left"></span>
+            <span class="pad-arm pad-right"></span>
+            <span class="pad-hub"></span>
+          </div>
+
+          <div class="touch-actions">
+            <!-- press, not hold: nothing reads KeyW out of heldKeys, it is
+                 the keydown itself that calls the line-up on. -->
+            <button class="touch-btn touch-w" data-press="KeyW" aria-label="The line-up">
+              W
+            </button>
+            <button id="touch-ult" class="touch-btn touch-ult" data-press="Space" aria-label="Ultimate">
+              ULT
+            </button>
+            <button class="touch-btn touch-fire" data-hold="KeyS" aria-label="Fire">
+              FIRE
+            </button>
+          </div>
+
+          <button id="touch-pause" class="touch-btn touch-pause" data-press="Escape" aria-label="Pause">
+            II
           </button>
+        </div>
+
+        <!-- A 16:9 battlefield in portrait is a 470x266 postage stamp. -->
+        <div class="rotate-hint">
+          <p class="rotate-mark">&#8635;</p>
+          <p class="rotate-title">TURN YOUR DEVICE</p>
+          <p class="rotate-sub">Doomsday is wider than it is tall</p>
         </div>
 
         <div id="pause-overlay" class="overlay">

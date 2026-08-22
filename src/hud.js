@@ -2,9 +2,22 @@ import { img } from "./assets.js";
 import { H, W, ctx } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { touchUltBtn } from "./dom.js";
-import { isTouch } from "./input.js";
 import { comboMultiplier, fx, heroDef, heroTint, incursionProgress, incursionStage, run, world } from "./state.js";
 import { clamp } from "./util.js";
+
+//Read off the body class rather than the capability itself, so the canvas
+//HUD and the CSS layout can never disagree about whether this is a phone —
+//they are answering the same question from the same place.
+function onTouch() {
+  return document.body.classList.contains("is-touch");
+}
+
+//Where the two bars sit. On a phone the thumbs are in the bottom corners,
+//which is exactly where these were — so on touch they move up under the boss
+//bar and the bottom third of the picture is left to the controls.
+function hudBottom() {
+  return onTouch() ? 178 : H - 56;
+}
 
 //=====================================================================//
 export function drawHud() {
@@ -72,7 +85,7 @@ export function drawUltMeter() {
   const hero = heroDef();
   const barW = 250;
   const x = W - barW - 24;
-  const y = H - 42;
+  const y = hudBottom() + 14;
   const pct = clamp(world.player.charge / CONFIG.ult.max, 0, 1);
   const ready = pct >= 1;
 
@@ -94,7 +107,7 @@ export function drawUltMeter() {
   ctx.fillStyle = ready ? heroTint() : "#9aa3b2";
   //"SPACE" is a lie on a phone, and the button lights up instead
   ctx.fillText(
-    ready && !isTouch ? `${hero.ultName} — SPACE` : hero.ultName,
+    ready && !onTouch() ? `${hero.ultName} — SPACE` : hero.ultName,
     x + barW,
     y - 6
   );
@@ -108,7 +121,7 @@ export function drawUltMeter() {
 //the thing in the sky are visibly the same fact.
 export function drawIncursionMeter() {
   const x = 24;
-  const y = H - 56;
+  const y = hudBottom();
   const barW = 340;
   const barH = 22;
   const p = incursionProgress();
@@ -215,17 +228,21 @@ export function drawBossBar() {
 }
 
 export function drawActivePowerUps() {
-  let y = H - 96;
+  //Stacks downward on touch, upward on a desktop, because on touch there is
+  //nothing below the row and on desktop there is nothing above it.
+  const touch = onTouch();
+  let y = touch ? hudBottom() + 62 : H - 96;
+  const step = touch ? 26 : -26;
   ctx.font = "22px Marvel";
   if (world.player.rapid > 0) {
     ctx.fillStyle = "#f0b323";
     ctx.fillText(`RAPID FIRE ${world.player.rapid.toFixed(1)}s`, 24, y);
-    y -= 26;
+    y += step;
   }
   if (world.player.worthy > 0) {
     ctx.fillStyle = "#bae6fd";
     ctx.fillText(`WORTHY ${world.player.worthy.toFixed(1)}s`, 24, y);
-    y -= 26;
+    y += step;
   }
   if (world.player.shield > 0) {
     ctx.fillStyle = "#38bdf8";

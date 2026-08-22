@@ -3,7 +3,7 @@ import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { burst, floatText } from "./effects.js";
-import { heldKeys, touch } from "./input.js";
+import { heldKeys } from "./input.js";
 import { endGame } from "./loop.js";
 import { throwMjolnir, updateMjolnir } from "./mjolnir.js";
 import { punch, throwShield, updatePunches, updateShield, updateWorthy } from "./shield.js";
@@ -77,18 +77,9 @@ export function updatePlayer(dt) {
   if (heldKeys.has("ArrowLeft")) world.player.x -= step;
   if (heldKeys.has("ArrowRight")) world.player.x += step;
 
-  //A finger on the canvas flies him directly. It is set rather than eased,
-  //because anything less than one-to-one reads as lag on a touchscreen.
-  let dragBank = 0;
-  if (touch.active) {
-    const wasY = world.player.y;
-    world.player.x = touch.x;
-    world.player.y = touch.y;
-    dragBank = clamp((world.player.y - wasY) / Math.max(1, step), -1, 1);
-  }
-
-  //Bank into the turn, level out when the keys are released
-  const targetBank = touch.active ? dragBank : (down ? 1 : 0) - (up ? 1 : 0);
+  //Bank into the turn, level out when the keys are released. The touch pad
+  //holds the same arrow keys, so it banks him without knowing it exists.
+  const targetBank = (down ? 1 : 0) - (up ? 1 : 0);
   world.player.bank +=
     (targetBank * CONFIG.anim.bankAngle - world.player.bank) *
     Math.min(1, dt * CONFIG.anim.bankEase);
@@ -108,8 +99,7 @@ export function updatePlayer(dt) {
   updateIgnition(dt);
   updatePanther(dt);
 
-  //Holding the screen fires, the same as holding S
-  if ((heldKeys.has("KeyS") || touch.active) && world.player.cooldown <= 0) fire();
+  if (heldKeys.has("KeyS") && world.player.cooldown <= 0) fire();
 }
 
 export function fire() {

@@ -218,17 +218,81 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('the collapse stops summoning and pulls the incursion in',
         doom.stopsSummoning && doom.pulls);
 
-  // touch controls exist and are wired
-  const tch = await p.evaluate(() => {
+  // touch controls: driven with real pointer events, on the real controls
+  const tch = await p.evaluate(async () => {
     const g = window.game;
-    return {
-      hasButtons: !!document.getElementById('touch-ult') && !!document.getElementById('touch-pause'),
-      //hidden on a desktop pointer, which is what the smoke test runs as
-      hiddenOnDesktop: getComputedStyle(document.getElementById('touch-controls')).display === 'none',
+    const hiddenOnDesktop =
+      getComputedStyle(document.getElementById('touch-controls')).display === 'none';
+    //Turn them on the way a phone would, then use them.
+    document.body.classList.add('is-touch');
+    await new Promise(r => setTimeout(r, 60));
+    const pad = document.getElementById('touch-pad');
+    const fire = document.querySelector('.touch-fire');
+    const ult = document.getElementById('touch-ult');
+    const w = document.querySelector('.touch-w');
+    let id = 900;
+    const at = (el, fx, fy, type, pid) => {
+      const r = el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent(type, {
+        pointerId: pid, bubbles: true, cancelable: true, pointerType: 'touch',
+        clientX: r.left + r.width * fx, clientY: r.top + r.height * fy,
+      }));
     };
+    //Step the world by hand rather than waiting on rAF, which a headless
+    //browser does not reliably drive.
+    const step = (n = 6) => { for (let i = 0; i < n; i++) { g.update(0.05); g.draw(); } };
+    const out = {};
+
+    const p1 = id++;
+    at(pad, 0.06, 0.5, 'pointerdown', p1);
+    out.padHolds = g.heldKeys.has('ArrowLeft');
+    const x0 = g.world.player.x; step();
+    out.flies = g.world.player.x < x0 - 20;
+    at(pad, 0.94, 0.06, 'pointermove', p1);
+    out.diagonal = g.heldKeys.has('ArrowUp') && g.heldKeys.has('ArrowRight');
+    at(pad, 0.5, 0.5, 'pointermove', p1);
+    out.deadZone = g.heldKeys.size === 0;
+    at(pad, 0.5, 0.5, 'pointerup', p1);
+    out.released = g.heldKeys.size === 0;
+
+    const p2 = id++;
+    g.world.player.cooldown = 0;
+    at(fire, 0.5, 0.5, 'pointerdown', p2);
+    out.fireHolds = g.heldKeys.has('KeyS');
+    step(1);
+    out.shoots = g.world.player.cooldown > 0 || g.world.mjolnir !== null || g.boltArcs.length > 0;
+    at(fire, 0.5, 0.5, 'pointerup', p2);
+    out.fireStops = !g.heldKeys.has('KeyS');
+
+    g.world.player.charge = g.CONFIG.ult.max;
+    step(1);
+    out.ultLights = ult.classList.contains('is-ready');
+    const p3 = id++;
+    at(ult, 0.5, 0.5, 'pointerdown', p3); at(ult, 0.5, 0.5, 'pointerup', p3);
+    out.ultSpends = g.world.player.charge < g.CONFIG.ult.max;
+
+    g.heroes.length = 0;
+    const p4 = id++;
+    at(w, 0.5, 0.5, 'pointerdown', p4); at(w, 0.5, 0.5, 'pointerup', p4);
+    out.wWorks = g.heroes.length === 6;
+    out.wNotStuck = !g.heldKeys.has('KeyW');
+
+    const cv = document.getElementById('myCanvas').getBoundingClientRect();
+    const vh = document.documentElement.clientHeight;
+    const vw = document.documentElement.clientWidth;
+    out.fits = cv.height <= vh + 1 && cv.width <= vw + 1 && cv.top >= -1;
+    out.locked = getComputedStyle(document.body).overflow === 'hidden';
+
+    document.body.classList.remove('is-touch');
+    return { hiddenOnDesktop, ...out };
   });
-  check('touch controls exist', tch.hasButtons, JSON.stringify(tch));
-  check('and stay out of the way on a desktop pointer', tch.hiddenOnDesktop);
+  check('touch controls stay out of the way on a desktop pointer', tch.hiddenOnDesktop);
+  check('the pad holds arrows, flies him, does diagonals and a dead zone',
+        tch.padHolds && tch.flies && tch.diagonal && tch.deadZone && tch.released, JSON.stringify(tch));
+  check('FIRE holds, shoots, and lets go', tch.fireHolds && tch.shoots && tch.fireStops);
+  check('ULT lights when full and spends the meter', tch.ultLights && tch.ultSpends);
+  check('W is a press, not a stuck hold', tch.wWorks && tch.wNotStuck);
+  check('the picture fits the screen and the page cannot scroll', tch.fits && tch.locked);
 
   // the coven stop and fight rather than walking off the edge
   const coven = await p.evaluate(async () => {

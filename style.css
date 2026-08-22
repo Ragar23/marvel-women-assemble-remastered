@@ -462,66 +462,260 @@ canvas {
    breakpoint: a small window on a laptop still has a keyboard, and a tablet
    in landscape does not. body.is-touch is set in input.js from
    (pointer: coarse). */
-.touch {
+.touch,
+.rotate-hint {
   display: none;
 }
 
-body.is-touch .touch {
+/* ---- the game screen has to fit the phone, not the other way round ---- */
+body.is-touch[data-screen="game"] {
+  /* No page scroll while playing: a drag near the edge would otherwise pull
+     the whole document around under the pad. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.is-touch #screen-game {
+  padding: 0;
+  /* Pinned to the viewport rather than merely at least as tall as it, or the
+     screen ends up a handful of pixels longer than the window and the whole
+     page can be dragged under the thumbs. dvh follows the browser chrome as
+     it hides; the vh line above it is the fallback. */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.is-touch #screen-game .stage {
+  /* Letterboxed: whichever of width or height runs out first decides, so the
+     HUD along the bottom is never cropped off the screen. */
+  width: min(100vw, calc(100dvh * 1364 / 768));
+}
+
+body.is-touch #screen-game canvas {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* Pause and mute pair up along the top edge, out of both thumbs' way and
+   clear of the score and the lives at either end of the strip. */
+body.is-touch[data-screen="game"] .mute {
+  top: 0.5rem;
+  bottom: auto;
+  left: calc(50% + 4px);
+  right: auto;
+  width: 44px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  opacity: 0.7;
+}
+
+/* ---- the controls themselves ---- */
+body.is-touch[data-screen="game"] .touch {
   position: absolute;
-  right: 2%;
-  bottom: 4%;
-  display: flex;
-  align-items: flex-end;
-  gap: 0.7rem;
-  /* The drag that flies the ship is on the canvas underneath, so anything
-     that is not a button has to let it through. */
+  inset: 0;
+  display: block;
+  /* Only the controls take touches; the picture between them does not. */
+  pointer-events: none;
+}
+
+.touch-pad,
+.touch-btn {
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The pad reads as a d-pad and behaves as a stick: how far off centre the
+   thumb is decides the direction, so diagonals come free and sliding from
+   one arm to the next never drops the input. */
+.touch-pad {
+  position: absolute;
+  left: 3%;
+  bottom: 6%;
+  width: 34vmin;
+  height: 34vmin;
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 50%;
+  background: rgba(6, 14, 9, 0.44);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(2px);
+}
+
+.pad-arm {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+}
+
+.pad-up,
+.pad-down {
+  left: 50%;
+  width: 15%;
+  height: 26%;
+  transform: translateX(-50%);
+}
+
+.pad-left,
+.pad-right {
+  top: 50%;
+  height: 15%;
+  width: 26%;
+  transform: translateY(-50%);
+}
+
+.pad-up { top: 10%; }
+.pad-down { bottom: 10%; }
+.pad-left { left: 10%; }
+.pad-right { right: 10%; }
+
+.pad-hub {
+  position: absolute;
+  inset: 38%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+}
+
+/* Which way it is being pushed, lit as you push it */
+.touch-pad.is-up .pad-up,
+.touch-pad.is-down .pad-down,
+.touch-pad.is-left .pad-left,
+.touch-pad.is-right .pad-right {
+  background: var(--red-bright);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
+}
+
+.touch-actions {
+  position: absolute;
+  right: 3%;
+  bottom: 6%;
+  width: 38vmin;
+  height: 38vmin;
+  max-width: 168px;
+  max-height: 168px;
   pointer-events: none;
 }
 
 .touch-btn {
-  pointer-events: auto;
+  position: absolute;
   display: grid;
   place-items: center;
-  width: 62px;
-  height: 62px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.32);
-  background: rgba(8, 16, 11, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(6, 14, 9, 0.5);
   color: var(--text);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  /* iOS shows a grey flash and a magnifier on a held button otherwise */
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  user-select: none;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(2px);
 }
 
-.touch-btn:active {
-  transform: scale(0.94);
-  background: rgba(74, 222, 128, 0.3);
+.touch-btn:active,
+.touch-btn.is-down {
+  transform: scale(0.93);
+  background: rgba(74, 222, 128, 0.34);
+  border-color: var(--red-bright);
+}
+
+/* Laid out like a pad: fire under the thumb, the two situational ones up
+   and left of it where they cannot be hit by accident. */
+.touch-fire {
+  right: 0;
+  bottom: 0;
+  width: 46%;
+  height: 46%;
+  font-size: 0.7rem;
+  border-color: rgba(255, 59, 63, 0.55);
 }
 
 .touch-ult {
-  width: 84px;
-  height: 84px;
-  font-size: 0.86rem;
+  right: 44%;
+  bottom: 26%;
+  width: 38%;
+  height: 38%;
+  font-size: 0.62rem;
   border-color: rgba(74, 222, 128, 0.5);
 }
 
-/* The meter tells you when it is worth pressing */
-.touch-ult.is-ready {
-  border-color: var(--red-bright);
-  background: rgba(74, 222, 128, 0.26);
-  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
+.touch-w {
+  right: 6%;
+  bottom: 52%;
+  width: 30%;
+  height: 30%;
+  font-size: 0.62rem;
+  opacity: 0.75;
 }
 
-/* Dragging on the canvas must not scroll the page or pick a selection. */
-body.is-touch canvas {
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
+/* The meter says when the ultimate is worth pressing */
+.touch-ult.is-ready {
+  border-color: var(--red-bright);
+  background: rgba(74, 222, 128, 0.3);
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.2);
+}
+
+.touch-pause {
+  position: absolute;
+  top: 0.5rem;
+  right: calc(50% + 4px);
+  width: 44px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* ---- portrait ---- */
+@media (orientation: portrait) {
+  body.is-touch[data-screen="game"] .rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 0.6rem;
+    padding: 2rem;
+    text-align: center;
+    background: rgba(3, 8, 5, 0.94);
+  }
+
+  /* Nothing to press while it is up, and nothing worth seeing behind it */
+  body.is-touch[data-screen="game"] .touch {
+    display: none;
+  }
+}
+
+.rotate-mark {
+  margin: 0;
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--red-bright);
+  animation: rotate-nudge 2.2s ease-in-out infinite;
+}
+
+@keyframes rotate-nudge {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(90deg); }
+}
+
+.rotate-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.16em;
+}
+
+.rotate-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .overlay {
@@ -646,12 +840,40 @@ body.is-touch canvas {
 }
 
 @media (max-width: 720px) {
-  .hero-cards {
-    grid-template-columns: 1fr;
-  }
   .screen {
     padding: 2vh 3vw;
   }
+  /* Two up rather than one: four full-width cards put START most of a
+     screen further down than it needs to be, and they fit side by side
+     comfortably at any width a phone actually reports. */
+  .hero-cards {
+    gap: 0.45rem;
+  }
+  .hero-card {
+    padding: 0.6rem 0.3rem;
+  }
+  .hero-perk {
+    font-size: 0.72rem;
+  }
+  .weapon-cards {
+    gap: 0.4rem;
+  }
+}
+
+/* Only the very narrowest need one at a time */
+@media (max-width: 360px) {
+  .hero-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* On a phone the rules and the controls list put START the better part of a
+   screen below the fold. It sticks to the bottom of the viewport instead, so
+   it is reachable from anywhere in the menu without scrolling back down. */
+body.is-touch[data-screen="menu"] #start-button {
+  position: sticky;
+  bottom: 0.9rem;
+  z-index: 5;
 }
 
 @media (prefers-reduced-motion: reduce) {
