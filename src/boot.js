@@ -1,6 +1,6 @@
 import { fireUlt } from "./abilities.js";
 import { img, loadImages } from "./assets.js";
-import { sfx } from "./audio.js";
+import { audioState, sfx } from "./audio.js";
 import { BOSSES, CONFIG, ELITE_SCHEDULE, ENEMY_TYPES, HEROES, WAVE_PLAN } from "./config.js";
 import { startBtn } from "./dom.js";
 import { heldKeys } from "./input.js";
@@ -105,7 +105,7 @@ window.game = {
   sess, run, fx, world,
   enemies, bullets, enemyShots, powerUps, particles, floatTexts,
   heroes, spawnQueue, corpses, pops, boltArcs, missiles,
-  img, sfx, heldKeys,
+  img, sfx, heldKeys, audioState,
   heroDef, heroTint, playerHitbox, comboMultiplier,
   fireUlt, startWave, damageBoss, damageEnemy, throwMjolnir, resetGame,
   //Let a test step the world a frame at a time instead of waiting on

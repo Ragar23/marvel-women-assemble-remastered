@@ -1,4 +1,4 @@
-import { audio, playMusic } from "./audio.js";
+import { audio, playMusic, unlockAudio } from "./audio.js";
 import { countUp } from "./boot.js";
 import { CONFIG } from "./config.js";
 import { gameOverTitle, leaderboard, leaderboardList, nameForm, nameInput, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
@@ -70,6 +70,8 @@ export function startRun() {
   //Whatever was under a thumb when the last run ended is not held any more
   releaseAllInput();
   goFullscreen();
+  //START is a gesture, which is the only time a phone will open the audio
+  unlockAudio();
   resetGame();
   showScreen("game");
   sess.state = "playing";
@@ -107,6 +109,9 @@ export function togglePause() {
     markPauseButton(false);
     sess.lastFrameTime = performance.now();
     sess.animationId = requestAnimationFrame(frame);
+    //Coming back from a pause is a gesture, and it is the moment a context
+    //suspended while the tab was away can be opened again.
+    unlockAudio();
     playMusic();
   }
 }

@@ -580,21 +580,30 @@ body.is-touch[data-screen="game"] .mute {
 
 /* ---- portrait: picture on top, deck underneath ---- */
 @media (orientation: portrait) {
+  /* The picture and the controls are one group, centred together, with the
+     controls directly beneath the picture. The deck used to be flex: 1 and
+     swallow every pixel the picture did not want — which pinned the picture
+     to the very top of the screen and left the controls stranded at the
+     bottom with a gulf between them. */
   body.is-touch .game-shell {
     flex-direction: column;
+    justify-content: center;
+    gap: clamp(0.6rem, 3.5vh, 2.2rem);
   }
 
   body.is-touch #screen-game.is-active .stage {
     width: 100vw;
     max-height: 100%;
+    flex: none;
   }
 
   body.is-touch[data-screen="game"] .touch-deck {
-    flex: 1;
+    flex: none;
     width: 100%;
-    /* Down where the thumbs are, not floating in the middle of the gap */
-    align-items: flex-end;
-    padding: 0 max(3vw, env(safe-area-inset-right)) max(7vh, env(safe-area-inset-bottom))
+    align-items: center;
+    /* Only the side and bottom insets: the group is centred, so it does not
+       need padding to hold it off an edge it is nowhere near. */
+    padding: 0 max(3vw, env(safe-area-inset-right)) env(safe-area-inset-bottom)
       max(3vw, env(safe-area-inset-left));
   }
 

@@ -49,6 +49,8 @@ export const sfx = {}; //name → AudioBuffer, once decoded
 let ctx = null;
 let master = null;
 let voices = 0;
+//Whether a buffer has ever actually played, which is what iOS counts
+let unlocked = false;
 
 //A God Blast kills a whole wave at once. Past this many at a time the ear
 //hears mud and the phone hears work, so the rest are dropped.
@@ -97,13 +99,81 @@ function loadEffects() {
   );
 }
 
-//iOS starts every context suspended and only lets a gesture resume it.
+//iOS starts every context suspended and only a gesture may resume it. Two
+//things about that are easy to get wrong, and this had both.
+//
+//The first: resume() returns a promise that only settles when the call came
+//from inside a gesture. Called from a timer, or from a visibilitychange
+//handler, it does not reject — it simply never settles, and the context
+//stays suspended for the rest of the session. So resuming can only ever be
+//hung off a real touch, which is what the listener below is for.
+//
+//The second: a context there can report "running" and still be silent until
+//a buffer has actually played through it. Playing that silent buffer while
+//the context is suspended does nothing at all — and the old code marked the
+//sound unlocked anyway, so the one thing that opens it never ran again.
 export function unlockAudio() {
   const context = audioContext();
-  if (context && context.state === "suspended") {
+  if (!context) return;
+  if (context.state !== "running") {
     const resumed = context.resume();
-    if (resumed && typeof resumed.catch === "function") resumed.catch(() => {});
+    //Prime it the moment it opens, not before
+    if (resumed && typeof resumed.then === "function") resumed.then(primeOutput, () => {});
   }
+  primeOutput();
+}
+
+function primeOutput() {
+  if (unlocked || !ctx || ctx.state !== "running") return;
+  try {
+    const silence = ctx.createBufferSource();
+    silence.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    silence.connect(master);
+    silence.start(0);
+    unlocked = true;
+  } catch {
+    /* it will be tried again on the next gesture */
+  }
+}
+
+//A context is suspended out from under a run by anything the phone considers
+//more important — a call, the screen locking, switching app — and iOS does
+//not give it back on its own. The player is touching the screen constantly,
+//though, so every touch is an opportunity to reopen it, and a touch is the
+//only kind of moment where resume() actually works.
+//
+//Capture phase: the stick and the buttons call preventDefault() and the
+//event never reaches the document otherwise. The common case costs one
+//comparison, so this can sit on every pointerdown of a run.
+for (const type of ["pointerdown", "touchend", "keydown"]) {
+  document.addEventListener(
+    type,
+    () => {
+      if (ctx && ctx.state === "running" && unlocked) return;
+      unlockAudio();
+    },
+    { capture: true, passive: true }
+  );
+}
+
+//Coming back to the tab is worth a try on the platforms where it is allowed
+//— desktop and Android both resume from here. On iOS it will hang, which
+//costs nothing: the next touch is what reopens it there.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (ctx && ctx.state === "suspended") unlockAudio();
+});
+
+//A single place to ask what the sound is actually doing, because none of
+//this is visible when it goes wrong on someone else's phone.
+export function audioState() {
+  return {
+    context: ctx ? ctx.state : "none",
+    unlocked,
+    decoded: Object.keys(sfx).length,
+    muted,
+    voices,
+  };
 }
 
 //Kept for the easter egg, where it is the whole point.
@@ -135,6 +205,12 @@ export function playSfx(name, volume = 0.25, rate = 1) {
   const buffer = sfx[name];
   //Still decoding, or no Web Audio: silent rather than slow
   if (!context || !buffer) return;
+  //Nothing plays through a suspended context, and asking is how we notice
+  //it went away. The touch listener above is what actually gets it back.
+  if (context.state !== "running") {
+    unlockAudio();
+    return;
+  }
 
   const now = context.currentTime;
   if (now - (lastPlayed.get(name) || -Infinity) < REPEAT_GAP) return;
@@ -180,14 +256,6 @@ function syncWeaponChoice() {
   if (!weaponChoice) return;
   weaponChoice.classList.toggle("is-open", !!HEROES[sess.chosenHero].weapons);
 }
-
-//Every gesture that could precede a sound builds the audio context, since a
-//browser will only allow it from inside one. Whichever comes first wins; the
-//rest are no-ops.
-for (const el of [startBtn, retryBtn, ...heroCards, ...weaponCards]) {
-  if (el) el.addEventListener("pointerdown", unlockAudio);
-}
-document.addEventListener("pointerdown", unlockAudio, { once: true });
 
 heroCards.forEach((card) => {
   card.addEventListener("click", () => {
