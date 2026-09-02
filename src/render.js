@@ -81,9 +81,8 @@ export function drawStars() {
 }
 
 export function drawSetDressing() {
-  //Groot dances at the back, clear of the incursion meter. Spider-Man
-  //and the Chitauri used to stand here too, but they were props that never
-  //moved, so they are gone; spiderman.png is kept for a future character.
+  //A newsstand screen down at street level, cutting between the only two
+  //things Jameson ever says about him. It sits clear of the spell meter.
   ctx.drawImage(fx.grootStanding ? img.grootLeft : img.grootRight, 500, H - 98);
   drawCameo();
 }
@@ -101,9 +100,11 @@ function drawCameo() {
 }
 
 export function enemySprite(enemy) {
-  return enemy.def.animated
-    ? [img.chit2, img.chit3, img.chit4][fx.chitFrame]
-    : img[enemy.def.sprite];
+  //An animated enemy names its own frames. This used to be hard-coded to
+  //the three Chitauri sprites, which meant only one enemy in the game
+  //could ever be animated and only if it was that one.
+  const frames = enemy.def.frames;
+  return frames ? img[frames[fx.chitFrame % frames.length]] : img[enemy.def.sprite];
 }
 
 export function drawEnemy(enemy) {

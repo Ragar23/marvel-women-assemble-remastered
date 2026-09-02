@@ -18,7 +18,7 @@ export const sess = {
   state: "menu", // menu | playing | paused | gameover
   animationId: null,
   lastFrameTime: 0,
-  chosenHero: "thor",
+  chosenHero: "holland",
   //Only Thor has a choice to make; the field is harmless for everyone else.
   weapon: "stormbreaker",
 };

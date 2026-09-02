@@ -11,29 +11,31 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#03080a" />
+    <meta name="theme-color" content="#05091c" />
     <!-- Added to a home screen, it opens without browser chrome at all,
          which is the steadiest this can be on iOS. -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="DOOMSDAY" />
+    <meta name="apple-mobile-web-app-title" content="NO WAY HOME" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232ea84a'/%3E%3Ctext x='16' y='23' font-family='Impact,sans-serif' font-size='20' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2305091c'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23f0b429' stroke-width='2.5'/%3E%3Cpath d='M6 16h20M16 6v20' stroke='%23c81f2b' stroke-width='2'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Orbitron is the closest free match to the squared, cut-cornered
-         lettering of the DOOMSDAY wordmark. -->
+    <!-- Bebas Neue is the closest free match to the tall condensed
+         lettering of the poster credits. The wordmark itself is drawn in
+         assets/Marvel.ttf by tools/make_nwh_scene.py, so it needs no font
+         to be loaded to look right. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap"
       rel="stylesheet"
     />
     <link href="style.css" rel="stylesheet" />
-    <title>AVENGERS: DOOMSDAY</title>
+    <title>SPIDER-MAN: NO WAY HOME</title>
   </head>
 
   <body>
@@ -41,7 +43,7 @@
          while the sprites load and fades once they are in, so it costs no
          time that was not already being spent; a click or a key skips it. -->
     <div id="studios-splash" class="splash">
-      <img src="images/dd-studios.jpg" alt="Marvel Studios" />
+      <img src="images/nwh-studios.jpg" alt="Marvel Studios" />
     </div>
 
     <!-- ============ MENU ============ -->
@@ -54,69 +56,51 @@
           <h1 class="game-title">
             <img
               class="title-logo"
-              src="images/dd-title.png"
-              alt="Marvel Studios — Avengers: Doomsday"
+              src="images/nwh-title.png"
+              alt="Marvel Studios — Spider-Man: No Way Home"
             />
           </h1>
-          <!-- The live clock, on one line. It used to be a labelled block
-               under a heading that repeated the tagline above it. -->
-          <div class="clock" id="countdown" aria-label="Time until release">
-            <span class="clock-lead">IN CINEMAS</span>
-            <b><span data-unit="months">00</span><i>MTH</i></b>
-            <b><span data-unit="days">00</span><i>DAY</i></b>
-            <b><span data-unit="hours">00</span><i>HR</i></b>
-            <b><span data-unit="minutes">00</span><i>MIN</i></b>
-            <b><span data-unit="seconds">00</span><i>SEC</i></b>
-          </div>
+          <p class="tagline">
+            The spell broke. Everyone who ever knew is coming through.
+          </p>
         </div>
 
         <div class="deck">
           <section class="card card-heroes">
-            <h2>CHOOSE YOUR HERO</h2>
+            <h2>WHICH ONE ARE YOU?</h2>
             <div class="hero-cards">
-              <button class="hero-card is-selected" data-character="thor">
-                <img src="images/dd-thor.png" alt="Thor" />
-                <span class="hero-name">THOR</span>
-                <span class="hero-perk">God Blast</span>
+              <button class="hero-card is-selected" data-character="holland">
+                <img src="images/nwh-holland.png" alt="Spider-Man" />
+                <span class="hero-name">PETER ONE</span>
+                <span class="hero-perk">Iron Spider</span>
               </button>
-              <button class="hero-card" data-character="cyclops">
-                <img src="images/dd-cyclops.png" alt="Cyclops" />
-                <span class="hero-name">CYCLOPS</span>
-                <span class="hero-perk">Optic Overload</span>
+              <button class="hero-card" data-character="maguire">
+                <img src="images/nwh-maguire.png" alt="Spider-Man" />
+                <span class="hero-name">PETER TWO</span>
+                <span class="hero-perk">Spider-Sense</span>
               </button>
-              <button class="hero-card" data-character="shuri">
-                <img src="images/dd-shuri.png" alt="Shuri" />
-                <span class="hero-name">SHURI</span>
-                <span class="hero-perk">Kinetic Blast</span>
+              <button class="hero-card" data-character="garfield">
+                <img src="images/nwh-garfield.png" alt="Spider-Man" />
+                <span class="hero-name">PETER THREE</span>
+                <span class="hero-perk">The Catch</span>
               </button>
-              <button class="hero-card" data-character="torch">
-                <img src="images/dd-torch.png" alt="Human Torch" />
-                <span class="hero-name">HUMAN TORCH</span>
-                <span class="hero-perk">Flame On</span>
+              <button class="hero-card" data-character="strange">
+                <img src="images/nwh-strange.png" alt="Doctor Strange" />
+                <span class="hero-name">STRANGE</span>
+                <span class="hero-perk">Mirror Dimension</span>
               </button>
             </div>
 
-            <!-- Only Thor carries a choice, so this appears with him and
-                 goes away again for everyone else. -->
-            <div class="weapon-choice" id="weapon-choice">
-              <span class="weapon-label">CARRIES</span>
-              <button class="weapon-card is-selected" data-weapon="stormbreaker">
-                <img src="images/dd-icon-stormbreaker.png" alt="" />STORMBREAKER
-              </button>
-              <button class="weapon-card" data-weapon="mjolnir">
-                <img src="images/dd-icon-mjolnir.png" alt="" />MJOLNIR
-              </button>
-            </div>
           </section>
 
           <section class="card">
             <h2>THE JOB</h2>
             <ul class="rules">
-              <li><b>Nothing gets past you.</b> Each one that does drags the other Earth closer.</li>
-              <li><b>Take a wave clean</b> to push it back.</li>
+              <li><b>Nothing gets past you.</b> Each one that does tears the spell wider.</li>
+              <li><b>Take a wave clean</b> to close it back up.</li>
               <li><b>Three lives</b>, and another every 5,000 points.</li>
               <li><b>Chain kills</b> without a leak to build the multiplier.</li>
-              <li><b>A boss every fifth wave.</b> Doom himself at ten.</li>
+              <li><b>A boss every fifth wave.</b> The Goblin at ten.</li>
             </ul>
           </section>
 
@@ -129,7 +113,7 @@
               <li><span class="caps"><kbd>Esc</kbd></span><span class="what">Pause</span></li>
               <li><span class="caps"><kbd>Q</kbd></span><span class="what">Quit</span></li>
               <li><span class="caps"><kbd>M</kbd></span><span class="what">Mute</span></li>
-              <li><span class="caps"><kbd>W</kbd></span><span class="what">Line-up</span></li>
+              <li><span class="caps"><kbd>W</kbd></span><span class="what">Everyone who knew</span></li>
             </ul>
             <p class="touch-note">On a phone: a stick one side, FIRE and ULT the other.</p>
           </section>
@@ -196,7 +180,7 @@
     <!-- ============ GAME OVER ============ -->
     <section id="screen-gameover" class="screen">
       <div class="gameover-inner">
-        <h2 id="gameover-title">DOOM WILL HAVE HIS DUE</h2>
+        <h2 id="gameover-title">NOBODY REMEMBERS YOU</h2>
         <div class="stats">
           <div class="stat"><span id="stat-score">0</span><label>SCORE</label></div>
           <div class="stat"><span id="stat-wave">1</span><label>WAVE REACHED</label></div>

@@ -8,13 +8,14 @@ import { banner } from "./waves.js";
 //=====================================================================//
 export function assembleTheWomen() {
   if (heroes.length) return;
+  //Not more heroes: the people who were in the room for it.
   const roster = [
-    "ddReed",
-    "ddBeast",
-    "ddBucky",
-    "ddMystique",
-    "ddLoki",
-    "ddMagneto",
+    "nwhMj",
+    "nwhNed",
+    "nwhMay",
+    "nwhHappy",
+    "nwhWong",
+    "nwhMatt",
   ];
   roster.forEach((name, i) => {
     const sprite = img[name];
@@ -28,7 +29,7 @@ export function assembleTheWomen() {
       speed: 420 + i * 18,
     });
   });
-  banner("ASSEMBLE", "", "#4ade80");
+  banner("EVERYONE WHO KNEW", "", "#f0b429");
   playAssembleTheme();
 }
 

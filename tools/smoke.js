@@ -31,8 +31,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     const el = document.querySelector('.title-logo');
     return !!el && el.complete && el.naturalWidth > 0;
   }));
-  check('countdown is ticking', await p.evaluate(() => document.querySelector('#countdown [data-unit="seconds"]').textContent !== '00'));
-  check('all four heroes on the menu', await p.locator('.hero-card').count() === 4);
+  check('all four of them on the menu', await p.locator('.hero-card').count() === 4);
   //The whole menu is one screen: the hero, the rules and the controls all
   //visible at once, with nothing to scroll past to reach START.
   const menuFits = await p.evaluate(() => {
@@ -53,20 +52,15 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('with the rules and the controls both on it',
         menuFits.rules >= 4 && menuFits.keys === 7, JSON.stringify(menuFits));
 
-  // Thor is the only one carrying a choice, so his panel opens and the
-  // others close it again.
-  check('the weapon panel opens for thor', await p.locator('#weapon-choice.is-open').count() === 1);
-  await p.locator('.hero-card[data-character="cyclops"]').click();
-  check('and closes for everyone else', await p.locator('#weapon-choice.is-open').count() === 0);
-  await p.locator('.hero-card[data-character="thor"]').click();
+  // Nobody on this branch carries a choice of weapon, so the panel is not
+  // in the markup at all and the code that opens it must cope with that.
+  check('no weapon panel, and nothing breaks for want of one',
+        await p.locator('#weapon-choice').count() === 0);
 
-  for (const hero of ['thor','thor-mjolnir','cyclops','shuri','torch']) {
+  for (const hero of ['holland','maguire','garfield','strange']) {
     if (await p.locator('#screen-gameover.is-active').count()) { await p.locator('#menu-button').click(); await p.waitForTimeout(300); }
-    //Thor is run twice, once on each weapon, because they are different code
-    //paths: the axe never leaves his hand and the hammer does.
-    const [character, weapon] = hero.split('-');
+    const character = hero;
     await p.locator(`.hero-card[data-character="${character}"]`).click();
-    if (character === 'thor') await p.locator(`.weapon-card[data-weapon="${weapon || 'stormbreaker'}"]`).click();
     await p.locator('#start-button').click();
     await p.waitForTimeout(300);
     // aim and fire for 5s
@@ -85,10 +79,10 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
       })();
     }));
     check(`${hero}: kills enemies`, r.kills > 0, JSON.stringify(r));
-    if (hero === 'thor') {
-      check('stormbreaker never leaves his hand', await p.evaluate(() => window.game.world.mjolnir === null));
-      check('stormbreaker earths a bolt', await p.evaluate(() => window.game.__sawArcs === true));
-    }
+    //Three of the four fire the same web, so the one thing worth asserting
+    //per hero is that each carries the ultimate the menu advertises.
+    check(`${hero}: carries its own ultimate`, await p.evaluate(
+      (h) => window.game.HEROES[h].ult === window.game.heroDef().ult, hero));
     // ultimate
     const MAXC = await p.evaluate(() => {
       const g = window.game;
@@ -109,10 +103,6 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
                //only evidence is the enemies it removed.
                cleared: (window.__before || 0) > 0 && g.enemies.length === 0 }; });
     check(`${hero}: ultimate fires`, u.charge < window.MAXC && (u.hex > 0 || u.ign > 0 || u.ult_storm > 0 || u.arcs > 0 || u.miss > 0 || u.shield > 0 || u.worthy > 0 || u.cleared), JSON.stringify(u));
-    if (character === 'thor') {
-      check(`${hero}: the god blast puts the lights out`, u.ult_storm > 0, JSON.stringify(u));
-      check(`${hero}: and leaves nothing standing`, u.cleared || u.enemiesLeft === 0, JSON.stringify(u));
-    }
     await p.evaluate(() => { window.game.world.player.lives = 0; });
     await p.waitForTimeout(400);
   }
@@ -121,8 +111,8 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.locator('#retry-button').click(); await p.waitForTimeout(300);
   await p.evaluate(() => { const g = window.game; g.enemies.length = 0; g.spawnQueue.length = 0; g.startWave(5); });
   await p.waitForTimeout(1600);
-  check('wave 5 boss is a Sentinel Prime', await p.evaluate(() => window.game.world.boss?.def.name === 'SENTINEL PRIME'));
-  check('wave 10 boss is Doctor Doom', await p.evaluate(() => window.game.bossForWave(10).name === 'DOCTOR DOOM'));
+  check('wave 5 boss is Doctor Octopus', await p.evaluate(() => window.game.world.boss?.def.name === 'DOCTOR OCTOPUS'));
+  check('wave 10 boss is the Green Goblin', await p.evaluate(() => window.game.bossForWave(10).name === 'GREEN GOBLIN'));
   await p.screenshot({ path: S + 'split-boss.png' });
   await p.evaluate(() => window.game.damageBoss(9999, 100, 100));
   await p.waitForTimeout(300);
@@ -148,14 +138,14 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   await p.locator('#retry-button').click(); await p.waitForTimeout(500);
   check('retry resets', await p.evaluate(() => window.game.run.wave === 1 && window.game.run.score === 0 && window.game.world.player.lives === 3));
 
-  // the incursion replaces the Stones
+  // the spell replaces the Stones
   const inc = await p.evaluate(() => {
     const g = window.game;
     g.run.incursion = 0; g.run.waveLeaks = 0;
-    const leak = g.ENEMY_TYPES.sentinel.leak;
+    const leak = g.ENEMY_TYPES.drone.leak;
     g.damageEnemy && null;
     const out = { max: g.CONFIG.incursion.max, leak };
-    //something getting past brings the other Earth closer
+    //something getting past tears the spell wider
     g.run.incursion = leak; g.run.waveLeaks = 1;
     out.afterLeak = g.run.incursion;
     out.noRewardWithLeak = g.holdTheLine();
@@ -171,22 +161,22 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     g.run.incursion = 0;
     return out;
   });
-  check('a leak brings the other Earth closer', inc.afterLeak === inc.leak, JSON.stringify(inc));
+  check('a leak tears the spell wider', inc.afterLeak === inc.leak, JSON.stringify(inc));
   check('a wave with a leak in it pushes nothing back', inc.noRewardWithLeak === 0);
-  check('a clean wave pushes it back', inc.reward > 0);
+  check('a clean wave closes it back up', inc.reward > 0);
   check('and crossing a stage makes the fight faster', inc.stage === 1 && inc.faster);
 
-  // Sentinels that shoot back
+  // The tentacles that stop and shoot back
   const gun = await p.evaluate(async () => {
     const g = window.game;
-    const def = g.ENEMY_TYPES.sentinelGunner;
+    const def = g.ENEMY_TYPES.ockArm;
     g.enemies.length = 0; g.spawnQueue.length = 0; g.world.boss = null;
     g.run.waveElapsed = 0;
     //let the game build one, rather than hand-rolling an enemy object
-    g.spawnQueue.push({ type: 'sentinelGunner', at: 0 });
+    g.spawnQueue.push({ type: 'ockArm', at: 0 });
     g.run.waveElapsed = 1;
     await new Promise(r => setTimeout(r, 400));
-    const e = g.enemies.find(x => x.type === 'sentinelGunner');
+    const e = g.enemies.find(x => x.type === 'ockArm');
     if (!e) return { spawned: false };
     //walk it onto its line and run it through a whole cycle
     e.x = 1364 * def.holdAt;
@@ -199,16 +189,16 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     }
     return { spawned: true, phases: [...seen], holds: def.holdAt, shots: def.beamShots };
   });
-  check('a gunner spawns and works its cycle',
+  check('a tentacle spawns and works its cycle',
         gun.spawned && gun.phases.includes('charge') && gun.phases.includes('fire'),
         JSON.stringify(gun));
 
-  // Doom fights in phases
-  const doom = await p.evaluate(() => {
+  // The Goblin fights in phases
+  const goblin = await p.evaluate(() => {
     const g = window.game;
     g.enemies.length = 0; g.spawnQueue.length = 0;
     g.run.wave = 10;
-    g.summonBoss(g.BOSSES.doom);
+    g.summonBoss(g.BOSSES.goblin);
     const b = g.world.boss;
     b.entering = false;
     const out = {};
@@ -230,12 +220,13 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     g.world.boss = null; g.run.incursion = 0;
     return out;
   });
-  check('doom opens, wards, and collapses',
-        doom.opening === 0 && doom.wardStage === 1 && doom.collapseStage === 2, JSON.stringify(doom));
-  check('nothing reaches him through the ward', doom.wardAbsorbs && doom.wardBreaks);
-  check('breaking it leaves him reeling', doom.staggered);
-  check('the collapse stops summoning and pulls the incursion in',
-        doom.stopsSummoning && doom.pulls);
+  check('the goblin opens, hides behind the glider, and collapses',
+        goblin.opening === 0 && goblin.wardStage === 1 && goblin.collapseStage === 2,
+        JSON.stringify(goblin));
+  check('nothing reaches him through the glider', goblin.wardAbsorbs && goblin.wardBreaks);
+  check('breaking it leaves him reeling', goblin.staggered);
+  check('the collapse stops summoning and tears the spell open',
+        goblin.stopsSummoning && goblin.pulls);
 
   // touch controls: driven with real pointer events, on the real controls
   const tch = await p.evaluate(async () => {
@@ -345,6 +336,22 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   check('one button pauses and resumes, and relabels itself', tch.pauses && tch.resumes);
 
   // the phone bugs: a key held when a run ends, and the screens stacking up
+  //Get back to the menu first. This block asserts what each screen looks
+  //like from the menu, and the blocks above it leave a run on screen — so
+  //without this it was measuring the game screen while the game was up and
+  //calling that a CSS bug.
+  await p.evaluate(async () => {
+    if (document.querySelector('#screen-gameover.is-active')) {
+      document.getElementById('menu-button').click();
+    } else if (document.querySelector('#screen-game.is-active')) {
+      window.game.sess.state = 'paused';
+      document.getElementById('quit-button').click();
+    }
+    await new Promise(r => setTimeout(r, 200));
+  });
+  check('back on the menu before measuring the screens',
+        await p.locator('#screen-menu.is-active').count() === 1);
+
   const phone = await p.evaluate(async () => {
     const g = window.game;
     document.body.classList.add('is-touch');
@@ -431,7 +438,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     for (let i = 0; i < 400; i++) audio.playSfx('shoot', 0.16, 1);
     out.cost400 = +(performance.now() - t).toFixed(1);
     //a busy frame with everything firing
-    g.sess.chosenHero = 'torch'; g.resetGame(); g.sess.state = 'playing';
+    g.sess.chosenHero = 'holland'; g.resetGame(); g.sess.state = 'playing';
     g.heldKeys.add('KeyS');
     for (let i = 0; i < 20; i++) { g.update(0.05); g.draw(); }
     const t0 = performance.now();
@@ -492,6 +499,12 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   const lives = await p.evaluate(() => {
     const g = window.game;
     const step = g.CONFIG.player.extraLifeEvery;
+    //Start from a known score. Everything above this has been scoring
+    //points, so without the reset the first addScore lands on top of a
+    //few thousand and crosses the milestone it is meant to stop short of.
+    g.run.score = 0;
+    g.run.nextLife = step;
+    g.world.player.lives = 3;
     const out = { start: g.world.player.lives, step };
     g.addScore(step - 1);
     out.justUnder = g.world.player.lives;
@@ -520,7 +533,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
   // the leaderboard
   const board = await p.evaluate(async () => {
     const g = window.game;
-    localStorage.removeItem('doomsday.scores.v1');
+    localStorage.removeItem('nwh.scores.v1');
     if (g.sess.state !== 'playing') document.getElementById('start-button').click();
     await new Promise(r => setTimeout(r, 200));
     const out = {};
@@ -536,7 +549,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     out.onBoard = rows.length === 1 && /SMOKE/.test(rows[0].textContent);
     out.marked = rows[0] && rows[0].classList.contains('is-yours');
     out.formHidden = form.hidden;
-    out.stored = JSON.parse(localStorage.getItem('doomsday.scores.v1') || '[]')[0];
+    out.stored = JSON.parse(localStorage.getItem('nwh.scores.v1') || '[]')[0];
     // a poor run is not asked, but still sees the board
     document.getElementById('retry-button').click();
     await new Promise(r => setTimeout(r, 200));
@@ -545,7 +558,7 @@ function check(label, cond, detail='') { console.log(`${cond ? ' ok ' : 'FAIL'} 
     await new Promise(r => setTimeout(r, 300));
     out.poorNotAsked = document.getElementById('name-form').hidden;
     out.poorSeesBoard = !document.getElementById('leaderboard').hidden;
-    localStorage.removeItem('doomsday.scores.v1');
+    localStorage.removeItem('nwh.scores.v1');
     return out;
   });
   check('a run worth a place is asked for a name', board.asked, JSON.stringify(board));

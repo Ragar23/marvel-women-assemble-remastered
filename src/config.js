@@ -24,17 +24,17 @@ export const CONFIG = {
     hitScale: 0.58,
   },
   bullet: { speed: 1250 },
-  //An incursion is two universes' Earths meeting, and both die when they
-  //touch. The meter runs the other way to the health bar it replaces: it
-  //starts at nothing and everything that gets past you brings the other
-  //Earth closer. At `max` the two collide and the run is over.
+  //The spell is the thing you are actually defending. The meter runs the
+  //other way to the health bar it replaces: it starts at nothing and
+  //everything that gets past you tears it a little wider. At `max` it
+  //fails outright and everyone who ever knew comes through.
   incursion: {
     max: 100,
     //A wave cleared without a single thing getting through pushes it back.
     //It is the only way to give ground back, so holding the line is worth
     //more than killing quickly.
     holdReward: 9,
-    //Where the sky changes and reality starts to thin. Fractions of `max`.
+    //Where the sky changes and the seams start to show. Fractions of `max`.
     stages: [0.4, 0.75],
     //Every stage crossed makes everything on screen faster. The run gets
     //harder because you are losing, which is what a collapsing universe
@@ -70,9 +70,9 @@ export const CONFIG = {
     waveTime: 1.5,
   },
   bossEvery: 5,
-  //Wave 5 is a Sentinel Prime; wave 10 is Doom himself. They alternate
-  //after that, each turn tougher than the last.
-  bossOrder: ["sentinelPrime", "doom"],
+  //Wave 5 is Octavius; wave 10 is the Goblin. They alternate after that,
+  //each turn tougher than the last.
+  bossOrder: ["ock", "goblin"],
   //Ultimates: a meter filled by kills, spent with Space.
   ult: {
     max: 100,
@@ -179,206 +179,174 @@ export const CONFIG = {
 };
 
 export const HEROES = {
-  thor: {
-    sprite: "ddThor",
-    emptySprite: "ddThorEmpty",
-    bullet: "stormbreaker",
-    bulletSize: [60, 48],
-    damage: CONFIG_MJOLNIR_DAMAGE,
-    cooldown: 0.12,
-    tint: "#7dd3fc",
-    ult: "godblast",
-    ultName: "GOD BLAST",
-    //He is the only one who picks his weapon before the run, and the two
-    //play differently rather than trading numbers: the axe never leaves his
-    //hand and throws chained lightning off it, the hammer leaves and has to
-    //come back before he can throw again. heroDef() folds the chosen one
-    //over the base, so everything below can be overridden per weapon.
-    weapons: {
-      stormbreaker: {
-        name: "STORMBREAKER",
-        blurb: "Chained thunder",
-        icon: "images/dd-stormbreaker.png",
-        channelsStorm: true,
-      },
-      mjolnir: {
-        name: "MJOLNIR",
-        blurb: "Thrown, and it comes back",
-        icon: "images/mjolnir.png",
-        sprite: "ddThorMjolnir",
-        bullet: "mjolnir",
-        bulletSize: [54, 48],
-        throwsMjolnir: true,
-      },
-    },
-  },
-  cyclops: {
-    sprite: "ddCyclops",
-    bullet: "optic",
-    bulletSize: [110, 42],
+  //Three of the same man and the sorcerer who pulled them through. They
+  //cannot be told apart by palette, so they are told apart the way the
+  //film tells them apart: what each one does with his hands.
+  holland: {
+    sprite: "nwhHolland",
+    bullet: "web",
+    bulletSize: [76, 34],
     damage: 2,
-    cooldown: 0.24,
-    pierce: 99, //the beam does not stop at the first thing it meets
-    //The optic blast leaves the visor, not the hand: the shot spawns this
-    //far above the sprite's centre, as a fraction of its height. Measured
-    //from the art — if you swap the sprite, re-measure the visor row.
-    barrels: [-0.31],
-    tint: "#ff4d4d",
-    shootRate: 1.1,
-    ult: "ignition",
-    ultName: "OPTIC OVERLOAD",
+    cooldown: 0.16,
+    //The web leaves the shooter at the wrist, not the middle of his chest.
+    barrels: [-0.06],
+    melee: true, //and he closes in, the way Shuri and Captain America do
+    tint: "#e63946",
+    shootRate: 1.15,
+    ult: "barrage",
+    ultName: "IRON SPIDER",
   },
-  shuri: {
-    sprite: "ddShuri",
-    bullet: "claw",
-    bulletSize: [56, 48],
+  maguire: {
+    sprite: "nwhMaguire",
+    bullet: "web",
+    bulletSize: [76, 34],
     damage: 2,
+    cooldown: 0.14,
+    //His shooter is organic and already raised, so the shot leaves high.
+    barrels: [-0.24],
+    tint: "#3b82f6",
+    ult: "hex",
+    ultName: "SPIDER-SENSE",
+  },
+  garfield: {
+    sprite: "nwhGarfield",
+    bullet: "web",
+    bulletSize: [76, 34],
+    damage: 3,
     cooldown: 0.2,
-    range: 340, //kinetic pulses fade fast; she has to close in
-    melee: true, //and she punches, the way Captain America does
-    tint: "#c084fc",
+    range: 460, //he throws heavier and shorter, so he has to close in
+    melee: true,
+    barrels: [-0.04],
+    tint: "#38bdf8",
     ult: "pantherblast",
-    ultName: "KINETIC BLAST",
+    ultName: "THE CATCH",
   },
-  torch: {
-    //Johnny out of costume-mode: the blue suit, no flame. He only lights
-    //up when he actually throws fire.
-    sprite: "ddTorch",
-    //Held S cycles these, and so does Flame On — the difference is that
-    //the ultimate keeps him alight without the key held down.
-    flameFrames: ["ddTorchFlame1", "ddTorchFlame2", "ddTorchFlame3"],
-    flameFps: 14,
-    bullet: "fire",
-    bulletSize: [56, 48],
-    damage: 2,
-    cooldown: 0.13,
-    tint: "#ff8a3d",
-    shootRate: 1.25,
-    ult: "flameon",
-    ultName: "FLAME ON",
+  strange: {
+    sprite: "nwhStrange",
+    bullet: "mandala",
+    bulletSize: [64, 30],
+    damage: 3,
+    cooldown: 0.22,
+    pierce: 2, //a bolt of the spell goes through more than one of them
+    tint: "#f0b429",
+    shootRate: 0.9,
+    ult: "ignition",
+    ultName: "MIRROR DIMENSION",
   },
 };
 
-//baseSpeed px/s, hp, points, stone damage when it gets through
+//baseSpeed px/s, hp, points, damage to the spell when it gets through
 export const ENEMY_TYPES = {
-  //Sentinels replace the space dogs: slower, heavier, and there are a lot
-  //of them.
-  sentinel: { sprite: "ddSentinel", speed: 380, height: 100, hp: 2, points: 12, leak: 8 },
-  //It no longer just weaves past: line up with it and it winds up, then
-  //commits. Standing in a lane is a decision now rather than the whole game.
-  sentinelFast: {
-    sprite: "ddSentinel", speed: 560, height: 100, hp: 1, points: 16, leak: 8, weave: 140,
-    behaviour: "charge", chargeWindup: 0.45, chargeSpeed: 980, chargeGap: 2.4,
+  //The Goblin's drones: small, quick, and there are a lot of them.
+  drone: { sprite: "nwhDrone", speed: 400, height: 66, hp: 2, points: 12, leak: 8 },
+  //A manned glider does not weave past — line up with it and it winds up,
+  //then commits. Standing in a lane is a decision rather than the game.
+  glider: {
+    sprite: "nwhGlider", speed: 560, height: 74, hp: 2, points: 18, leak: 8, weave: 140,
+    behaviour: "charge", chargeWindup: 0.45, chargeSpeed: 1000, chargeGap: 2.4,
   },
-  //The one that stops and shoots back. It walks to its line, tracks you
-  //while it decides, locks, and burns a lane. Everything it does is visible
-  //before it happens — the hairline is a promise, not a warning.
-  sentinelGunner: {
-    sprite: "ddSentinelGunner", speed: 300, height: 104, hp: 5, points: 34, leak: 10,
-    tint: "#a3e635",
+  //A tentacle on its own, off the harness and still working. It walks to
+  //its line, tracks you while it decides, locks, and burns a lane.
+  ockArm: {
+    sprite: "nwhOckArm", speed: 300, height: 116, hp: 5, points: 34, leak: 10,
+    tint: "#7dd3fc",
     behaviour: "beam", holdAt: 0.66,
     beamGap: 2.3, //tracking you, deciding
     beamCharge: 0.85, //locked, and drawn as a hairline
     beamTime: 0.5, //the lane is lethal for this long
     beamHeight: 26,
-    //It holds its line for this many shots and then walks on, unlike the
-    //coven, who hold until they are killed. A gunner that stopped for good
-    //would let a late wave stack six of them across the screen and stall
-    //the run behind a wall no one asked for.
+    //It holds for this many shots and then walks on. One that stopped for
+    //good would let a late wave stack six across the screen.
     beamShots: 2,
   },
-  chitauri: { sprite: "chit2", speed: 430, height: 81, hp: 2, points: 20, leak: 9, animated: true },
-  levi: { sprite: "levi", speed: 265, height: 250, hp: 9, points: 90, leak: 24 },
-
-  //Doom's coven. Marvel has confirmed the Latverian Witches but not their
-  //powers, so these are three distinct ideas built from the premise: a
-  //hooded order serving Doom, blending Latverian sorcery.
-  //`holdAt` is a fraction of the screen width the coven will not walk past.
-  //They used to stroll off the left edge like everything else, which meant
-  //the cheapest answer to a named elite with a health bar was to let it go.
-  //They stop and fight now, so the only way past them is through.
-  witchHex: {
-    sprite: "ddWitchHex", speed: 250, height: 96, hp: 12, points: 190, leak: 16,
-    elite: true, name: "THE HEXWEAVER", tint: "#8cff96",
-    behaviour: "spear", spearGap: 1.5, weave: 70, holdAt: 0.62,
+  symbiote: {
+    sprite: "nwhSymbiote1", speed: 430, height: 82, hp: 2, points: 20, leak: 9,
+    frames: ["nwhSymbiote1", "nwhSymbiote2", "nwhSymbiote3"],
   },
-  witchVeil: {
-    sprite: "ddWitchVeil", speed: 300, height: 96, hp: 10, points: 170, leak: 14,
-    elite: true, name: "THE VEILED", tint: "#cea0ff",
-    //She blinks toward you, so she is allowed much further in than the
-    //other two before the floor stops her.
+  //What comes through the tear when nobody is holding it shut.
+  anomaly: { sprite: "nwhAnomaly", speed: 250, height: 210, hp: 9, points: 90, leak: 24 },
+
+  //The three the spell pulled in by name. `holdAt` is a fraction of the
+  //screen width they will not walk past: they stop and fight, so the only
+  //way past them is through.
+  electro: {
+    sprite: "nwhElectro", speed: 300, height: 96, hp: 10, points: 170,
+    leak: 14, elite: true, name: "ELECTRO", tint: "#7dd3fc",
+    //He arcs to where you are, so he gets much further in than the others.
     behaviour: "blink", blinkGap: 1.4, blinkDist: 160, holdAt: 0.34,
   },
-  witchWard: {
-    sprite: "ddWitchWard", speed: 175, height: 96, hp: 20, points: 240, leak: 22,
-    elite: true, name: "THE WARDEN", tint: "#96dcff",
+  lizard: {
+    sprite: "nwhLizard", speed: 250, height: 100, hp: 12, points: 190,
+    leak: 16, elite: true, name: "THE LIZARD", tint: "#6ee7a0",
+    behaviour: "spear", spearGap: 1.5, weave: 70, holdAt: 0.62,
+  },
+  sandman: {
+    sprite: "nwhSandman", speed: 175, height: 104, hp: 20, points: 240,
+    leak: 22, elite: true, name: "SANDMAN", tint: "#fcd34d",
+    //Bullets go through sand and it closes up again behind them.
     behaviour: "armour", armour: 0.34, armourHp: 9, holdAt: 0.5,
   },
 };
 
 export const BOSSES = {
-  sentinelPrime: {
-    sprite: "ddSentinel",
-    name: "SENTINEL PRIME",
+  ock: {
+    sprite: "nwhOck",
+    name: "DOCTOR OCTOPUS",
     size: 230,
     hp: (wave) => 34 + wave * 6,
-    //Green, now that the rank and file are steel with green optics rather
-    //than purple. Acid rather than Doom's emerald, so the two bosses do not
-    //read as the same fight.
-    tint: "#a3e635",
-    shotColor: "#d9f99d",
+    tint: "#9fd8ff",
+    shotColor: "#dceeff",
     shots: 3,
     spread: 150,
     fireGap: 1.5,
-    minion: "sentinelFast",
+    minion: "glider",
     summonGap: 1.9,
-    bobSpeed: 1.8, //restless, where Doom is deliberate
+    bobSpeed: 1.8, //restless, where the Goblin is deliberate
   },
-  doom: {
-    sprite: "ddDoom",
-    name: "DOCTOR DOOM",
+  goblin: {
+    sprite: "nwhGoblin",
+    name: "GREEN GOBLIN",
     size: 250,
     hp: (wave) => 44 + wave * 8,
     tint: "#4ade80",
-    shotColor: "#86efac",
-    //A wide green wave rather than a single bolt
+    shotColor: "#bbf7d0",
     shots: 5,
     spread: 210,
     fireGap: 1.6,
-    minion: "sentinel",
+    minion: "drone",
     summonGap: 2.2,
     bobSpeed: 1.0,
-    //He is the film's villain and he was a Sentinel Prime with different
-    //numbers. Three phases instead, entered on health and each one a
-    //different problem: a volley, a wall, and a clock.
+    //He is the one the film is actually about, so he is not Octavius with
+    //different numbers. Three phases, entered on health, each a different
+    //problem: a volley, a wall, and a clock.
     //
     //`at` is the health fraction at or below which the phase begins, so
     //they are listed from full health down.
     phases: [
       {
         at: 1,
-        name: "LATVERIA'S SORCERER",
+        name: "NORMAN OSBORN",
         shots: 5, spread: 210, fireGap: 1.6, summonGap: 2.2,
       },
       {
-        //He puts a window between you and him. Nothing touches him until it
-        //is broken, and he spends the time it buys filling the screen.
+        //He puts the glider between you and him. Nothing touches him until
+        //it is broken, and he spends the time it buys filling the screen.
         at: 0.66,
-        name: "THE WARD",
+        name: "THE GLIDER",
         ward: (wave) => 22 + wave * 2,
         shots: 6, spread: 260, fireGap: 1.15, summonGap: 1.3,
       },
       {
-        //No more minions, no more patience. He stops trying to beat you and
-        //starts pulling the other Earth in by hand, so the fight becomes a
-        //race he wins by default if you let it run.
+        //No more drones, no more patience. He stops trying to beat you and
+        //starts tearing the spell open by hand, so the fight becomes a race
+        //he wins by default if you let it run.
         at: 0.33,
-        name: "THE COLLAPSE",
+        name: "THE GOBLIN",
         shots: 8, spread: 330, fireGap: 0.85, summonGap: 0,
         incursionPerSecond: 2.4,
       },
     ],
-    //Breaking the ward leaves him open, and hitting him while he is reels
+    //Breaking the glider leaves him open, and hitting him while he reels
     //hurts more. It is the whole reward for going through it.
     staggerTime: 1.8,
     staggerDamage: 1.85,
@@ -387,25 +355,25 @@ export const BOSSES = {
 
 //Which enemies each wave may draw from, and how many to send.
 export const WAVE_PLAN = [
-  { count: 20, mix: ["sentinel"] },
-  { count: 26, mix: ["sentinel", "sentinelFast"] },
-  //Gunners from here on. One at a time at first: the wave has to teach the
-  //telegraph before it starts stacking them.
-  { count: 32, mix: ["sentinel", "sentinelFast", "chitauri", "sentinelGunner"] },
-  { count: 36, mix: ["sentinel", "chitauri", "sentinelFast", "sentinelGunner"] },
-  { count: 42, mix: ["sentinel", "sentinelFast", "chitauri", "sentinelGunner", "levi"] },
-  { count: 48, mix: ["sentinelFast", "chitauri", "sentinelGunner", "sentinel", "levi"] },
+  { count: 20, mix: ["drone"] },
+  { count: 26, mix: ["drone", "glider"] },
+  //Tentacles from here on. One at a time at first: the wave has to teach
+  //the telegraph before it starts stacking them.
+  { count: 32, mix: ["drone", "glider", "symbiote", "ockArm"] },
+  { count: 36, mix: ["drone", "symbiote", "glider", "ockArm"] },
+  { count: 42, mix: ["drone", "glider", "symbiote", "ockArm", "anomaly"] },
+  { count: 48, mix: ["glider", "symbiote", "ockArm", "drone", "anomaly"] },
 ];
 
-//The Black Order arrive one at a time, on top of the ordinary wave, so each
-//one lands as an event instead of being lost in the crowd.
+//The named three arrive one at a time, on top of the ordinary wave, so
+//each one lands as an event instead of being lost in the crowd.
 export const ELITE_SCHEDULE = {
-  3: ["witchVeil"],
-  4: ["witchHex"],
-  6: ["witchWard"],
-  7: ["witchVeil", "witchHex"],
-  8: ["witchWard"],
-  9: ["witchHex", "witchWard", "witchVeil"],
+  3: ["electro"],
+  4: ["lizard"],
+  6: ["sandman"],
+  7: ["electro", "lizard"],
+  8: ["sandman"],
+  9: ["lizard", "sandman", "electro"],
 };
 
 //=====================================================================//

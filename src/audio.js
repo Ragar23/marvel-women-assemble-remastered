@@ -250,7 +250,8 @@ export function toggleMute() {
 //=====================================================================//
 //  BOOT
 //=====================================================================//
-//The weapon panel belongs to whoever has more than one; today that is Thor
+//The weapon panel belongs to whoever has more than one. Nobody on this
+//branch does, so it stays shut — the markup for it is not even here.
 //alone, but it is driven off the hero definition rather than his name.
 function syncWeaponChoice() {
   if (!weaponChoice) return;

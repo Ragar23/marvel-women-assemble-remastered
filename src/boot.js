@@ -41,46 +41,7 @@ export function countUp(el, target, duration = 0.9, prefix = "") {
   requestAnimationFrame(step);
 }
 
-//Avengers: Doomsday, 18 December 2026. One constant to change if it moves.
-const RELEASE = new Date("2026-12-18T00:00:00Z");
-
-//Counts whole calendar months first, then the remainder as days, so the
-//clock reads the way the teaser's does.
-function updateCountdown() {
-  const el = document.getElementById("countdown");
-  if (!el) return;
-  const now = new Date();
-  let diff = RELEASE - now;
-  if (diff <= 0) {
-    el.classList.add("is-out");
-    for (const span of el.querySelectorAll("[data-unit]")) span.textContent = "00";
-    return;
-  }
-  let months = 0;
-  const probe = new Date(now.getTime());
-  while (true) {
-    const next = new Date(probe.getTime());
-    next.setMonth(next.getMonth() + 1);
-    if (next > RELEASE) break;
-    probe.setTime(next.getTime());
-    months++;
-  }
-  diff = RELEASE - probe;
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-  const pad = (n) => String(n).padStart(2, "0");
-  const values = { months, days, hours, minutes, seconds };
-  for (const span of el.querySelectorAll("[data-unit]")) {
-    span.textContent = pad(values[span.dataset.unit]);
-  }
-}
-
 window.addEventListener("load", () => {
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
-
   const shownAt = performance.now();
   const splash = document.getElementById("studios-splash");
   if (splash) splash.addEventListener("click", dismissSplash);

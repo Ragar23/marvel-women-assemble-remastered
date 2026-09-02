@@ -110,7 +110,7 @@ export function drawUltMeter() {
   if (touchUltBtn) touchUltBtn.classList.toggle("is-ready", ready);
 }
 
-//The incursion meter. It fills the wrong way on purpose: a health bar that
+//The spell meter. It fills the wrong way on purpose: a health bar that
 //empties reads as "you are being worn down", and this is the opposite —
 //something arriving. The other Earth rides the head of it so the number and
 //the thing in the sky are visibly the same fact.
@@ -157,7 +157,7 @@ export function drawIncursionMeter() {
     ? `rgba(255,59,63,${0.65 + Math.sin(fx.elapsed * 6) * 0.35})`
     : "#d7dbe4";
   ctx.fillText(
-    stage ? `INCURSION — REALITY THINNING x${stage}` : "INCURSION",
+    stage ? `THE SPELL — COMING APART x${stage}` : "THE SPELL",
     x + 56,
     y - 20
   );

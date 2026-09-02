@@ -8,7 +8,11 @@ import { HEROES } from "./config.js";
 //  device and per browser, which is worth saying out loud on the screen
 //  rather than letting someone assume otherwise.
 //=====================================================================//
-const KEY = "doomsday.scores.v1";
+//Branch-specific on purpose. Every version of this game is served from
+//one github.io origin under a different path, and localStorage is scoped
+//to the origin — a shared key would pool three different games' runs into
+//one board.
+const KEY = "nwh.scores.v1";
 export const BOARD_SIZE = 10;
 export const NAME_LIMIT = 12;
 

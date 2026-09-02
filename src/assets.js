@@ -1,54 +1,51 @@
 import { fire } from "./sim.js";
 
 //=====================================================================//
-export //images/spiderman.png is deliberately not loaded: he is no longer drawn,
-//but the sprite is kept in the repo for a future playable character.
+export //The Doomsday branch's dd-* art and the original Chitauri sprites stay
+//in the repo but are not loaded here — this branch draws none of them.
 const imageSources = {
-  bg: "./images/dd-bg.png",
-  chit2: "./images/chit2.png",
-  chit3: "./images/chit3.png",
-  chit4: "./images/chit4.png",
-  levi: "./images/levi.png",
-  grootLeft: "./images/babyGroot.png",
-  grootRight: "./images/babyGrootLeft.png",
+  bg: "./images/nwh-bg.png",
+  grootLeft: "./images/nwh-bugle1.png",
+  grootRight: "./images/nwh-bugle2.png",
   stanLee: "./images/StanLee.png",
   gaunlet: "./images/stones.png",
-  //The other Earth, drawn in the sky and on the meter
-  incursion: "./images/dd-incursion.png",
+  //The spell itself, drawn in the sky and again on the meter
+  incursion: "./images/nwh-spell.png",
   blast: "./images/blast.png",
   lightning: "./images/lightning.png",
 
-  //Doomsday cast
-  ddThor: "./images/dd-thor.png",
-  //The same Thor with the hammer instead of the axe, for when he picks it
-  ddThorMjolnir: "./images/dd-thor-mjolnir.png",
-  ddThorEmpty: "./images/dd-thor-empty.png",
-  ddCyclops: "./images/dd-cyclops.png",
-  ddShuri: "./images/dd-shuri.png",
-  ddTorch: "./images/dd-torch.png",
-  //Three frames of him alight, cycled while he is throwing fire
-  ddTorchFlame1: "./images/dd-torch-flame1.png",
-  ddTorchFlame2: "./images/dd-torch-flame2.png",
-  ddTorchFlame3: "./images/dd-torch-flame3.png",
-  ddDoom: "./images/dd-doom.png",
-  ddSentinel: "./images/dd-sentinel.png",
-  ddSentinelGunner: "./images/dd-sentinel-gunner.png",
-  ddWitchHex: "./images/dd-witch-hex.png",
-  ddWitchVeil: "./images/dd-witch-veil.png",
-  ddWitchWard: "./images/dd-witch-ward.png",
-  stormbreaker: "./images/dd-stormbreaker.png",
-  mjolnir: "./images/mjolnir.png",
-  optic: "./images/dd-optic.png",
-  claw: "./images/dd-claw.png",
-  fire: "./images/dd-fire.png",
+  //The three of them, and the one who pulled them through
+  nwhHolland: "./images/nwh-holland.png",
+  nwhMaguire: "./images/nwh-maguire.png",
+  nwhGarfield: "./images/nwh-garfield.png",
+  nwhStrange: "./images/nwh-strange.png",
 
-  //The line-up that answers the W key
-  ddReed: "./images/dd-reed.png",
-  ddBeast: "./images/dd-beast.png",
-  ddBucky: "./images/dd-bucky.png",
-  ddMystique: "./images/dd-mystique.png",
-  ddLoki: "./images/dd-loki.png",
-  ddMagneto: "./images/dd-magneto.png",
+  //What the broken spell sent
+  nwhDrone: "./images/nwh-drone.png",
+  nwhGlider: "./images/nwh-glider.png",
+  nwhOckArm: "./images/nwh-ockarm.png",
+  nwhSymbiote1: "./images/nwh-symbiote1.png",
+  nwhSymbiote2: "./images/nwh-symbiote2.png",
+  nwhSymbiote3: "./images/nwh-symbiote3.png",
+  nwhAnomaly: "./images/nwh-anomaly.png",
+  nwhElectro: "./images/nwh-electro.png",
+  nwhLizard: "./images/nwh-lizard.png",
+  nwhSandman: "./images/nwh-sandman.png",
+  nwhOck: "./images/nwh-ock.png",
+  nwhGoblin: "./images/nwh-goblin.png",
+
+  //Projectiles
+  web: "./images/nwh-web.png",
+  mandala: "./images/nwh-mandala.png",
+
+  //Not more heroes: the people who were actually in the room. They answer
+  //the W key.
+  nwhMj: "./images/nwh-mj.png",
+  nwhNed: "./images/nwh-ned.png",
+  nwhMay: "./images/nwh-may.png",
+  nwhHappy: "./images/nwh-happy.png",
+  nwhWong: "./images/nwh-wong.png",
+  nwhMatt: "./images/nwh-matt.png",
 };
 
 export const img = {};

@@ -205,7 +205,7 @@ function presentBoard() {
   if (!isTouch) nameInput.focus();
 }
 
-const LAST_NAME = "doomsday.lastName";
+const LAST_NAME = "nwh.lastName";
 
 if (nameForm) {
   nameForm.addEventListener("submit", (event) => {
