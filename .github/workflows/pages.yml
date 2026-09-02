@@ -1,19 +1,20 @@
-# Publishes both games from one Pages site:
+# Publishes every version of the game from one Pages site:
 #
-#   /            main      — Marvel Women Assemble
-#   /doomsday/   doomsday  — Avengers: Doomsday
+#   /               main         — Marvel Women Assemble
+#   /doomsday/      doomsday     — Avengers: Doomsday
+#   /no-way-home/   no-way-home  — Spider-Man: No Way Home
 #
-# A push to either branch rebuilds both, so the two stay in step. This file
-# lives on both branches because GitHub runs the copy from whichever branch
-# was pushed — keep them identical.
+# A push to any of them rebuilds all three, so they stay in step. This file
+# lives on all three branches because GitHub runs the copy from whichever
+# branch was pushed — keep them identical.
 #
 # Pages must be set to "GitHub Actions" under Settings -> Pages, not
 # "Deploy from a branch", or this workflow builds and nothing goes live.
-name: Deploy both games to Pages
+name: Deploy every game to Pages
 
 on:
   push:
-    branches: [main, doomsday]
+    branches: [main, doomsday, no-way-home]
   workflow_dispatch:
 
 permissions:
@@ -43,6 +44,12 @@ jobs:
           ref: doomsday
           path: checkout-doomsday
 
+      - name: Check out no-way-home
+        uses: actions/checkout@v4
+        with:
+          ref: no-way-home
+          path: checkout-no-way-home
+
       - name: Assemble the site
         run: |
           set -euo pipefail
@@ -52,15 +59,17 @@ jobs:
             rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
                      --exclude 'node_modules' "$1/" "$2/"
           }
-          mkdir -p site/doomsday
+          mkdir -p site/doomsday site/no-way-home
           copy checkout-main site
           copy checkout-doomsday site/doomsday
+          copy checkout-no-way-home site/no-way-home
           # Serve the files as they are; no Jekyll pass.
           touch site/.nojekyll
-          test -f site/index.html
-          test -f site/doomsday/index.html
-          echo "root:     $(find site -maxdepth 1 -type f | wc -l) files"
-          echo "doomsday: $(find site/doomsday -maxdepth 1 -type f | wc -l) files"
+          for page in site/index.html site/doomsday/index.html \
+                      site/no-way-home/index.html; do
+            test -f "$page" || { echo "missing $page"; exit 1; }
+            echo "ok  $page"
+          done
 
       - uses: actions/configure-pages@v5
 
