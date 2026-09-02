@@ -1,0 +1,79 @@
+# Publishes both games from one Pages site:
+#
+#   /            main      — Marvel Women Assemble
+#   /doomsday/   doomsday  — Avengers: Doomsday
+#
+# A push to either branch rebuilds both, so the two stay in step. This file
+# lives on both branches because GitHub runs the copy from whichever branch
+# was pushed — keep them identical.
+#
+# Pages must be set to "GitHub Actions" under Settings -> Pages, not
+# "Deploy from a branch", or this workflow builds and nothing goes live.
+name: Deploy both games to Pages
+
+on:
+  push:
+    branches: [main, doomsday]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. A push to the other branch queues behind this run
+# rather than racing it to the same site.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: checkout-main
+
+      - name: Check out doomsday
+        uses: actions/checkout@v4
+        with:
+          ref: doomsday
+          path: checkout-doomsday
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          # Everything the browser needs, and nothing else: the art
+          # generators and the smoke test do not belong on the site.
+          copy() {
+            rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
+                     --exclude 'node_modules' "$1/" "$2/"
+          }
+          mkdir -p site/doomsday
+          copy checkout-main site
+          copy checkout-doomsday site/doomsday
+          # Serve the files as they are; no Jekyll pass.
+          touch site/.nojekyll
+          test -f site/index.html
+          test -f site/doomsday/index.html
+          echo "root:     $(find site -maxdepth 1 -type f | wc -l) files"
+          echo "doomsday: $(find site/doomsday -maxdepth 1 -type f | wc -l) files"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
