@@ -276,7 +276,7 @@ export const ENEMY_TYPES = {
     behaviour: "blink", blinkGap: 1.4, blinkDist: 160, holdAt: 0.34,
   },
   lizard: {
-    sprite: "nwhLizard", speed: 250, height: 100, hp: 12, points: 190,
+    sprite: "nwhLizard", speed: 250, height: 124, hp: 12, points: 190,
     leak: 16, elite: true, name: "THE LIZARD", tint: "#6ee7a0",
     behaviour: "spear", spearGap: 1.5, weave: 70, holdAt: 0.62,
   },

@@ -40,3 +40,5 @@ dd-cyclops
 dd-beast
 dd-mystique
 dd-shuri
+nwh-lizard
+nwh-ock
