@@ -113,6 +113,8 @@ body::after {
   display: none;
   min-height: 100vh;
   padding: 3vh 4vw;
+  /* So the menu's portal canvas has something to be absolute inside */
+  position: relative;
 }
 
 .screen.is-active {
@@ -138,6 +140,34 @@ body::after {
     opacity: 0;
     transform: translateY(12px);
   }
+}
+
+/* The 3D portal sits behind the menu's own content, dimmed enough that
+   the title and the cards stay the thing you read. It fades in when it is
+   ready rather than popping, and it is never in the way of a tap. */
+#portal-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+#portal-canvas.is-lit {
+  opacity: 0.75;
+}
+
+/* Only the menu has one, and only while the menu is up */
+body:not([data-screen="menu"]) #portal-canvas {
+  display: none;
+}
+
+.menu-inner {
+  position: relative;
+  z-index: 1;
 }
 
 /*----------------- Menu -----------------*/

@@ -1,6 +1,7 @@
 import { heroCards, menuBtn, muteBtn, quitBtn, resumeBtn, retryBtn, showScreen, startBtn, weaponCards, weaponChoice } from "./dom.js";
 import { quitToMenu, startRun, togglePause } from "./loop.js";
 import { HEROES } from "./config.js";
+import { resumePortal } from "./portal.js";
 import { sess } from "./state.js";
 import { clamp } from "./util.js";
 
@@ -289,6 +290,7 @@ retryBtn.addEventListener("click", startRun);
 menuBtn.addEventListener("click", () => {
   sess.state = "menu";
   showScreen("menu");
+  resumePortal();
 });
 muteBtn.addEventListener("click", toggleMute);
 

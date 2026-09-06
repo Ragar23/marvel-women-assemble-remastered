@@ -5,6 +5,7 @@ import { gameOverTitle, leaderboard, leaderboardList, nameForm, nameInput, pause
 import { draw } from "./render.js";
 import { update } from "./sim.js";
 import { isTouch, releaseAllInput } from "./input.js";
+import { pausePortal, resumePortal } from "./portal.js";
 import { addScore, loadScores, qualifies } from "./scores.js";
 import { fx, resetGame, run, sess } from "./state.js";
 import { clamp } from "./util.js";
@@ -67,6 +68,9 @@ function goFullscreen() {
 }
 
 export function startRun() {
+  //The game gets the machine to itself: whatever WebGL was doing behind
+  //the menu stops before the first frame, not after it.
+  pausePortal();
   //Whatever was under a thumb when the last run ended is not held any more
   releaseAllInput();
   goFullscreen();
@@ -142,6 +146,7 @@ export function quitToMenu() {
   showScreen("menu");
   leaveFullscreen();
   audio.pause();
+  resumePortal();
 }
 
 export function endGame() {

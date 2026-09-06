@@ -51,6 +51,12 @@
       <!-- One screen, no scroll: the masthead, three cards side by side, and
            the button. Width is what pays for it — on a phone the heroes take
            a full row and the rules and the controls share the one below. -->
+      <!-- The multiverse, in actual 3D. Decoration and nothing else: it is
+           built after the menu is already usable, it stops the moment a run
+           starts, and if three.js or WebGL is unavailable this stays an
+           empty element and the menu is unchanged. aria-hidden because
+           there is nothing here to read. -->
+      <canvas id="portal-canvas" aria-hidden="true"></canvas>
       <div class="menu-inner">
         <div class="masthead">
           <h1 class="game-title">
@@ -72,22 +78,22 @@
               <button class="hero-card is-selected" data-character="holland">
                 <img src="images/nwh-holland.png" alt="Spider-Man" />
                 <span class="hero-name">PETER ONE</span>
-                <span class="hero-perk">Iron Spider</span>
+                <span class="hero-perk">Iron Spider &middot; 25s</span>
               </button>
               <button class="hero-card" data-character="maguire">
                 <img src="images/nwh-maguire.png" alt="Spider-Man" />
                 <span class="hero-name">PETER TWO</span>
-                <span class="hero-perk">Spider-Sense</span>
+                <span class="hero-perk">The Symbiote &middot; 25s</span>
               </button>
               <button class="hero-card" data-character="garfield">
                 <img src="images/nwh-garfield.png" alt="Spider-Man" />
                 <span class="hero-name">PETER THREE</span>
-                <span class="hero-perk">The Catch</span>
+                <span class="hero-perk">Web Bomb</span>
               </button>
               <button class="hero-card" data-character="strange">
                 <img src="images/nwh-strange.png" alt="Doctor Strange" />
                 <span class="hero-name">STRANGE</span>
-                <span class="hero-perk">Mirror Dimension</span>
+                <span class="hero-perk">Mirror Dimension &middot; 15s</span>
               </button>
             </div>
 

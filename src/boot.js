@@ -4,6 +4,7 @@ import { audioState, sfx } from "./audio.js";
 import { BOSSES, CONFIG, ELITE_SCHEDULE, ENEMY_TYPES, HEROES, WAVE_PLAN } from "./config.js";
 import { startBtn } from "./dom.js";
 import { heldKeys } from "./input.js";
+import { startPortal } from "./portal.js";
 import { throwMjolnir } from "./mjolnir.js";
 import { becomeWorthy, punch, throwShield } from "./shield.js";
 import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroDef, heroTint, heroes, incursionProgress, incursionStage, missiles, particles, playerHitbox, pops, powerUps, punches, resetGame, run, sess, spawnQueue, speedMultiplier, world } from "./state.js";
@@ -56,6 +57,9 @@ window.addEventListener("load", () => {
     document.getElementById("loading-bar").classList.add("is-done");
     document.body.dataset.assetsReady = "true";
     holdSplash(shownAt);
+    //Last, and deliberately not awaited: the menu is already playable, and
+    //the 3D behind it is worth nothing if it delays that.
+    startPortal();
   });
 });
 
