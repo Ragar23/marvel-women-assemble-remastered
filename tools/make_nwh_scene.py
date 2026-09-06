@@ -166,6 +166,330 @@ def vertical(im, top, bottom):
         )
 
 
+def lerp(a, b, t):
+    return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
+
+
+#=====================================================================#
+#  THE CITY
+#
+#  The old skyline was three ranks of plain rectangles with windows
+#  sprinkled at random, which reads as a bar chart. Two things fix that
+#  and neither is detail for its own sake.
+#
+#  The first is that buildings have tops. A Manhattan skyline is
+#  setbacks, spires, water towers and masts, and the silhouette against
+#  the sky is the only part of a night city you actually see.
+#
+#  The second is that windows are not noise. A tower is lit by floor and
+#  by column — a stack of offices someone left on, a lift core dark all
+#  the way up — so lighting each building with one habit of its own, and
+#  keeping whole buildings dark, is what makes the rest look occupied.
+#=====================================================================#
+def crown(d, x, w, top, tone, lit, rank, rng):
+    """Whatever the building does where it stops. Returns nothing: it
+    draws above `top`, which the body has already reached."""
+    kind = rng.random()
+    cx = x + w / 2
+
+    if kind < 0.22:
+        #Setbacks: the ziggurat step-ins of a pre-war tower
+        step_w, step_y = w, top
+        for _ in range(rng.randint(2, 3)):
+            step_w *= rng.uniform(0.55, 0.75)
+            h = rng.randint(10, 26)
+            d.rectangle([cx - step_w / 2, step_y - h, cx + step_w / 2, step_y], fill=tone)
+            step_y -= h
+        if rng.random() < 0.6:
+            d.line([(cx, step_y), (cx, step_y - rng.randint(14, 34))], fill=tone, width=3)
+    elif kind < 0.36:
+        #A spire off a narrow shoulder
+        sh = rng.randint(12, 22)
+        d.polygon([(x + w * 0.3, top), (x + w * 0.7, top),
+                   (x + w * 0.62, top - sh), (x + w * 0.38, top - sh)], fill=tone)
+        d.polygon([(cx - 3, top - sh), (cx + 3, top - sh),
+                   (cx, top - sh - rng.randint(26, 60))], fill=tone)
+    elif kind < 0.5:
+        #Water tower on legs, the most New York thing on a roof
+        tw, th = rng.randint(12, 18), rng.randint(12, 18)
+        ty = top - rng.randint(8, 14)
+        d.rectangle([cx - tw / 2, ty - th, cx + tw / 2, ty], fill=tone)
+        d.polygon([(cx - tw / 2 - 2, ty - th), (cx + tw / 2 + 2, ty - th),
+                   (cx, ty - th - 8)], fill=tone)
+        for leg in (-tw / 2 + 2, tw / 2 - 2):
+            d.line([(cx + leg, ty), (cx + leg, top)], fill=tone, width=2)
+    elif kind < 0.62:
+        #A mast, with the red light aircraft are meant to see
+        mh = rng.randint(22, 52)
+        d.line([(cx, top), (cx, top - mh)], fill=tone, width=2)
+        if rank < 2:
+            d.ellipse([cx - 2, top - mh - 2, cx + 2, top - mh + 2], fill=(190, 60, 60))
+    elif kind < 0.7:
+        #A pitched crown
+        d.polygon([(x, top), (x + w, top), (cx, top - rng.randint(16, 30))], fill=tone)
+    #and the rest simply stop, which most of them do
+
+
+def windows(d, x, w, top, base, lit, rank, rng):
+    """One habit per building. A tower lit at random is noise; a tower
+    lit by floor, or by column, or barely at all, is a tower."""
+    style = rng.random()
+    if style < 0.18:
+        return  #dark all the way up, and the skyline needs a few
+
+    step_y, step_x = 11, 9
+    cols = int((w - 10) // step_x)
+    rows = int((base - top - 14) // step_y)
+    if cols < 1 or rows < 1:
+        return
+
+    #A lift core: one column that is never lit, which is the detail that
+    #stops a grid of windows reading as graph paper.
+    core = rng.randrange(cols) if cols > 3 else -1
+    density = 0.22 - rank * 0.05
+
+    if style < 0.42:
+        #By floor: whole storeys left on
+        for r in range(rows):
+            on = rng.random() < density * 1.6
+            for c in range(cols):
+                if c == core or (not on and rng.random() > density * 0.35):
+                    continue
+                wx, wy = x + 6 + c * step_x, top + 10 + r * step_y
+                d.rectangle([wx, wy, wx + 4, wy + 6], fill=lit)
+    elif style < 0.66:
+        #By column: a stack of the same office, floor after floor
+        for c in range(cols):
+            if c == core:
+                continue
+            on = rng.random() < density * 1.7
+            for r in range(rows):
+                if not on and rng.random() > density * 0.3:
+                    continue
+                wx, wy = x + 6 + c * step_x, top + 10 + r * step_y
+                d.rectangle([wx, wy, wx + 4, wy + 6], fill=lit)
+    else:
+        #Scattered, but sparse — the building nobody is working late in
+        for r in range(rows):
+            for c in range(cols):
+                if c == core or rng.random() > density * 0.7:
+                    continue
+                wx, wy = x + 6 + c * step_x, top + 10 + r * step_y
+                d.rectangle([wx, wy, wx + 4, wy + 6], fill=lit)
+
+
+#=====================================================================#
+#  THE STATUE
+#
+#  Drawn rather than suggested. The old one was a cone with a stick for
+#  an arm and a dot for the torch, and at the size it sits on screen it
+#  read as a Christmas tree.
+#
+#  What makes the silhouette hers, in order of how much each one carries:
+#  the seven-point crown, the raised torch arm, the tablet held across
+#  the body, and the robe falling wider than the shoulders. Everything
+#  here is in those four things; the rest is shading.
+#
+#  Lit from the left, because the sodium glow on this horizon is, and
+#  given a warm rim on the torch side so the flame looks like it is
+#  throwing light rather than sitting on top of her.
+#=====================================================================#
+def statue(im, cx, feet_y, body):
+    """Her, at `body` pixels from the soles of her feet to the top of her
+    head. Everything is measured off that, in the proportions the real
+    thing has: the head is a seventh of her, the shoulders a quarter, the
+    hem only half again as wide as the shoulders — not the bell the first
+    pass drew — and the torch reaches half her height again above her.
+
+    Lit from the left, because the sodium glow on this horizon is, with a
+    warm edge on the torch side so the flame reads as throwing light
+    rather than sitting on top of her.
+    """
+    d = ImageDraw.Draw(im, "RGBA")
+    b = body
+
+    COPPER = (54, 98, 92)
+    COPPER_LIT = (84, 136, 124)
+    COPPER_DARK = (30, 60, 58)
+    COPPER_EDGE = (120, 172, 152)
+    STONE = (26, 30, 44)
+    STONE_LIT = (40, 45, 62)
+    STONE_DARK = (17, 20, 31)
+
+    #---- the pedestal ----
+    #Dark, and darker than the buildings beside her: the first pass made
+    #it pale and it read as a rock she was standing on.
+    ped_h = b * 0.72
+    top_w, bot_w = b * 0.30, b * 0.46
+    py = feet_y
+    d.polygon([(cx - bot_w / 2, py), (cx + bot_w / 2, py),
+               (cx + top_w / 2, py - ped_h), (cx - top_w / 2, py - ped_h)], fill=STONE)
+    d.polygon([(cx - bot_w / 2, py), (cx - bot_w * 0.18, py),
+               (cx - top_w * 0.12, py - ped_h), (cx - top_w / 2, py - ped_h)], fill=STONE_LIT)
+    #cornice, and the balcony rail she stands behind
+    d.rectangle([cx - top_w * 0.62, py - ped_h - b * 0.035,
+                 cx + top_w * 0.62, py - ped_h], fill=STONE_LIT)
+    d.rectangle([cx - top_w * 0.56, py - ped_h - b * 0.06,
+                 cx + top_w * 0.56, py - ped_h - b * 0.035], fill=STONE_DARK)
+
+    base = py - ped_h - b * 0.06           # her soles
+    Y = lambda f: base - b * f             # f = fraction of her height, up
+    hem_half = b * 0.175
+    sh_half = b * 0.12
+
+    #---- the robe ----
+    #Straight-sided and only half again wider at the hem than at the
+    #shoulder, with the hem broken so one knee reads as forward. A single
+    #symmetrical trapezoid was what made the first attempt a dress.
+    d.polygon([
+        (cx - hem_half, Y(0)), (cx - hem_half * 0.15, Y(0.02)),
+        (cx + hem_half * 0.2, Y(0)), (cx + hem_half * 0.98, Y(0.015)),
+        (cx + sh_half * 1.02, Y(0.46)), (cx + sh_half, Y(0.78)),
+        (cx - sh_half, Y(0.78)), (cx - sh_half * 1.06, Y(0.46)),
+    ], fill=COPPER)
+    #the lit half, down her left
+    d.polygon([
+        (cx - hem_half, Y(0)), (cx - hem_half * 0.42, Y(0.01)),
+        (cx - sh_half * 0.34, Y(0.46)), (cx - sh_half * 0.42, Y(0.78)),
+        (cx - sh_half, Y(0.78)), (cx - sh_half * 1.06, Y(0.46)),
+    ], fill=COPPER_LIT)
+    #drapery: lines that converge as the cloth does, not parallel bars
+    for k in range(6):
+        t = (k + 0.6) / 6.6
+        d.line([(cx - sh_half * 0.9 + sh_half * 1.8 * t, Y(0.74)),
+                (cx - hem_half * 0.94 + hem_half * 1.9 * t, Y(0.012))],
+               fill=COPPER_DARK, width=max(1, int(b * 0.008)))
+
+    #---- shoulders, neck, head ----
+    d.polygon([(cx - sh_half, Y(0.78)), (cx + sh_half, Y(0.78)),
+               (cx + sh_half * 0.72, Y(0.845)), (cx - sh_half * 0.72, Y(0.845))],
+              fill=COPPER)
+    d.polygon([(cx - sh_half, Y(0.78)), (cx - sh_half * 0.2, Y(0.78)),
+               (cx - sh_half * 0.2, Y(0.845)), (cx - sh_half * 0.72, Y(0.845))],
+              fill=COPPER_LIT)
+    #A neck, not a notch: copper with the shadow only on the side away
+    #from the glow. Drawn dark all over, it read as a gap under her chin.
+    d.rectangle([cx - b * 0.035, Y(0.875), cx + b * 0.035, Y(0.83)], fill=COPPER)
+    d.rectangle([cx + b * 0.008, Y(0.875), cx + b * 0.035, Y(0.83)], fill=COPPER_DARK)
+
+    hh = b * 0.145                      # a seventh of her, as it should be
+    hx, hy = cx, Y(0.925)
+    d.ellipse([hx - hh * 0.40, hy - hh * 0.5, hx + hh * 0.40, hy + hh * 0.5], fill=COPPER)
+    d.ellipse([hx - hh * 0.40, hy - hh * 0.5, hx + hh * 0.04, hy + hh * 0.5], fill=COPPER_LIT)
+    #A face at this size is one shadow and nothing else. The first pass
+    #ruled a brow and a jaw across her and she came out bandaged.
+    d.polygon([(hx + hh * 0.04, hy - hh * 0.34), (hx + hh * 0.4, hy - hh * 0.2),
+               (hx + hh * 0.4, hy + hh * 0.24), (hx + hh * 0.08, hy + hh * 0.44)],
+              fill=COPPER_DARK)
+
+    #---- the crown: seven points, fanned across the top only ----
+    for i in range(7):
+        a = math.radians(204 + i * 22)
+        r0, r1 = hh * 0.52, hh * 1.16
+        x0, y0 = hx + math.cos(a) * r0, hy + math.sin(a) * r0
+        x1, y1 = hx + math.cos(a) * r1, hy + math.sin(a) * r1
+        n = (-math.sin(a) * hh * 0.13, math.cos(a) * hh * 0.13)
+        d.polygon([(x0 + n[0], y0 + n[1]), (x0 - n[0], y0 - n[1]), (x1, y1)],
+                  fill=COPPER_EDGE if math.cos(a) < -0.2 else COPPER)
+    #the band the points spring from, at the hairline — it was drawn as a
+    #full ellipse before, which put a ring straight across her face
+    d.arc([hx - hh * 0.44, hy - hh * 0.56, hx + hh * 0.44, hy + hh * 0.04],
+          200, 340, fill=COPPER_DARK, width=max(1, int(b * 0.009)))
+
+    #---- the raised arm and the torch ----
+    hand_x, hand_y = cx + b * 0.30, Y(1.30)
+    aw = max(2, int(b * 0.055))
+    d.line([(cx + sh_half * 0.86, Y(0.80)), (hand_x, hand_y)], fill=COPPER, width=aw)
+    d.line([(cx + sh_half * 0.86 - aw * 0.28, Y(0.80)), (hand_x - aw * 0.28, hand_y)],
+           fill=COPPER_LIT, width=max(1, int(aw * 0.42)))
+    #The sleeve falling from the raised arm, tucked back under the
+    #shoulder so it grows out of her instead of stepping off the edge.
+    d.polygon([(cx + sh_half * 0.35, Y(0.775)), (cx + sh_half * 1.1, Y(0.80)),
+               (cx + b * 0.132, Y(0.95)), (cx + b * 0.07, Y(0.99)),
+               (cx + sh_half * 0.3, Y(0.86))], fill=COPPER)
+
+    #---- the tablet, held against her, not beside her ----
+    tw, th = b * 0.13, b * 0.20
+    tx, ty = cx - b * 0.155, Y(0.44)
+    d.polygon([(tx, ty), (tx + tw, ty - th * 0.22), (tx + tw, ty + th * 0.78), (tx, ty + th)],
+              fill=COPPER_DARK)
+    d.polygon([(tx + b * 0.012, ty + b * 0.016), (tx + tw - b * 0.012, ty - th * 0.22 + b * 0.016),
+               (tx + tw - b * 0.012, ty + th * 0.68), (tx + b * 0.012, ty + th - b * 0.016)],
+              fill=(44, 78, 76))
+    #the forearm across it, which is what makes it held rather than
+    #propped beside her. Copper, not the lit tone: a pale bar across the
+    #tablet read as a strap.
+    d.line([(cx - sh_half * 0.86, Y(0.72)), (tx + tw * 0.66, ty + th * 0.06)],
+           fill=COPPER, width=max(2, int(b * 0.042)))
+    d.line([(cx - sh_half * 0.86, Y(0.72) - b * 0.012), (tx + tw * 0.66, ty + th * 0.06 - b * 0.012)],
+           fill=COPPER_LIT, width=max(1, int(b * 0.016)))
+
+    #---- the torch ----
+    d.polygon([(hand_x - b * 0.032, hand_y + b * 0.02), (hand_x + b * 0.032, hand_y + b * 0.02),
+               (hand_x + b * 0.022, hand_y - b * 0.06), (hand_x - b * 0.022, hand_y - b * 0.06)],
+              fill=(196, 164, 92))
+    d.ellipse([hand_x - b * 0.042, hand_y - b * 0.09, hand_x + b * 0.042, hand_y - b * 0.05],
+              fill=(214, 184, 112))
+    glow = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse([hand_x - b * 0.24, hand_y - b * 0.34, hand_x + b * 0.24, hand_y + b * 0.10],
+               fill=(255, 206, 128, 70))
+    im.alpha_composite(glow.filter(ImageFilter.GaussianBlur(max(4, b * 0.09))))
+    d = ImageDraw.Draw(im, "RGBA")
+    d.polygon([(hand_x - b * 0.034, hand_y - b * 0.08), (hand_x + b * 0.034, hand_y - b * 0.08),
+               (hand_x, hand_y - b * 0.20)], fill=(255, 214, 130))
+    d.polygon([(hand_x - b * 0.016, hand_y - b * 0.08), (hand_x + b * 0.016, hand_y - b * 0.08),
+               (hand_x, hand_y - b * 0.15)], fill=(255, 248, 214))
+
+    #---- and the scaffolding she is wrapped in ----
+    #She is mid-refit in the film, and the scaffold is half of why the
+    #shot is recognisable. Tube and clamp: standards up, ledgers across,
+    #and diagonal bracing in two bays only — a brace in every bay is a
+    #lattice, and a lattice at this size fills in solid.
+    #
+    #Drawn last, so it stands in front of her rather than behind.
+    STEEL = (112, 104, 84)
+    STEEL_LIT = (146, 138, 112)
+    DECK = (86, 78, 60)
+    LAMP = (255, 196, 96)
+
+    sc_half = hem_half * 1.22
+    sc_top = 0.96                       # up to her chin, not over her face
+    lifts = 6
+    stands = 5
+    px = max(1, int(b * 0.006))
+
+    #standards
+    for i in range(stands):
+        x = cx - sc_half + (2 * sc_half) * i / (stands - 1)
+        d.line([(x, Y(-0.01)), (x, Y(sc_top))], fill=STEEL, width=px)
+    #ledgers, one per lift
+    for k in range(lifts + 1):
+        f = sc_top * k / lifts
+        d.line([(cx - sc_half, Y(f)), (cx + sc_half, Y(f))],
+               fill=STEEL_LIT if k % 2 else STEEL, width=px)
+    #bracing, two bays, opposite diagonals so it reads as a truss
+    bay = 2 * sc_half / (stands - 1)
+    for i, k in ((0, 1), (3, 3)):
+        x0 = cx - sc_half + bay * i
+        f0, f1 = sc_top * k / lifts, sc_top * (k + 1) / lifts
+        d.line([(x0, Y(f0)), (x0 + bay, Y(f1))], fill=STEEL, width=px)
+        d.line([(x0 + bay, Y(f0)), (x0, Y(f1))], fill=STEEL, width=px)
+    #two working platforms, which is what tells you somebody is up there
+    for k in (2, 4):
+        f = sc_top * k / lifts
+        d.rectangle([cx - sc_half - b * 0.012, Y(f), cx + sc_half + b * 0.012,
+                     Y(f) + max(1, int(b * 0.012))], fill=DECK)
+    #the hoist mast, running past her shoulder with a jib over the crown
+    mx = cx + sc_half + b * 0.05
+    d.line([(mx, Y(-0.01)), (mx, Y(1.18))], fill=STEEL, width=px)
+    d.line([(mx, Y(1.18)), (mx - b * 0.16, Y(1.18))], fill=STEEL, width=px)
+    d.line([(mx - b * 0.12, Y(1.18)), (mx - b * 0.12, Y(1.05))], fill=STEEL, width=px)
+    #work lights, warm against all that copper
+    for lx, lf in ((cx - sc_half, 0.64), (cx + sc_half, 0.32), (mx, 1.18)):
+        d.ellipse([lx - px, Y(lf) - px, lx + px, Y(lf) + px], fill=LAMP)
+
+
 def skyline():
     im = Image.new("RGB", (BG_W, BG_H))
     vertical(im, (9, 14, 38), (34, 28, 54))
@@ -178,69 +502,66 @@ def skyline():
     im = Image.blend(im, glow.filter(ImageFilter.GaussianBlur(90)), 0.5)
 
     d = ImageDraw.Draw(im)
-    random.seed(23)
+    rng = random.Random(23)
 
     #the stars that survive a city sky, which is not many
     for _ in range(90):
-        x, y = random.randrange(BG_W), random.randrange(int(BG_H * 0.45))
-        v = random.randint(90, 190)
+        x, y = rng.randrange(BG_W), rng.randrange(int(BG_H * 0.45))
+        v = rng.randint(90, 190)
         d.point((x, y), fill=(v, v, int(v * 1.1)))
 
-    #three ranks of buildings, each nearer and darker
+    #Four ranks now rather than three, and the far ones are washed toward
+    #the sky rather than merely darker: distance takes contrast away
+    #before it takes brightness, which is the whole of aerial perspective
+    #and the cheapest depth there is.
+    HAZE = (38, 44, 78)
     for rank, (base_y, height, tone, lit) in enumerate((
-        (BG_H * 0.62, 0.30, (26, 30, 58), (120, 132, 190)),
-        (BG_H * 0.72, 0.36, (17, 20, 44), (96, 108, 165)),
-        (BG_H * 0.84, 0.42, (10, 12, 30), (74, 84, 135)),
+        (BG_H * 0.58, 0.24, (30, 36, 68), (108, 122, 178)),
+        (BG_H * 0.66, 0.30, (24, 29, 58), (116, 128, 184)),
+        (BG_H * 0.76, 0.37, (16, 19, 43), (96, 108, 165)),
+        (BG_H * 0.88, 0.44, (9, 11, 28), (74, 84, 135)),
     )):
+        #the further back, the more of the sky is mixed into it
+        tone = lerp(tone, HAZE, max(0.0, 0.34 - rank * 0.12))
         x = -40
         while x < BG_W + 40:
-            w = random.randint(46, 128)
-            h = random.randint(int(BG_H * height * 0.35), int(BG_H * height))
+            w = rng.randint(38, 116)
+            h = rng.randint(int(BG_H * height * 0.4), int(BG_H * height))
             top = base_y - h
             d.rectangle([x, top, x + w, BG_H], fill=tone)
-            #lit windows, sparse and in a grid so they read as a building
-            for wy in range(int(top) + 14, int(BG_H), 22):
-                for wx in range(int(x) + 8, int(x + w) - 6, 16):
-                    if random.random() < 0.16 - rank * 0.03:
-                        d.rectangle([wx, wy, wx + 5, wy + 8], fill=lit)
-            x += w + random.randint(6, 22)
+            crown(d, x, w, top, tone, lit, rank, rng)
+            windows(d, x, w, top, BG_H, lit, rank, rng)
+            x += w + rng.randint(4, 20)
 
-    #the statue, scaffolded, off to one side
-    sx, sy = BG_W * 0.80, BG_H * 0.60
-    body = (46, 74, 72)
-    d.polygon([(sx - 34, BG_H), (sx - 18, sy + 40), (sx + 18, sy + 40), (sx + 34, BG_H)],
-              fill=body)
-    d.rectangle([sx - 12, sy - 46, sx + 12, sy + 44], fill=body)
-    d.ellipse([sx - 13, sy - 62, sx + 13, sy - 36], fill=(58, 90, 86))
-    for i in range(7):                                    # the crown
-        a = math.radians(180 + i * 30)
-        d.line([(sx, sy - 50),
-                (sx + math.cos(a) * 30, sy - 50 + math.sin(a) * 30)],
-               fill=(58, 90, 86), width=4)
-    d.line([(sx + 8, sy - 44), (sx + 30, sy - 120)], fill=body, width=9)  # the arm
-    d.ellipse([sx + 22, sy - 140, sx + 42, sy - 116], fill=(240, 200, 110))
-    #the scaffolding it is wrapped in
-    for i in range(6):
-        y = sy + 44 - i * 26
-        d.line([(sx - 40, y), (sx + 40, y)], fill=(120, 104, 78), width=2)
-    for i in range(5):
-        x = sx - 40 + i * 20
-        d.line([(x, sy - 70), (x, BG_H)], fill=(120, 104, 78), width=2)
+        #a band of haze between ranks, so they separate without a line
+        if rank < 3:
+            veil = Image.new("RGBA", (BG_W, BG_H), (0, 0, 0, 0))
+            vd = ImageDraw.Draw(veil)
+            vd.rectangle([0, base_y - 30, BG_W, base_y + 40], fill=HAZE + (44,))
+            im = Image.alpha_composite(im.convert("RGBA"),
+                                       veil.filter(ImageFilter.GaussianBlur(18))).convert("RGB")
+            d = ImageDraw.Draw(im)
+
+    #---- her, standing where the harbour would be ----
+    im = im.convert("RGBA")
+    #Far side of the harbour, not in the foreground: she is a landmark
+    #the fight happens in front of, and at the first size she was a
+    #wall down the right of the play area.
+    statue(im, BG_W * 0.845, BG_H * 1.06, BG_H * 0.27)
 
     #the tear in the sky, which is the whole plot
     tear = Image.new("RGBA", (BG_W, BG_H), (0, 0, 0, 0))
     td = ImageDraw.Draw(tear)
-    random.seed(5)
+    trng = random.Random(5)
     x, y = BG_W * 0.06, BG_H * 0.16
     pts = [(x, y)]
     while x < BG_W * 0.52:
         x += 34
-        y += random.uniform(-1, 1) * 26
+        y += trng.uniform(-1, 1) * 26
         pts.append((x, y))
     td.line(pts, fill=(255, 214, 132, 70), width=26)
     td.line(pts, fill=(255, 240, 200, 130), width=6)
     tear = tear.filter(ImageFilter.GaussianBlur(3))
-    im = im.convert("RGBA")
     im.alpha_composite(tear)
     return im.convert("RGB")
 
