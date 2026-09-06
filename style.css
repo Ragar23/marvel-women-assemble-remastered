@@ -157,7 +157,7 @@ body::after {
 }
 
 #portal-canvas.is-lit {
-  opacity: 0.75;
+  opacity: 0.92;
 }
 
 /* Only the menu has one, and only while the menu is up */
@@ -196,6 +196,15 @@ body:not([data-screen="menu"]) #portal-canvas {
 .game-title {
   margin: 0;
   line-height: 0;
+}
+
+/* The one line of menu text with nothing behind it but the rifts. The
+   cards carry their own dark ground; this does not, so it carries its
+   own contrast instead and stays readable whatever tears open under it. */
+.tagline {
+  margin: 0;
+  text-align: center;
+  text-shadow: 0 2px 10px rgba(6, 4, 14, 0.95), 0 0 26px rgba(6, 4, 14, 0.8);
 }
 
 .title-logo {
