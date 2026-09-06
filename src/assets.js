@@ -31,7 +31,6 @@ const imageSources = {
   nwhSymbiote1: "./images/nwh-symbiote1.png",
   nwhSymbiote2: "./images/nwh-symbiote2.png",
   nwhSymbiote3: "./images/nwh-symbiote3.png",
-  nwhAnomaly: "./images/nwh-anomaly.png",
   nwhElectro: "./images/nwh-electro.png",
   //Who they were before the accident. Each is the sprite its enemy wears
   //until it reaches the line and turns.
@@ -44,6 +43,10 @@ const imageSources = {
 
   //Projectiles
   web: "./images/nwh-web.png",
+  //The Goblin's, cut from the sheet his drawing arrived on: the bomb he
+  //throws and the razor bat the gliders throw.
+  nwhPumpkin: "./images/nwh-pumpkin.png",
+  nwhBat: "./images/nwh-bat.png",
   mandala: "./images/nwh-mandala.png",
 
   //Not more heroes: the people who were actually in the room. They answer

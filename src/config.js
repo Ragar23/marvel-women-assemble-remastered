@@ -262,8 +262,12 @@ export const ENEMY_TYPES = {
   //A manned glider does not weave past — line up with it and it winds up,
   //then commits. Standing in a lane is a decision rather than the game.
   glider: {
-    sprite: "nwhGlider", speed: 560, height: 74, hp: 2, points: 18, leak: 8, weave: 140,
+    sprite: "nwhGlider", speed: 560, height: 74, hp: 3, points: 18, leak: 8, weave: 140,
     behaviour: "charge", chargeWindup: 0.45, chargeSpeed: 1000, chargeGap: 2.4,
+    //And a razor bat off the rail as it comes. `throws` is read for any
+    //enemy, whatever else it is doing, so it does not have to fight the
+    //one behaviour slot the charge already occupies.
+    throws: { sprite: "nwhBat", gap: 2.8, first: 1.4, speed: 430, size: 34, spin: 9 },
   },
   //A tentacle on its own, off the harness and still working. It walks to
   //its line, tracks you while it decides, locks, and burns a lane.
@@ -283,9 +287,6 @@ export const ENEMY_TYPES = {
     sprite: "nwhSymbiote1", speed: 430, height: 82, hp: 2, points: 20, leak: 9,
     frames: ["nwhSymbiote1", "nwhSymbiote2", "nwhSymbiote3"],
   },
-  //What comes through the tear when nobody is holding it shut.
-  anomaly: { sprite: "nwhAnomaly", speed: 250, height: 210, hp: 9, points: 90, leak: 24 },
-
   //The three the spell pulled in by name. `holdAt` is a fraction of the
   //screen width they will not walk past: they stop and fight, so the only
   //way past them is through.
@@ -295,21 +296,21 @@ export const ENEMY_TYPES = {
     //humanHeight is how small a man is next to what he becomes.
     humanSprite: "nwhElectroHuman",
     humanHeight: 74,
-    sprite: "nwhElectro", speed: 300, height: 96, hp: 10, points: 170,
-    leak: 14, elite: true, name: "ELECTRO", tint: "#7dd3fc",
+    sprite: "nwhElectro", speed: 300, height: 96, hp: 20, points: 170,
+    leak: 12, elite: true, name: "ELECTRO", tint: "#7dd3fc",
     //He arcs to where you are, so he gets much further in than the others.
     behaviour: "blink", blinkGap: 1.4, blinkDist: 160, holdAt: 0.34,
   },
   lizard: {
-    sprite: "nwhLizard", speed: 250, height: 124, hp: 12, points: 190,
-    leak: 16, elite: true, name: "THE LIZARD", tint: "#6ee7a0",
+    sprite: "nwhLizard", speed: 250, height: 124, hp: 26, points: 190,
+    leak: 13, elite: true, name: "THE LIZARD", tint: "#6ee7a0",
     behaviour: "spear", spearGap: 1.5, weave: 70, holdAt: 0.62,
   },
   sandman: {
     humanSprite: "nwhSandmanHuman",
     humanHeight: 76,
-    sprite: "nwhSandman", speed: 175, height: 104, hp: 20, points: 240,
-    leak: 22, elite: true, name: "SANDMAN", tint: "#fcd34d",
+    sprite: "nwhSandman", speed: 175, height: 104, hp: 34, points: 240,
+    leak: 16, elite: true, name: "SANDMAN", tint: "#fcd34d",
     //Bullets go through sand and it closes up again behind them.
     behaviour: "armour", armour: 0.34, armourHp: 9, holdAt: 0.5,
   },
@@ -324,7 +325,7 @@ export const BOSSES = {
     //without anything having to learn who is speaking.
     voice: "helloPeter",
     size: 230,
-    hp: (wave) => 34 + wave * 6,
+    hp: (wave) => 46 + wave * 8,
     tint: "#9fd8ff",
     shotColor: "#dceeff",
     shots: 3,
@@ -338,9 +339,16 @@ export const BOSSES = {
     sprite: "nwhGoblin",
     name: "GREEN GOBLIN",
     size: 250,
-    hp: (wave) => 44 + wave * 8,
+    hp: (wave) => 58 + wave * 9,
     tint: "#4ade80",
     shotColor: "#bbf7d0",
+    //He does not hang in the middle bobbing: he flies at whatever height
+    //Peter is at and stays on him, which is what makes him the fight the
+    //film has rather than a turret with a health bar.
+    seek: 220, //px/s he closes the gap in y
+    //And what he throws is the pumpkin bomb off his own drawing.
+    shotSprite: "nwhPumpkin",
+    shotSize: 34,
     shots: 5,
     spread: 210,
     fireGap: 1.6,
@@ -385,26 +393,34 @@ export const BOSSES = {
 };
 
 //Which enemies each wave may draw from, and how many to send.
+//Shorter waves than they were, and spawned further apart (see the gap in
+//startWave). The difficulty was coming from how many were on screen at
+//once rather than from any of them being worth fighting, and an elite
+//arriving into a crowd of six was a death you could not read.
 export const WAVE_PLAN = [
-  { count: 20, mix: ["drone"] },
-  { count: 26, mix: ["drone", "glider"] },
+  { count: 16, mix: ["drone"] },
+  { count: 20, mix: ["drone", "glider"] },
   //Tentacles from here on. One at a time at first: the wave has to teach
   //the telegraph before it starts stacking them.
-  { count: 32, mix: ["drone", "glider", "symbiote", "ockArm"] },
-  { count: 36, mix: ["drone", "symbiote", "glider", "ockArm"] },
-  { count: 42, mix: ["drone", "glider", "symbiote", "ockArm", "anomaly"] },
-  { count: 48, mix: ["glider", "symbiote", "ockArm", "drone", "anomaly"] },
+  { count: 24, mix: ["drone", "glider", "symbiote", "ockArm"] },
+  { count: 26, mix: ["drone", "symbiote", "glider", "ockArm"] },
+  { count: 30, mix: ["drone", "glider", "symbiote", "ockArm"] },
+  { count: 34, mix: ["glider", "symbiote", "ockArm", "drone"] },
 ];
 
 //The named three arrive one at a time, on top of the ordinary wave, so
 //each one lands as an event instead of being lost in the crowd.
+//One at a time until late, and never three. Each of them is a fight on
+//its own now — they hold their line and the only way past is through — so
+//two at once is already both lanes, and three was the wall that made the
+//late waves unplayable rather than hard.
 export const ELITE_SCHEDULE = {
   3: ["electro"],
   4: ["lizard"],
   6: ["sandman"],
-  7: ["electro", "lizard"],
-  8: ["sandman"],
-  9: ["lizard", "sandman", "electro"],
+  7: ["lizard"],
+  8: ["electro"],
+  9: ["sandman", "lizard"],
 };
 
 //=====================================================================//

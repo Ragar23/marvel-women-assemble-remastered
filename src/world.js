@@ -273,6 +273,32 @@ export function transform(enemy) {
   for (let i = 0; i < 3; i++) pop(midX, feet - size.h / 2, def.tint, 70 + i * 60);
 }
 
+//A second weapon, on its own clock, for enemies that already have a
+//behaviour. The gliders charge *and* throw: putting the throw inside
+//"charge" would have meant a new behaviour for every combination.
+function updateThrower(enemy, dt) {
+  const t = enemy.def.throws;
+  if (enemy.throwIn === undefined) enemy.throwIn = t.first !== undefined ? t.first : t.gap;
+  enemy.throwIn -= dt;
+  if (enemy.throwIn > 0) return;
+  enemy.throwIn = t.gap;
+  //Only once it is on screen: a bat from off the right edge is a hit
+  //nobody was given the chance to see coming.
+  if (enemy.x > W - 20) return;
+
+  const cy = enemy.y + enemy.h / 2;
+  const dy = clamp((world.player.y + world.player.h / 2 - cy) * 1.1, -260, 260);
+  const size = t.size || 30;
+  enemyShots.push({
+    x: enemy.x, y: cy - size / 2, w: size, h: size,
+    vx: -(t.speed || 420), vy: dy,
+    color: enemy.def.tint || "#e2e8f0",
+    sprite: t.sprite, spin: 0, spinRate: t.spin || 7,
+  });
+  burst(enemy.x, cy, "#e2e8f0", 6, 180);
+  playSfx("shoot", 0.13, 1.25);
+}
+
 export function updateEnemies(dt) {
   const survivors = [];
   //Everything an enemy *does* runs on this clock, not on dt: advancing,
@@ -303,6 +329,7 @@ export function updateEnemies(dt) {
     enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
     enemy.bob += edt * 3.4;
     if (enemy.def.behaviour && !enemy.human) updateElite(enemy, edt);
+    if (enemy.def.throws && !enemy.human) updateThrower(enemy, edt);
     if (enemy.def.weave) {
       enemy.phase += edt * 2.2;
       enemy.y = clamp(
@@ -370,9 +397,22 @@ export function updateBoss(dt) {
     }
   } else {
     world.boss.phase += dt;
-    world.boss.y =
-      H / 2 - world.boss.h / 2 +
-      Math.sin(world.boss.phase * world.boss.def.bobSpeed) * (H / 2 - world.boss.h / 2 - 20);
+    if (world.boss.def.seek) {
+      //He hunts. Eased toward Peter's line rather than snapped to it, and
+      //capped in px/s, so he is something you can out-manoeuvre — a boss
+      //that matches you exactly is not a fight, it is a wall.
+      const want = world.player.y + world.player.h / 2 - world.boss.h / 2;
+      const step = world.boss.def.seek * dt;
+      const gap = want - world.boss.y;
+      world.boss.y += clamp(gap, -step, step);
+      //and a slow roll on top, so he is never perfectly still
+      world.boss.y += Math.sin(world.boss.phase * 1.6) * 14 * dt;
+      world.boss.y = clamp(world.boss.y, 0, H - world.boss.h);
+    } else {
+      world.boss.y =
+        H / 2 - world.boss.h / 2 +
+        Math.sin(world.boss.phase * world.boss.def.bobSpeed) * (H / 2 - world.boss.h / 2 - 20);
+    }
 
     world.boss.fireTimer -= dt;
     //The last 0.6s before a shot is a visible wind-up: he swells, the aura
@@ -406,14 +446,20 @@ export function updateBoss(dt) {
       const n = bd.shots;
       for (let i = 0; i < n; i++) {
         const offset = n === 1 ? 0 : (i / (n - 1) - 0.5) * bd.spread;
+        const size = world.boss.def.shotSize || 30;
         enemyShots.push({
           x: world.boss.x,
-          y: cy - 14,
-          w: 30,
-          h: 28,
+          y: cy - size / 2,
+          w: size,
+          h: size,
           vx: -680,
           vy: dy + offset,
           color: world.boss.def.shotColor,
+          //A drawn sprite rather than a coloured blob, where the boss has
+          //one. Everything else about the shot is unchanged.
+          sprite: world.boss.def.shotSprite,
+          spin: 0,
+          spinRate: 5,
         });
       }
       burst(world.boss.x, cy, world.boss.def.shotColor, 14, 280);
@@ -601,6 +647,7 @@ export function updateBullets(dt) {
   for (const s of enemyShots) {
     s.x += s.vx * dt * shotScale;
     s.y += s.vy * dt * shotScale;
+    if (s.sprite) s.spin += dt * shotScale * (s.spinRate || 6);
     if (overlaps(s, playerHitbox())) {
       s.spent = true;
       hitPlayer();

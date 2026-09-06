@@ -58,3 +58,6 @@ nwh-maguire
 nwh-maguire-symbiote
 nwh-strange
 nwh-holland-iron
+nwh-goblin
+nwh-pumpkin
+nwh-bat

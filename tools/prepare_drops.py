@@ -134,6 +134,101 @@ def match_box(names):
     return w, h
 
 
+#=====================================================================#
+#  THE GOBLIN SHEET
+#
+#  His drop is not one drawing but five on one page: him on his glider,
+#  two pumpkin bombs and two razor bats. Cutting it by bounding box does
+#  not work — his box is wide enough to swallow a bomb and half a bat —
+#  so each piece is taken by which connected island its pixels belong to.
+#
+#  The bats matter here: their white tips are drawn detached from the
+#  blade, so a bat is three islands, not one. Anything whose island falls
+#  inside the region is taken with it.
+#=====================================================================#
+#  name: (region on the sheet, or None to mean "the largest island")
+GOBLIN_SHEET = {
+    "nwh-goblin": None,
+    "nwh-pumpkin": (100, 10, 400, 300),
+    "nwh-bat": (1340, 10, 1830, 500),
+}
+
+
+def islands_of(im):
+    """Every connected run of opaque pixels, largest first."""
+    from collections import deque
+    w, h = im.size
+    px = im.load()
+    seen = [[False] * w for _ in range(h)]
+    out = []
+    for y0 in range(h):
+        for x0 in range(w):
+            if seen[y0][x0] or px[x0, y0][3] == 0:
+                continue
+            q = deque([(x0, y0)])
+            seen[y0][x0] = True
+            cells = []
+            while q:
+                x, y = q.popleft()
+                cells.append((x, y))
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if (0 <= nx < w and 0 <= ny < h and not seen[ny][nx]
+                            and px[nx, ny][3] != 0):
+                        seen[ny][nx] = True
+                        q.append((nx, ny))
+            out.append(cells)
+    out.sort(key=len, reverse=True)
+    return out
+
+
+def cut_goblin_sheet():
+    src = SRC / "nwh-goblin-sheet.png"
+    if not src.exists():
+        print("  skip: no images/src/nwh-goblin-sheet.png")
+        return
+    #crop=False: the pieces are found on the full page, not on a crop of it
+    drop(str(src), "/tmp/goblin-sheet-cut.png", 4, passes=2, despeckle=0.0, crop=False)
+    sheet = Image.open("/tmp/goblin-sheet-cut.png").convert("RGBA")
+    parts = islands_of(sheet)
+
+    for name, region in GOBLIN_SHEET.items():
+        keep = [parts[0]] if region is None else [
+            c for c in parts
+            if all(region[0] <= x <= region[2] and region[1] <= y <= region[3]
+                   for x, y in c)
+        ]
+        if not keep:
+            print(f"  {name}: nothing found in {region}")
+            continue
+        out = Image.new("RGBA", sheet.size, (0, 0, 0, 0))
+        src_px, out_px = sheet.load(), out.load()
+        for cells in keep:
+            for x, y in cells:
+                out_px[x, y] = src_px[x, y]
+        box = out.getbbox()
+        out = out.crop(box)
+        #The bomb and the bat are each drawn on a plate of pure black,
+        #which is not the black the page is on — so the sheet's own flood
+        #never reached it. They get their own pass here, on the cropped
+        #piece, where the plate is the outermost colour. It cannot be done
+        #on the whole sheet: a pass loose enough to take pure black would
+        #take the Goblin's outline with it, and he is drawn in it.
+        if name != "nwh-goblin":
+            tmp = f"/tmp/{name}-piece.png"
+            out.save(tmp)
+            drop(tmp, tmp, 6, passes=1, despeckle=0.0)
+            out = Image.open(tmp).convert("RGBA")
+        #He is a boss, and bosses are drawn into a square box — a sprite
+        #that is not square is stretched to fit it. Padded, not scaled.
+        if name == "nwh-goblin":
+            side = max(out.size)
+            square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+            square.paste(out, ((side - out.width) // 2, side - out.height), out)
+            out = square
+        out.save(OUT / f"{name}.png", optimize=True)
+        print(f"  {name}.png  {out.size}  ({len(keep)} island(s))")
+
+
 if __name__ == "__main__":
     print("knocking out backdrops")
     for name, (tol, passes, speck) in DROPS.items():
@@ -149,6 +244,9 @@ if __name__ == "__main__":
     print("deriving the symbiote from Peter 2")
     size = symbiote_from(OUT / "nwh-maguire.png", OUT / "nwh-maguire-symbiote.png")
     print(f"  nwh-maguire-symbiote.png  {size}")
+
+    print("cutting the goblin sheet")
+    cut_goblin_sheet()
 
     print("bringing the player's suit sets to one box")
     for names in SWAP_SETS:

@@ -341,6 +341,20 @@ function drawBossDeath() {
 export function drawEnemyShot(s) {
   const cx = s.x + s.w / 2;
   const cy = s.y + s.h / 2;
+  //A bomb or a bat: its own drawing, turning as it goes, over a soft
+  //glow so it still reads against the city rather than disappearing
+  //into it the way a small dark sprite would.
+  if (s.sprite && img[s.sprite]) {
+    const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, s.w);
+    grd.addColorStop(0, "rgba(255,236,190,0.5)");
+    grd.addColorStop(1, "rgba(255,170,60,0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s.w, 0, Math.PI * 2);
+    ctx.fill();
+    drawSprite(img[s.sprite], s.x, s.y, s.w, s.h, { rot: s.spin || 0 });
+    return;
+  }
   const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, s.w);
   grd.addColorStop(0, "#ffffff");
   grd.addColorStop(0.4, s.color || "#c084fc");

@@ -28,7 +28,10 @@ export function startWave(n) {
   //Spread the wave out over time, tightening as the waves go up. An enemy
   //crosses the screen in roughly 2.8s, so a 0.6s gap keeps about five of
   //them in play at once, and the late waves roughly double that.
-  const gap = clamp(0.66 - (n - 1) * 0.07, 0.24, 0.66);
+  //Wider than it was, and it tightens more slowly. Six on screen at once
+  //is not six times the difficulty of one, it is a wall you cannot read —
+  //and the elites arriving into that was where the runs were ending.
+  const gap = clamp(0.86 - (n - 1) * 0.05, 0.38, 0.86);
 
   for (let i = 0; i < total; i++) {
     spawnQueue.push({
