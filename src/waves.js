@@ -1,5 +1,5 @@
 import { img } from "./assets.js";
-import { playSfx } from "./audio.js";
+import { playSfx, playVoice } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { BOSSES, CONFIG, ELITE_SCHEDULE, ENEMY_TYPES, WAVE_PLAN } from "./config.js";
 import { addShake } from "./effects.js";
@@ -121,6 +121,11 @@ export function summonBoss(def) {
     lunge: 0,
     knock: 0,
   };
+
+  //"Hello, Peter." Spoken rather than played as an effect: it is not
+  //allowed to be culled by the voice cap and it pulls the music down
+  //while it talks, because the only reason it is here is to be heard.
+  if (def.voice) playVoice(def.voice);
 }
 
 export function waveIsClear() {

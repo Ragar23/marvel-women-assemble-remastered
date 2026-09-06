@@ -6,13 +6,18 @@ import { sess } from "./state.js";
 import { clamp } from "./util.js";
 
 //=====================================================================//
-export const MUSIC_START_SECONDS = 96;
+//The Endgame track this borrowed ran 203 seconds and the good part did
+//not arrive until 96, which is what this number was for. The No Way Home
+//theme is 30 seconds long and already is the good part, so seeking into
+//it would land past the end and play silence for the rest of the run.
+export const MUSIC_START_SECONDS = 0;
 export let muted = false;
 
-export const audio = new Audio(
-  "./assets/Alan Silvestri - Portals (From Avengers EndgameAudio Only).mp3"
-);
-audio.volume = 0.22;
+export const audio = new Audio("./assets/no_way_home_theme_song.mp3");
+//Named because playVoice() has to put it back after ducking it, and two
+//places holding the same number is how it ends up quiet for ever.
+export const MUSIC_VOLUME = 0.22;
+audio.volume = MUSIC_VOLUME;
 audio.loop = true;
 
 //One clip played at different volumes used to cover shooting, pickups and
@@ -31,6 +36,30 @@ export const SFX_SOURCES = {
 };
 
 //=====================================================================//
+//  WHAT THEY SAY
+//
+//  Media elements, not decoded buffers, and deliberately so. Buffers
+//  exist here because the game asks for a `shoot` every 0.13s and
+//  standing up a media element per shot is what made the phone crawl.
+//  None of that applies to a line of dialogue: it plays once, it never
+//  overlaps itself, and eight seconds of stereo held as PCM is about
+//  3MB of memory for something heard once a run. An element streams it,
+//  needs no decode step at all, and tells us exactly when it has
+//  finished — which is what the music has to wait for before it comes
+//  back up.
+//=====================================================================//
+export const VOICES = {
+  helloPeter: "./assets/hello_peter.mp3",
+};
+
+const voiceClips = {};
+for (const [name, src] of Object.entries(VOICES)) {
+  const clip = new Audio(src);
+  clip.preload = "auto";
+  voiceClips[name] = clip;
+}
+
+//=====================================================================//
 //  SOUND EFFECTS
 //
 //  These used to be <audio> elements, one per clip, cloned on every play so
@@ -46,6 +75,7 @@ export const SFX_SOURCES = {
 //  create and throw away per note, and costs approximately nothing.
 //=====================================================================//
 export const sfx = {}; //name → AudioBuffer, once decoded
+export const failed = {}; //name → why it did not, when one does not
 
 let ctx = null;
 let master = null;
@@ -93,8 +123,13 @@ function loadEffects() {
           const out = ctx.decodeAudioData(data, resolve, reject);
           if (out && typeof out.then === "function") out.then(resolve, reject);
         });
-      } catch {
-        /* that one effect stays silent; the rest are unaffected */
+      } catch (err) {
+        //A clip that will not decode used to vanish without a word, which
+        //makes a silent sound indistinguishable from a sound nobody
+        //triggered. It is still not fatal — the rest are unaffected — but
+        //it is written down now, and audioState() reports it.
+        failed[name] = (err && err.message) || String(err);
+        console.warn(`audio: ${name} did not decode —`, err);
       }
     })
   );
@@ -172,6 +207,7 @@ export function audioState() {
     context: ctx ? ctx.state : "none",
     unlocked,
     decoded: Object.keys(sfx).length,
+    failed,
     muted,
     voices,
   };
@@ -232,11 +268,82 @@ export function playSfx(name, volume = 0.25, rate = 1) {
   source.start();
 }
 
+//=====================================================================//
+//  A LINE, RATHER THAN A NOISE
+//
+//  Effects are allowed to be dropped: past MAX_VOICES they are mud, and
+//  the same one twice inside REPEAT_GAP is one sound to any ear. Neither
+//  is true of somebody speaking. A line that arrives half the time is
+//  worse than no line at all, so this goes around both caps.
+//
+//  It also pulls the music down while it talks. At the volume the theme
+//  runs, a spoken line sits inside it rather than over it, and the whole
+//  point of this one is that you hear what he says.
+//=====================================================================//
+let unduck = null;
+
+export function playVoice(name, volume = 0.9) {
+  if (muted) return;
+  const clip = voiceClips[name];
+  if (!clip) return;
+
+  clip.volume = clamp(volume, 0, 1);
+  clip.currentTime = 0;
+  playSafely(clip);
+
+  //Down while he talks, back up when he stops. Hung off the clip's own
+  //`ended` rather than a timer set to its duration, so it is right even
+  //if the clip was slow to start; and the previous restore is always
+  //cancelled first, so two lines overlapping cannot strand the music
+  //quiet for the rest of the run.
+  duckMusic(clip);
+}
+
+function duckMusic(clip) {
+  //Whatever was going to put the music back, is not any more — this line
+  //owns the restore now. Cleared unconditionally, including when it is
+  //the same clip retriggering, or the old listener fires against the new
+  //line and hands the music back mid-sentence.
+  if (unduck) {
+    clearTimeout(unduck.timer);
+    unduck.clip.removeEventListener("ended", unduck.restore);
+    unduck = null;
+  }
+  audio.volume = MUSIC_VOLUME * 0.3;
+  const restore = () => {
+    audio.volume = MUSIC_VOLUME;
+    clip.removeEventListener("ended", restore);
+    unduck = null;
+  };
+  //Belt and braces: if `ended` never arrives — the tab went away, the
+  //element stalled — a timer puts the music back anyway.
+  const timer = setTimeout(restore, ((clip.duration || 9) + 1) * 1000);
+  clip.addEventListener("ended", restore);
+  unduck = { clip, restore, timer };
+}
+
 //The easter egg's theme, the one moment this track was made for.
 export function playAssembleTheme() {
   if (muted) return;
   assembleTheme.currentTime = 0;
   playSafely(assembleTheme);
+}
+
+//Cut a line off where it is and hand the music straight back. Used when
+//the sound is muted mid-sentence and when a run ends — a boss carrying on
+//talking over the menu is the kind of thing nobody reports and everybody
+//notices.
+export function stopVoices() {
+  for (const clip of Object.values(voiceClips)) {
+    clip.pause();
+    clip.currentTime = 0;
+  }
+  if (unduck) {
+    clearTimeout(unduck.timer);
+    unduck.clip.removeEventListener("ended", unduck.restore);
+    unduck = null;
+  }
+  audio.volume = MUSIC_VOLUME;
 }
 
 export function toggleMute() {
@@ -245,6 +352,7 @@ export function toggleMute() {
   if (muted) {
     audio.pause();
     assembleTheme.pause();
+    stopVoices();
   } else if (sess.state === "playing") playMusic();
 }
 

@@ -319,6 +319,10 @@ export const BOSSES = {
   ock: {
     sprite: "nwhOck",
     name: "DOCTOR OCTOPUS",
+    //He says it on arrival. Named on the boss rather than checked for by
+    //name where he is summoned, so the Goblin can be given one too
+    //without anything having to learn who is speaking.
+    voice: "helloPeter",
     size: 230,
     hp: (wave) => 34 + wave * 6,
     tint: "#9fd8ff",

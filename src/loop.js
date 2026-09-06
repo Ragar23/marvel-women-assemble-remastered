@@ -1,4 +1,4 @@
-import { audio, playMusic, unlockAudio } from "./audio.js";
+import { audio, playMusic, stopVoices, unlockAudio } from "./audio.js";
 import { countUp } from "./boot.js";
 import { CONFIG } from "./config.js";
 import { gameOverTitle, leaderboard, leaderboardList, nameForm, nameInput, pauseOverlay, showScreen, statCombo, statKills, statScore, statWave, touchPauseBtn } from "./dom.js";
@@ -146,6 +146,7 @@ export function quitToMenu() {
   showScreen("menu");
   leaveFullscreen();
   audio.pause();
+  stopVoices();
   resumePortal();
 }
 
@@ -171,6 +172,7 @@ export function endGame() {
   showScreen("gameover");
   leaveFullscreen();
   audio.pause();
+  stopVoices();
   presentBoard();
 }
 
