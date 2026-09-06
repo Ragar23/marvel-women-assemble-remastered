@@ -25,7 +25,6 @@ const imageSources = {
   nwhStrange: "./images/nwh-strange.png",
 
   //What the broken spell sent
-  nwhDrone: "./images/nwh-drone.png",
   nwhGlider: "./images/nwh-glider.png",
   nwhOckArm: "./images/nwh-ockarm.png",
   nwhSymbiote1: "./images/nwh-symbiote1.png",

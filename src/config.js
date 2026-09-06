@@ -257,8 +257,18 @@ export const HEROES = {
 
 //baseSpeed px/s, hp, points, damage to the spell when it gets through
 export const ENEMY_TYPES = {
-  //The Goblin's drones: small, quick, and there are a lot of them.
-  drone: { sprite: "nwhDrone", speed: 400, height: 66, hp: 2, points: 12, leak: 8 },
+  //The razor bats he throws by the handful: small, quick, and there are a
+  //lot of them. They spin as they come — `spin` turns the sprite on its
+  //own clock rather than the gentle rock every other enemy gets, because
+  //a thrown blade that is not turning reads as something hovering.
+  //
+  //It is the same drawing the gliders throw, at twice the size and with
+  //no glow behind it. That is what tells them apart: a bat with an orange
+  //halo is a shot and cannot be stopped, one without is an enemy and can.
+  bat: {
+    sprite: "nwhBat", speed: 400, height: 66, hp: 2, points: 12, leak: 8,
+    spin: 2.4,
+  },
   //A manned glider does not weave past — line up with it and it winds up,
   //then commits. Standing in a lane is a decision rather than the game.
   glider: {
@@ -352,7 +362,7 @@ export const BOSSES = {
     shots: 5,
     spread: 210,
     fireGap: 1.6,
-    minion: "drone",
+    minion: "bat",
     summonGap: 2.2,
     bobSpeed: 1.0,
     //He is the one the film is actually about, so he is not Octavius with
@@ -376,7 +386,7 @@ export const BOSSES = {
         shots: 6, spread: 260, fireGap: 1.15, summonGap: 1.3,
       },
       {
-        //No more drones, no more patience. He stops trying to beat you and
+        //No more bats, no more patience. He stops trying to beat you and
         //starts tearing the spell open by hand, so the fight becomes a race
         //he wins by default if you let it run.
         at: 0.33,
@@ -398,14 +408,14 @@ export const BOSSES = {
 //once rather than from any of them being worth fighting, and an elite
 //arriving into a crowd of six was a death you could not read.
 export const WAVE_PLAN = [
-  { count: 16, mix: ["drone"] },
-  { count: 20, mix: ["drone", "glider"] },
+  { count: 16, mix: ["bat"] },
+  { count: 20, mix: ["bat", "glider"] },
   //Tentacles from here on. One at a time at first: the wave has to teach
   //the telegraph before it starts stacking them.
-  { count: 24, mix: ["drone", "glider", "symbiote", "ockArm"] },
-  { count: 26, mix: ["drone", "symbiote", "glider", "ockArm"] },
-  { count: 30, mix: ["drone", "glider", "symbiote", "ockArm"] },
-  { count: 34, mix: ["glider", "symbiote", "ockArm", "drone"] },
+  { count: 24, mix: ["bat", "glider", "symbiote", "ockArm"] },
+  { count: 26, mix: ["bat", "symbiote", "glider", "ockArm"] },
+  { count: 30, mix: ["bat", "glider", "symbiote", "ockArm"] },
+  { count: 34, mix: ["glider", "symbiote", "ockArm", "bat"] },
 ];
 
 //The named three arrive one at a time, on top of the ordinary wave, so

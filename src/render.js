@@ -127,7 +127,9 @@ export function drawEnemy(enemy) {
     enemy.w,
     enemy.h,
     {
-      rot: Math.sin(enemy.bob * 0.7) * 0.07 + (hexed ? Math.sin(fx.elapsed * 9) * 0.12 : 0),
+      //A bat turns; everything else rocks
+      rot: (enemy.def.spin ? enemy.bob * enemy.def.spin : Math.sin(enemy.bob * 0.7) * 0.07) +
+        (hexed ? Math.sin(fx.elapsed * 9) * 0.12 : 0),
       sx: (0.55 + 0.45 * ease) * (1 + squash),
       sy: (0.55 + 0.45 * ease) * (1 - squash * 0.8),
       alpha: ease,
@@ -345,14 +347,23 @@ export function drawEnemyShot(s) {
   //glow so it still reads against the city rather than disappearing
   //into it the way a small dark sprite would.
   if (s.sprite && img[s.sprite]) {
-    const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, s.w);
-    grd.addColorStop(0, "rgba(255,236,190,0.5)");
-    grd.addColorStop(1, "rgba(255,170,60,0)");
+    //The halo is not decoration: it is the whole of how a thrown bat is
+    //told apart from a bat that is an enemy, since they are the same
+    //drawing. It is also what makes a 34px sprite visible enough to be
+    //dodged against a lit city — drawn dimmer, it was something you found
+    //out about by being hit.
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const grd = ctx.createRadialGradient(cx, cy, 1, cx, cy, s.w * 1.5);
+    grd.addColorStop(0, "rgba(255,244,214,0.95)");
+    grd.addColorStop(0.35, "rgba(255,186,86,0.5)");
+    grd.addColorStop(1, "rgba(255,140,30,0)");
     ctx.fillStyle = grd;
     ctx.beginPath();
-    ctx.arc(cx, cy, s.w, 0, Math.PI * 2);
+    ctx.arc(cx, cy, s.w * 1.5, 0, Math.PI * 2);
     ctx.fill();
-    drawSprite(img[s.sprite], s.x, s.y, s.w, s.h, { rot: s.spin || 0 });
+    ctx.restore();
+    drawSprite(img[s.sprite], s.x, s.y, s.w, s.h, { rot: s.spin || 0, flash: 0.25 });
     return;
   }
   const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, s.w);
