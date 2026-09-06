@@ -35,10 +35,12 @@ export function draw() {
   //Enemies, their remains, and the boss
   for (const c of corpses) drawCorpse(c);
   for (const enemy of enemies) drawEnemy(enemy);
+  for (const enemy of enemies) drawHeld(enemy);
   //Under the player and the bullets, so a lane full of beam never hides
   //where you actually are.
   drawEnemyBeams();
   if (world.boss) drawBoss();
+  if (world.boss) drawHeld(world.boss);
   if (world.bossDying) drawBossDeath();
 
   //Bullets
@@ -371,6 +373,129 @@ export function flameFrame(hero) {
   return hero.flameFrames[i];
 }
 
+//Which suit he is standing in. Both are drawn on the same grid as the
+//sprite they replace, so this is a straight swap with nothing to correct.
+function suitSprite(hero) {
+  if (hero.ult === "ironspider" && world.player.ironSpider > 0) return "nwhHollandIron";
+  if (hero.ult === "symbiote" && world.player.symbiote > 0) return "nwhMaguireSymbiote";
+  return null;
+}
+
+//The Iron Spider's four legs. Kept out of the sprite and drawn here so
+//they can move: at rest they arch back over his shoulders, and on a
+//strike they snap forward through the arc that legStrike() just hit.
+function drawSpiderLegs() {
+  const p = world.player;
+  const fade = Math.min(1, p.ironSpider * 2); //ease out over the last half-second
+  const hx = p.x + p.w * 0.62;
+  const hy = p.y + p.h * 0.42;
+  const strike = p.legStrike; //1 → 0 across the swing
+  //Ease so the snap out is fast and the recovery is slow
+  const punch = strike > 0 ? Math.sin(Math.min(1, strike) * Math.PI) : 0;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let i = 0; i < 4; i++) {
+    //Two above, two below, fanned; the idle sway keeps them alive
+    const spread = [-0.72, -0.3, 0.3, 0.72][i];
+    const sway = Math.sin(fx.elapsed * 2.4 + i) * 0.06;
+    const angle = spread + sway - punch * spread * 0.55;
+    //Measured off the same constant the strike box uses, so what the legs
+    //cover on screen is what they actually hit. This game telegraphs
+    //honestly everywhere else; the legs do not get to be the exception.
+    const reach = p.w * 0.85 + punch * (CONFIG.ult.ironSpiderReach - p.w * 0.35);
+
+    //Elbow out and back, tip forward: a two-segment leg, not a spike
+    const ex = hx + Math.cos(angle) * reach * 0.42 - p.w * 0.25 * (1 - punch);
+    const ey = hy + Math.sin(angle) * reach * 0.62;
+    const tx = hx + Math.cos(angle * 0.55) * reach;
+    const ty = hy + Math.sin(angle * 0.9) * reach * 0.78;
+
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.lineTo(ex, ey);
+    ctx.lineTo(tx, ty);
+    ctx.strokeStyle = `rgba(240,178,52,${(0.85 + punch * 0.15) * fade})`;
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255,236,170,${0.5 * fade})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    //The tip, brightest at full extension
+    ctx.fillStyle = `rgba(255,246,214,${(0.5 + punch * 0.5) * fade})`;
+    ctx.beginPath();
+    ctx.arc(tx, ty, 3.5 + punch * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+//The symbiote does not glow — it swallows light. A dark body under him
+//and a few tendrils crawling off it, so the suit reads as alive.
+function drawSymbioteAura() {
+  const p = world.player;
+  const fade = Math.min(1, p.symbiote * 2);
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  ctx.save();
+  const grd = ctx.createRadialGradient(cx, cy, p.w * 0.25, cx, cy, p.w * 1.05);
+  grd.addColorStop(0, `rgba(12,12,18,${0.5 * fade})`);
+  grd.addColorStop(0.65, `rgba(24,24,34,${0.26 * fade})`);
+  grd.addColorStop(1, "rgba(24,24,34,0)");
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(cx, cy, p.w * 1.05, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = `rgba(226,232,240,${0.3 * fade})`;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    const a = fx.elapsed * (0.7 + i * 0.31) + i * 1.26;
+    const r = p.w * (0.5 + 0.28 * Math.sin(fx.elapsed * 2 + i));
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.quadraticCurveTo(
+      cx + Math.cos(a) * r * 0.6, cy + Math.sin(a) * r * 0.6,
+      cx + Math.cos(a) * r, cy + Math.sin(a) * r
+    );
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+//What being held looks like, on the thing being held: Strange's mandala,
+//stopped dead. It does not rotate, and that is the whole point — every
+//other ring in this game turns.
+export function drawHeld(target) {
+  const held = target.held;
+  if (!held) return;
+  const cx = target.x + target.w / 2;
+  const cy = target.y + target.h / 2;
+  const r = Math.max(target.w, target.h) * 0.62;
+  ctx.save();
+  ctx.globalAlpha = 0.75 * held;
+  ctx.strokeStyle = "#f0b429";
+  for (let ring = 0; ring < 2; ring++) {
+    const rr = r * (1 - ring * 0.22);
+    ctx.lineWidth = 2 - ring * 0.6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+    ctx.stroke();
+    //Spokes, fixed in place
+    const spokes = 12 - ring * 4;
+    ctx.beginPath();
+    for (let i = 0; i < spokes; i++) {
+      const a = (i / spokes) * Math.PI * 2;
+      ctx.moveTo(cx + Math.cos(a) * rr * 0.82, cy + Math.sin(a) * rr * 0.82);
+      ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export function drawPlayer() {
   const hero = heroDef();
   //Shuri's kinetic field and Johnny's flame both hold invulnerability open
@@ -378,7 +503,10 @@ export function drawPlayer() {
   //through five and fifteen seconds of that would simply delete the hero
   //from the screen, so only the moment after a hit blinks.
   const aura =
-    world.player.panther > 0 || (hero.ult === "flameon" && world.player.worthy > 0);
+    world.player.panther > 0 ||
+    world.player.ironSpider > 0 ||
+    world.player.symbiote > 0 ||
+    (hero.ult === "flameon" && world.player.worthy > 0);
   //Blink while invulnerable so the state is readable
   const blinking =
     !aura && world.player.invuln > 0 && Math.floor(fx.elapsed * 14) % 2 === 0;
@@ -391,7 +519,7 @@ export function drawPlayer() {
     const away = world.mjolnir || world.shield;
     const sprite = away
       ? hero.emptySprite || hero.sprite
-      : flameFrame(hero) || hero.sprite;
+      : suitSprite(hero) || flameFrame(hero) || hero.sprite;
     drawSprite(
       img[sprite],
       world.player.x - r * CONFIG.anim.recoilPx,
@@ -407,6 +535,9 @@ export function drawPlayer() {
       }
     );
   }
+  if (world.player.symbiote > 0) drawSymbioteAura();
+  if (world.player.ironSpider > 0) drawSpiderLegs();
+
   //Shuri keeps the kinetic charge for a few seconds after she spends it:
   //counter-rotating arcs and a soft core, so it reads as a field she is
   //standing inside rather than a ring drawn on top of her.
@@ -574,9 +705,37 @@ export function drawIgnitionBeam() {
   ctx.restore();
 }
 
+//The web, blackened once and kept. ctx.filter would do this in a line but
+//Safari only learned it recently, and a shot that silently stays red on
+//somebody's phone is worse than a canvas we build once at the first black
+//web and never touch again. source-in paints only where the web already
+//is, so the shape survives exactly.
+let blackWebCanvas = null;
+function blackWeb(sprite) {
+  if (blackWebCanvas) return blackWebCanvas;
+  const c = document.createElement("canvas");
+  c.width = sprite.width || 76;
+  c.height = sprite.height || 34;
+  const g = c.getContext("2d");
+  g.drawImage(sprite, 0, 0);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = "#11111c";
+  g.fillRect(0, 0, c.width, c.height);
+  blackWebCanvas = c;
+  return c;
+}
+
 export function drawBullet(b) {
   const hero = heroDef();
   const sprite = img[hero.bullet];
+  //The symbiote's web is the same web with the light taken out of it
+  if (b.symbiote) {
+    for (let i = 3; i >= 1; i--) {
+      drawSprite(sprite, b.x - i * 20, b.y, b.w, b.h, { alpha: 0.06 * (4 - i) });
+    }
+    drawSprite(blackWeb(sprite), b.x, b.y, b.w, b.h, {});
+    return;
+  }
   //Three fading ghosts behind each shot read as motion blur
   for (let i = 3; i >= 1; i--) {
     drawSprite(sprite, b.x - i * 20, b.y, b.w, b.h, { alpha: 0.09 * (4 - i) });

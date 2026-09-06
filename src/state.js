@@ -181,6 +181,10 @@ export function resetGame() {
     ignition: 0, //Cyclops: seconds of optic overload remaining
     panther: 0, //Shuri: seconds the kinetic charge clings to her
     firing: 0, //seconds since the last shot, so Johnny can burn while he shoots
+    ironSpider: 0, //Peter 1: seconds left in the Iron Spider
+    symbiote: 0, //Peter 2: seconds left in the black suit
+    stasis: 0, //Strange: seconds the battlefield is held still
+    legStrike: 0, //1 → 0 as the four legs snap forward and come back
   };
 
   bullets.length = 0;

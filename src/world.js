@@ -163,7 +163,7 @@ function updateElite(enemy, dt) {
       addShake(4);
       burst(enemy.x, enemy.y + enemy.h / 2, def.tint, 16, 320);
     } else if (enemy.charging === "go") {
-      enemy.x -= def.chargeSpeed * dt * enemySpeedScale();
+      enemy.x -= def.chargeSpeed * dt; //dt is already scaled by the caller
       if (enemy.timer <= 0) {
         enemy.charging = null;
         enemy.timer = def.chargeGap;
@@ -236,9 +236,15 @@ function updateElite(enemy, dt) {
 
 export function updateEnemies(dt) {
   const survivors = [];
+  //Everything an enemy *does* runs on this clock, not on dt: advancing,
+  //weaving, and every wind-up and cooldown inside updateElite. At Strange's
+  //zero that is a real stop — a gunner halfway through a lock stays there
+  //instead of firing the moment he lets go. Purely visual decay (the hit
+  //flash, the fade-in) stays on real time so a frozen enemy still settles.
+  const edt = dt * enemySpeedScale();
 
   for (const enemy of enemies) {
-    enemy.x -= enemy.speed * dt * enemySpeedScale();
+    enemy.x -= enemy.speed * edt;
     //The coven hold a line rather than crossing it. Named, health-barred and
     //walking off the left edge, the cheapest answer to a witch was to stand
     //aside and pay the leak; now the only way past one is through it.
@@ -247,10 +253,10 @@ export function updateEnemies(dt) {
     }
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
     enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
-    enemy.bob += dt * 3.4;
-    if (enemy.def.behaviour) updateElite(enemy, dt);
+    enemy.bob += edt * 3.4;
+    if (enemy.def.behaviour) updateElite(enemy, edt);
     if (enemy.def.weave) {
-      enemy.phase += dt * 2.2;
+      enemy.phase += edt * 2.2;
       enemy.y = clamp(
         enemy.baseY + Math.sin(enemy.phase) * enemy.def.weave,
         0,
@@ -299,7 +305,11 @@ export function updateEnemies(dt) {
 
 export function updateBoss(dt) {
   if (!world.boss) return;
+  //Real time: a hit still flashes while he is held
   world.boss.hitFlash = Math.max(0, world.boss.hitFlash - dt);
+  //And from here down he is on the same clock as everything else, so
+  //Strange stops him mid-wind-up rather than only stopping his minions.
+  dt *= enemySpeedScale();
 
   //Which phase he is in, and what changes when he enters a new one
   if (world.boss.def.phases) updateBossPhase(dt);
@@ -379,7 +389,9 @@ export function updateBoss(dt) {
     if (bullet.spent) continue;
     if (overlaps(world.boss, bullet)) {
       bullet.spent = true;
-      damageBoss(bullet.dmg, bullet.x, bullet.y + bullet.h / 2);
+      //A web that one-shots everything else does not one-shot him
+      const dmg = bullet.capVsBoss === undefined ? bullet.dmg : bullet.capVsBoss;
+      damageBoss(dmg, bullet.x, bullet.y + bullet.h / 2);
       if (!world.boss) return;
     }
   }

@@ -80,6 +80,26 @@ export const CONFIG = {
     chargePerBossHit: 1.2,
     hexDuration: 5, //Wanda: how long the world crawls
     hexSlow: 0.28, //enemies move at this fraction of their speed
+
+    //---- the four this branch actually uses ----
+    //Peter 1 pulls on the Iron Spider and fights with the legs for as long
+    //as it holds. They out-reach his fists by a long way and hit everything
+    //in the arc at once, which is the whole point of having four of them.
+    ironSpiderDuration: 25,
+    ironSpiderReach: 210,
+    ironSpiderDamage: 6,
+    ironSpiderCooldown: 0.13,
+    //Peter 2's suit takes over. Anything the black web touches dies —
+    //except the one thing the fight is actually about, which takes the
+    //damage he would have done anyway.
+    symbioteDuration: 25,
+    symbioteBossDamage: 3,
+    //Peter 3 does not suit up. He throws one thing, once, and the screen
+    //is empty afterwards.
+    webBombBossDamage: 26,
+    //Strange stops them where they stand. Not slowed — stopped: nothing
+    //moves, nothing tracks, nothing fires, and the wind-ups hold.
+    stasisDuration: 15,
     //Cyclops' Optic Overload: the same beam he fires normally, opened all
     //the way up. It is his one screen-clearing window, so it stays open
     //long enough to sweep the lane rather than blinking past.
@@ -193,7 +213,7 @@ export const HEROES = {
     melee: true, //and he closes in, the way Shuri and Captain America do
     tint: "#e63946",
     shootRate: 1.15,
-    ult: "barrage",
+    ult: "ironspider",
     ultName: "IRON SPIDER",
   },
   maguire: {
@@ -205,8 +225,8 @@ export const HEROES = {
     //His shooter is organic and already raised, so the shot leaves high.
     barrels: [-0.24],
     tint: "#3b82f6",
-    ult: "hex",
-    ultName: "SPIDER-SENSE",
+    ult: "symbiote",
+    ultName: "THE SYMBIOTE",
   },
   garfield: {
     sprite: "nwhGarfield",
@@ -218,8 +238,8 @@ export const HEROES = {
     melee: true,
     barrels: [-0.04],
     tint: "#38bdf8",
-    ult: "pantherblast",
-    ultName: "THE CATCH",
+    ult: "webbomb",
+    ultName: "WEB BOMB",
   },
   strange: {
     sprite: "nwhStrange",
@@ -230,7 +250,7 @@ export const HEROES = {
     pierce: 2, //a bolt of the spell goes through more than one of them
     tint: "#f0b429",
     shootRate: 0.9,
-    ult: "ignition",
+    ult: "stasis",
     ultName: "MIRROR DIMENSION",
   },
 };

@@ -18,9 +18,14 @@ export function ultReady() {
   return world.player && world.player.charge >= CONFIG.ult.max;
 }
 
-//Wanda's hex slows the whole battlefield; everything that moves reads this.
+//One hook for the speed of everything that is not the player: movement,
+//wind-ups, tracking, spawning timers and shots in flight all read it.
+//Strange returns zero through here, which is what makes his ult a stop
+//rather than a slow — nothing needs to know his name to obey it.
 export function enemySpeedScale() {
-  return world.player && world.player.hex > 0 ? CONFIG.ult.hexSlow : 1;
+  if (!world.player) return 1;
+  if (world.player.stasis > 0) return 0;
+  return world.player.hex > 0 ? CONFIG.ult.hexSlow : 1;
 }
 
 export function fireUlt() {
@@ -75,6 +80,51 @@ export function fireUlt() {
     }
     enemies.length = 0;
     if (world.boss) damageBoss(22, world.boss.x, world.boss.y + world.boss.h / 2);
+  } else if (kind === "ironspider") {
+    //Peter 1 suits up. The sprite swaps, the webs stop, and for the next
+    //twenty-five seconds he fights with the legs instead — see fire().
+    world.player.ironSpider = CONFIG.ult.ironSpiderDuration;
+    world.player.invuln = Math.max(world.player.invuln, 0.6);
+    screenFlash("#f0b429", 0.4);
+    addShake(16);
+    for (let i = 0; i < 4; i++) {
+      pop(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#f0b429", 90 + i * 80);
+    }
+    burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#f0b429", 60, 460);
+  } else if (kind === "symbiote") {
+    //Peter 2 lets it take him. Same webs, black, and anything they touch
+    //comes apart — the cap that spares the boss lives on the bullet.
+    world.player.symbiote = CONFIG.ult.symbioteDuration;
+    world.player.invuln = Math.max(world.player.invuln, 0.6);
+    screenFlash("#1c1c26", 0.55);
+    addShake(18);
+    for (let i = 0; i < 5; i++) {
+      pop(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#2a2a38", 100 + i * 85);
+    }
+    burst(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#3b3b4d", 70, 500);
+  } else if (kind === "webbomb") {
+    webBomb();
+  } else if (kind === "stasis") {
+    //Strange holds the lot still. Nothing dies here — that is the point of
+    //it: it buys fifteen seconds to do the killing yourself.
+    world.player.stasis = CONFIG.ult.stasisDuration;
+    screenFlash("#f0b429", 0.5);
+    addShake(12);
+    for (let i = 0; i < 6; i++) {
+      pop(world.player.x + world.player.w / 2, world.player.y + world.player.h / 2,
+          "#f0b429", 120 + i * 110);
+    }
+    //A mandala thrown over every one of them, so the freeze is visible on
+    //the things frozen and not only on the edges of the screen.
+    for (const enemy of enemies) {
+      enemy.held = 1;
+      burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#f0b429", 12, 220);
+    }
+    if (world.boss) world.boss.held = 1;
   } else if (kind === "worthy") {
     becomeWorthy();
   } else if (kind === "barrage") {
@@ -357,6 +407,102 @@ export function updateIgnition(dt) {
 //Shuri's leftover charge. It shields her the way Johnny's flame does —
 //nothing survives closing on her while it is lit — and sheds sparks so the
 //field reads as energy rather than a drawn circle.
+//=====================================================================//
+//  PETER 3: THE WEB BOMB
+//
+//  The only one of the four that is over the instant it is thrown. One
+//  charge, the screen is cleared, and there is nothing left running
+//  afterwards — no suit, no timer, no field to stand in.
+//=====================================================================//
+export function webBomb() {
+  const cx = world.player.x + world.player.w;
+  const cy = world.player.y + world.player.h / 2;
+  screenFlash("#e2e8f0", 0.55);
+  addShake(24);
+  for (let i = 0; i < 6; i++) pop(cx, cy, "#f8fafc", 120 + i * 110);
+  burst(cx, cy, "#e2e8f0", 90, 620);
+
+  //Every one of them, wherever it is. Killed through damageEnemy rather
+  //than by emptying the array, so each still pays out its score, its
+  //charge and its corpse the way any other kill does.
+  for (const enemy of [...enemies]) {
+    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#e2e8f0", 14, 280);
+    damageEnemy(enemy, 999, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+  }
+  enemies.length = 0;
+  //A boss is not one of them and does not fall to it — but standing in a
+  //detonation that size is not free either.
+  if (world.boss) {
+    damageBoss(CONFIG.ult.webBombBossDamage, world.boss.x, world.boss.y + world.boss.h / 2);
+  }
+}
+
+//=====================================================================//
+//  PETER 1: THE LEGS
+//
+//  While the Iron Spider holds he stops throwing webs and reaches
+//  instead. Four legs, one arc, everything in it at once — which is why
+//  the reach is long and the damage is per-enemy rather than per-shot.
+//=====================================================================//
+export function legStrike() {
+  const cfg = CONFIG.ult;
+  world.player.cooldown = cfg.ironSpiderCooldown;
+  world.player.recoil = 1;
+  world.player.legStrike = 1;
+
+  const box = {
+    x: world.player.x + world.player.w * 0.5,
+    y: world.player.y - world.player.h * 0.45,
+    w: cfg.ironSpiderReach,
+    h: world.player.h * 1.9,
+  };
+
+  let landed = 0;
+  for (const enemy of [...enemies]) {
+    if (!overlaps(box, enemy)) continue;
+    landed++;
+    enemy.knock = 0.18;
+    damageEnemy(enemy, cfg.ironSpiderDamage, enemy.x, enemy.y + enemy.h / 2);
+  }
+  sweep(enemies, (e) => e.hp > 0);
+  if (world.boss && overlaps(box, world.boss)) {
+    landed++;
+    damageBoss(cfg.ironSpiderDamage, world.boss.x, world.boss.y + world.boss.h / 2);
+  }
+
+  if (landed) {
+    addShake(5);
+    playSfx("hit", 0.32, 0.7);
+    burst(box.x + box.w * 0.8, world.player.y + world.player.h / 2, "#f0b429", 14, 280);
+  } else {
+    playSfx("shoot", 0.1, 0.55);
+  }
+}
+
+//=====================================================================//
+//  The three timers the new ults run on. Each is only a clock: what they
+//  actually do lives in fire(), in enemySpeedScale() and in the render.
+//=====================================================================//
+export function updateSuits(dt) {
+  const p = world.player;
+  p.ironSpider = Math.max(0, p.ironSpider - dt);
+  p.symbiote = Math.max(0, p.symbiote - dt);
+  p.stasis = Math.max(0, p.stasis - dt);
+  //The strike animation runs on its own clock, faster than the cooldown
+  p.legStrike = Math.max(0, p.legStrike - dt * 7);
+
+  //While the world is held, the mandala on each of them fades in and out
+  //with the ult rather than snapping off at the end.
+  if (p.stasis > 0) {
+    const fade = Math.min(1, p.stasis * 1.5);
+    for (const enemy of enemies) enemy.held = fade;
+    if (world.boss) world.boss.held = fade;
+  } else {
+    for (const enemy of enemies) enemy.held = 0;
+    if (world.boss) world.boss.held = 0;
+  }
+}
+
 export function updatePanther(dt) {
   if (world.player.panther <= 0) return;
   world.player.panther = Math.max(0, world.player.panther - dt);

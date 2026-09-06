@@ -1,4 +1,4 @@
-import { stormStrike, updateIgnition, updateMissiles, updatePanther } from "./abilities.js";
+import { legStrike, stormStrike, updateIgnition, updateMissiles, updatePanther, updateSuits } from "./abilities.js";
 import { playSfx } from "./audio.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
@@ -98,6 +98,7 @@ export function updatePlayer(dt) {
   world.player.cooldown -= dt;
   updateIgnition(dt);
   updatePanther(dt);
+  updateSuits(dt);
 
   if (heldKeys.has("KeyS") && world.player.cooldown <= 0) fire();
 }
@@ -111,6 +112,13 @@ export function fire() {
   }
   if (hero.throwsMjolnir) {
     throwMjolnir();
+    return;
+  }
+  //While the Iron Spider holds, the legs are the attack. Checked before
+  //melee and before the web, because for those twenty-five seconds they
+  //replace both rather than adding to them.
+  if (world.player.ironSpider > 0) {
+    legStrike();
     return;
   }
   //Shuri fights close in as well as firing, so anything in reach gets hit
@@ -145,18 +153,25 @@ export function fire() {
   const barrels = hero.barrels || [0];
   for (const offset of barrels) {
     const muzzleY = world.player.y + world.player.h / 2 + offset * world.player.h;
+    //The black web kills whatever it touches. capVsBoss is what spares the
+    //one fight that is supposed to be a fight: the boss takes the damage
+    //Peter would have done without the suit.
+    const black = world.player.symbiote > 0;
     bullets.push({
       x: world.player.x + world.player.w - 10,
       y: muzzleY - bh / 2,
       w: bw,
       h: bh,
-      dmg: hero.damage,
+      dmg: black ? 999 : hero.damage,
+      capVsBoss: black ? CONFIG.ult.symbioteBossDamage : undefined,
+      symbiote: black,
       pierce: hero.pierce || 0,
       struck: new Set(),
       range: hero.range,
     });
     //muzzle flash, at whichever barrel the shot actually came from
-    burst(world.player.x + world.player.w, muzzleY, heroTint(), 5, 150);
+    burst(world.player.x + world.player.w, muzzleY,
+          world.player.symbiote > 0 ? "#3b3b4d" : heroTint(), 5, 150);
   }
   playSfx("shoot", 0.16, heroDef().shootRate || 1);
 }

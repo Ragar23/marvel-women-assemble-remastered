@@ -280,8 +280,35 @@ def strange():
     return g
 
 
-save_set([("nwh-holland", holland())])
-save_set([("nwh-maguire", maguire())])
+#=====================================================================#
+#  THE TWO SUITS THEY CHANGE INTO
+#
+#  Recolours of the very same grid, never a redraw. The game swaps to
+#  these mid-run, and a sprite that swaps has to match the one it
+#  replaces pixel for pixel: save_set crops a set to one shared box, so
+#  identical geometry means identical files, which means no jump in his
+#  size, his aspect or his hitbox at the moment he suits up.
+#
+#  The Iron Spider's legs are not here. They are drawn in canvas at
+#  render time, because they have to move when he strikes — and keeping
+#  them out of the sprite is also what keeps the box the same width.
+#=====================================================================#
+def recolour(g, swaps):
+    return [[swaps.get(c, c) for c in row] for row in g]
+
+
+#Red stays red; the blue of the legs and the waist goes gold, which is
+#the Iron Spider read at this size.
+IRON = {"B": "G", "b": "g", "L": "Y", "E": "g"}
+
+#And the symbiote takes the lot: suit, legs, webbing, all of it black,
+#with the emblem inverted to white — the one bright thing on him.
+SYMBIOTE = {"R": "M", "r": "m", "H": "M", "B": "M", "b": "m", "L": "M", "E": "W"}
+
+save_set([("nwh-holland", holland()),
+          ("nwh-holland-iron", recolour(holland(), IRON))])
+save_set([("nwh-maguire", maguire()),
+          ("nwh-maguire-symbiote", recolour(maguire(), SYMBIOTE))])
 save_set([("nwh-garfield", garfield())])
 save_set([("nwh-strange", strange())])
 

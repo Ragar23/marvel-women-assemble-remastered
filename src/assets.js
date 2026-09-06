@@ -17,6 +17,10 @@ const imageSources = {
   //The three of them, and the one who pulled them through
   nwhHolland: "./images/nwh-holland.png",
   nwhMaguire: "./images/nwh-maguire.png",
+  //What the first two change into, drawn on the same grid as the sprite
+  //each replaces so the swap does not resize or stretch him.
+  nwhHollandIron: "./images/nwh-holland-iron.png",
+  nwhMaguireSymbiote: "./images/nwh-maguire-symbiote.png",
   nwhGarfield: "./images/nwh-garfield.png",
   nwhStrange: "./images/nwh-strange.png",
 
