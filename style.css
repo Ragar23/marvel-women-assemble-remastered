@@ -207,12 +207,94 @@ body:not([data-screen="menu"]) #portal-canvas {
   text-shadow: 0 2px 10px rgba(6, 4, 14, 0.95), 0 0 26px rgba(6, 4, 14, 0.8);
 }
 
+/* The masthead is the poster art now rather than a cut-out wordmark, and
+   that brings a problem a transparent PNG never had: a photograph is a
+   bright rectangle, and dropped on as-is it reads as a picture pasted
+   over the page rather than the top of it.
+
+   Three things join it to what is behind, and they have to work
+   together — any one alone leaves an edge.
+
+   The plate is darkened and its contrast lifted, so the poster's own
+   blacks fall to roughly the page's black and only the logo and the
+   highlights stay bright. That is what does most of the work: the parts
+   that should disappear now match what they are sitting on.
+
+   The edges are then feathered with a mask, hard enough that there is no
+   border left to notice. It matters most here, where violet rifts are
+   opening behind the masthead and a straight edge would cut across them.
+
+   And a vignette in the page's own ink is laid over the rim, catching
+   whatever the mask leaves. Given the same radius and the same mask as
+   the image so the two fade as one thing.
+
+   Sized to stay near its own resolution: the file is 625px wide, so
+   letting it run to 840 as the old wordmark did would only have made it
+   soft. */
+.game-title {
+  position: relative;
+  isolation: isolate;
+}
+
 .title-logo {
   display: block;
-  max-height: clamp(46px, 32vh, 310px);
-  max-width: min(840px, 90vw);
-  width: auto;
-  filter: drop-shadow(0 0 34px rgba(var(--accent-rgb), 0.32));
+  /* Width alone drives the size, with the file's own aspect locked in, so
+     the element's box and the picture inside it are the same rectangle.
+     They were not: width plus max-height plus object-fit: contain
+     letterboxes the picture inside a taller box, and the mask and the
+     vignette below are measured off the box — so they were feathering
+     empty space either side of the photograph while its own edges stayed
+     hard. The height cap is folded into the width instead, as the height
+     a 625x201 plate would need. */
+  width: min(700px, 92vw, calc(31vh * 3.109));
+  aspect-ratio: 625 / 201;
+  height: auto;
+  border-radius: clamp(6px, 1vw, 14px);
+  filter: brightness(0.72) contrast(1.14) saturate(1.08)
+    drop-shadow(0 0 44px rgba(var(--accent-rgb), 0.3));
+}
+
+/* One mask for the image and the vignette over it, so they fade together */
+/* farthest-side, not a percentage pair. Giving the ellipse explicit radii
+   sizes it against the box's width and height, not its halves — so on a
+   700px-wide plate a 74% radius is 518px against a 350px half-width, the
+   transparent stop lands 168px outside the picture, and the edge you can
+   actually see is still at 68% of the gradient and barely faded. That is
+   why the first two attempts at this looked untouched. farthest-side puts
+   100% exactly on all four edges. */
+.title-logo,
+.game-title::after {
+  -webkit-mask-image: radial-gradient(
+    ellipse farthest-side at 50% 46%,
+    #000 52%,
+    rgba(0, 0, 0, 0.68) 78%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse farthest-side at 50% 46%,
+    #000 52%,
+    rgba(0, 0, 0, 0.68) 78%,
+    transparent 100%
+  );
+}
+
+.game-title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: clamp(6px, 1vw, 14px);
+  /* Transparent through the middle, the page's own ink by the rim */
+  background: radial-gradient(
+    ellipse farthest-side at 50% 46%,
+    rgba(5, 9, 28, 0) 38%,
+    rgba(5, 9, 28, 0.5) 72%,
+    var(--ink) 100%
+  );
+  animation: logo-in 1s cubic-bezier(0.2, 1.1, 0.3, 1) both;
+}
+
+.title-logo {
   animation: logo-in 1s cubic-bezier(0.2, 1.1, 0.3, 1) both;
 }
 
@@ -1188,7 +1270,10 @@ body.is-touch .game-shell {
 /* ---- short and wide: the masthead pays for it first ---- */
 @media (orientation: landscape) and (max-height: 480px) {
   .title-logo {
-    max-height: 17vh;
+    /* A height cap would squash the plate now that width drives the
+       size and the aspect is locked; this is the same budget,
+       spent as the width that height allows. */
+    width: min(700px, 92vw, calc(23vh * 3.109));
   }
 
   .hero-perk,
@@ -1209,7 +1294,16 @@ body.is-touch .game-shell {
   }
 
   .title-logo {
-    max-height: 10vh;
+    /* The old wordmark was text and still read at a tenth of the screen.
+       A photograph does not: at 10vh on a 325px-tall phone the plate came
+       out 101x32 and the logo was a smudge. The room comes from the
+       tagline below, which is the one line here that is flavour rather
+       than instruction. */
+    width: min(700px, 92vw, calc(30vh * 3.109));
+  }
+
+  .tagline {
+    display: none;
   }
 
   .deck {
@@ -1288,7 +1382,10 @@ body.is-touch .game-shell {
   }
 
   .title-logo {
-    max-height: 12vh;
+    /* A height cap would squash the plate now that width drives the
+       size and the aspect is locked; this is the same budget,
+       spent as the width that height allows. */
+    width: min(700px, 92vw, calc(16vh * 3.109));
   }
 
   .card {
