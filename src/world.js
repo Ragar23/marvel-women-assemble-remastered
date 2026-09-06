@@ -1,10 +1,11 @@
 import { chargeUlt, enemySpeedScale } from "./abilities.js";
 import { playSfx } from "./audio.js";
+import { img } from "./assets.js";
 import { H, W } from "./canvas.js";
 import { CONFIG } from "./config.js";
 import { addShake, burst, floatText, pop, screenFlash, spawnCorpse } from "./effects.js";
 import { enemySprite } from "./render.js";
-import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, floatTexts, fx, heroes, incursionStage, particles, playerHitbox, pops, powerUps, run, spawnQueue, world } from "./state.js";
+import { boltArcs, bullets, comboMultiplier, corpses, enemies, enemyShots, fitSprite, floatTexts, fx, heroes, incursionStage, particles, playerHitbox, pops, powerUps, run, spawnQueue, world } from "./state.js";
 import { clamp, overlaps, rand, replaceAll, sweep } from "./util.js";
 import { banner, spawnEnemy } from "./waves.js";
 
@@ -234,6 +235,44 @@ function updateElite(enemy, dt) {
   //"armour" needs no timer: it is handled where damage is applied
 }
 
+//=====================================================================//
+//  BECOMING THE THING
+//
+//  Two of the elites walk in as the man and change when they reach the
+//  line they hold. The change is the introduction: that is the moment
+//  the banner lands and the name goes up, because until then there is
+//  nothing to introduce.
+//
+//  The sprite that replaces him is a different shape, and deliberately
+//  so — Flint Marko is a man and what he becomes is three times his
+//  size. The box is recomputed from the new sprite rather than reused,
+//  and he is grown from his own feet and his own centre so he does not
+//  jump sideways or sink through the floor at the moment he turns.
+//=====================================================================//
+export function transform(enemy) {
+  const def = enemy.def;
+  enemy.human = false;
+  enemy.changing = 1;
+
+  const feet = enemy.y + enemy.h;
+  const midX = enemy.x + enemy.w / 2;
+  const size = fitSprite(img[def.sprite], def.height);
+  enemy.w = size.w;
+  enemy.h = size.h;
+  enemy.x = midX - size.w / 2;
+  enemy.y = clamp(feet - size.h, 0, H - size.h);
+  enemy.baseY = enemy.y;
+
+  banner(def.name, "", def.tint);
+  playSfx("thunder", 0.34, 1.4);
+  addShake(12);
+  //Kept low on purpose: two of them can turn within a second of each
+  //other, and two flashes at full strength white out the run.
+  screenFlash(def.tint, 0.18);
+  burst(midX, feet - size.h / 2, def.tint, 40, 420);
+  for (let i = 0; i < 3; i++) pop(midX, feet - size.h / 2, def.tint, 70 + i * 60);
+}
+
 export function updateEnemies(dt) {
   const survivors = [];
   //Everything an enemy *does* runs on this clock, not on dt: advancing,
@@ -249,12 +288,21 @@ export function updateEnemies(dt) {
     //walking off the left edge, the cheapest answer to a witch was to stand
     //aside and pay the leak; now the only way past one is through it.
     if (enemy.def.holdAt !== undefined && !enemy.releasedHold) {
-      enemy.x = Math.max(enemy.x, W * enemy.def.holdAt);
+      const line = W * enemy.def.holdAt;
+      //Reaching the line is what turns him. Tested before the clamp so it
+      //fires on the frame he arrives rather than one after.
+      if (enemy.human && enemy.x <= line) transform(enemy);
+      enemy.x = Math.max(enemy.x, line);
+    } else if (enemy.human && enemy.x < W * 0.78) {
+      //Nothing with a human form holds a line today, but one that did not
+      //would otherwise walk the whole screen as a man and leak as one.
+      transform(enemy);
     }
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+    enemy.changing = Math.max(0, (enemy.changing || 0) - dt * 1.6);
     enemy.spawnT = Math.min(1, enemy.spawnT + dt / CONFIG.anim.spawnIn);
     enemy.bob += edt * 3.4;
-    if (enemy.def.behaviour) updateElite(enemy, edt);
+    if (enemy.def.behaviour && !enemy.human) updateElite(enemy, edt);
     if (enemy.def.weave) {
       enemy.phase += edt * 2.2;
       enemy.y = clamp(

@@ -42,3 +42,19 @@ dd-mystique
 dd-shuri
 nwh-lizard
 nwh-ock
+
+#
+# Everything below nwh-lizard arrived as a drawing rather than a grid.
+# tools/prepare_drops.py takes them from images/src/ and does the rest —
+# the backdrop, the crop, and bringing the player's two suit sets to one
+# box. Re-run that after make_nwh.py, never the other way round: Peter 1
+# is still generated, and prepare_drops pads him to match the Iron Spider.
+nwh-electro
+nwh-electro-human
+nwh-sandman
+nwh-sandman-human
+nwh-garfield
+nwh-maguire
+nwh-maguire-symbiote
+nwh-strange
+nwh-holland-iron

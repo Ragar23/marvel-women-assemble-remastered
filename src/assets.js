@@ -33,6 +33,10 @@ const imageSources = {
   nwhSymbiote3: "./images/nwh-symbiote3.png",
   nwhAnomaly: "./images/nwh-anomaly.png",
   nwhElectro: "./images/nwh-electro.png",
+  //Who they were before the accident. Each is the sprite its enemy wears
+  //until it reaches the line and turns.
+  nwhElectroHuman: "./images/nwh-electro-human.png",
+  nwhSandmanHuman: "./images/nwh-sandman-human.png",
   nwhLizard: "./images/nwh-lizard.png",
   nwhSandman: "./images/nwh-sandman.png",
   nwhOck: "./images/nwh-ock.png",

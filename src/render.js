@@ -102,6 +102,8 @@ function drawCameo() {
 }
 
 export function enemySprite(enemy) {
+  //Still the man he was: he wears his own face until he reaches the line.
+  if (enemy.human && enemy.def.humanSprite) return img[enemy.def.humanSprite];
   //An animated enemy names its own frames. This used to be hard-coded to
   //the three Chitauri sprites, which meant only one enemy in the game
   //could ever be animated and only if it was that one.
@@ -133,8 +135,24 @@ export function drawEnemy(enemy) {
     }
   );
 
-  //Elites carry their name and a bar from the moment they arrive
-  if (enemy.def.elite) {
+  //The instant of the change: the new shape arrives blown out and
+  //oversized and settles into itself over about half a second.
+  if (enemy.changing > 0) {
+    const k = enemy.changing;
+    ctx.save();
+    ctx.globalAlpha = k * 0.8;
+    ctx.globalCompositeOperation = "lighter";
+    drawSprite(sprite, enemy.x, enemy.y, enemy.w, enemy.h, {
+      sx: 1 + k * 0.4,
+      sy: 1 + k * 0.4,
+      flash: 1,
+    });
+    ctx.restore();
+  }
+
+  //Elites carry their name and a bar from the moment they arrive — but
+  //only once they are the elite. A man crossing the screen is not one.
+  if (enemy.def.elite && !enemy.human) {
     ctx.font = "18px Marvel";
     ctx.textAlign = "center";
     ctx.fillStyle = enemy.def.tint;

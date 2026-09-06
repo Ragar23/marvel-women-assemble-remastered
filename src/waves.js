@@ -51,12 +51,17 @@ export function banner(title, subtitle, color) {
 
 export function spawnEnemy(typeName) {
   const def = ENEMY_TYPES[typeName];
-  const sprite = img[def.sprite];
-  const size = fitSprite(sprite, def.height);
+  //Two of them arrive as the man they used to be and change on the way in.
+  //They walk on at his size, in his sprite, and the world turns them.
+  const human = !!def.humanSprite;
+  const sprite = img[human ? def.humanSprite : def.sprite];
+  const size = fitSprite(sprite, human ? def.humanHeight : def.height);
   const y = rand(10, H - size.h - 10);
   //Bigger, tougher enemies appear from further out so they read as a threat.
   const hpBonus = Math.floor((run.wave - 1) / CONFIG.difficulty.hpEveryWaves);
-  if (def.elite) {
+  //The name lands when the thing arrives, not when the man does — the
+  //banner is the introduction, and he has not been introduced yet.
+  if (def.elite && !human) {
     banner(def.name, "", def.tint);
     playSfx("thunder", 0.3, 1.5);
     addShake(8);
@@ -77,6 +82,10 @@ export function spawnEnemy(typeName) {
     hitFlash: 0,
     timer: 0,
     plating: def.armourHp || 0,
+    //Still a man, and so not yet doing whatever he does. updateElite is
+    //skipped and the sprite is his until transform() flips this.
+    human,
+    changing: 0, //1 → 0 across the change itself
     spawnT: 0, //0 → 1 as it fades and scales into the world
     bob: rand(0, Math.PI * 2), //phase-offset so the swarm never syncs up
   });

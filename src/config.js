@@ -290,6 +290,11 @@ export const ENEMY_TYPES = {
   //screen width they will not walk past: they stop and fight, so the only
   //way past them is through.
   electro: {
+    //Max Dillon walks in. He is a man until he reaches his line, and then
+    //he is not — humanSprite is what he wears until that moment, and
+    //humanHeight is how small a man is next to what he becomes.
+    humanSprite: "nwhElectroHuman",
+    humanHeight: 74,
     sprite: "nwhElectro", speed: 300, height: 96, hp: 10, points: 170,
     leak: 14, elite: true, name: "ELECTRO", tint: "#7dd3fc",
     //He arcs to where you are, so he gets much further in than the others.
@@ -301,6 +306,8 @@ export const ENEMY_TYPES = {
     behaviour: "spear", spearGap: 1.5, weave: 70, holdAt: 0.62,
   },
   sandman: {
+    humanSprite: "nwhSandmanHuman",
+    humanHeight: 76,
     sprite: "nwhSandman", speed: 175, height: 104, hp: 20, points: 240,
     leak: 22, elite: true, name: "SANDMAN", tint: "#fcd34d",
     //Bullets go through sand and it closes up again behind them.
